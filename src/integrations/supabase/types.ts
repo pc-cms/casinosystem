@@ -8494,6 +8494,17 @@ export type Database = {
         }
         Returns: Json
       }
+      club_self_register: {
+        Args: {
+          _casino_slug: string
+          _dob: string
+          _first: string
+          _id_number: string
+          _last: string
+          _phone: string
+        }
+        Returns: Json
+      }
       compute_cage_slots_balance: {
         Args: { p_shift_id: string }
         Returns: Json

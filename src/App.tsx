@@ -135,7 +135,9 @@ const PayrollSettingsPage = lazy(() => import("@/pages/payroll/PayrollSettingsPa
 const PayrollBankExportPage = lazy(() => import("@/pages/payroll/PayrollBankExportPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const ClubLayout = lazy(() => import("@/pages/club/ClubLayout"));
+const ClubLanding = lazy(() => import("@/pages/club/ClubLanding"));
 const ClubLogin = lazy(() => import("@/pages/club/ClubLogin"));
+const ClubRegister = lazy(() => import("@/pages/club/ClubRegister"));
 const ClubWallet = lazy(() => import("@/pages/club/ClubWallet"));
 const ClubShop = lazy(() => import("@/pages/club/ClubShop"));
 const ClubTickets = lazy(() => import("@/pages/club/ClubTickets"));
@@ -467,14 +469,16 @@ const AppRoutes = () => {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/club" element={<ClubLayout />}>
-            <Route index element={<Navigate to="/club/login" replace />} />
-            <Route path="login" element={<ClubLogin />} />
-            <Route path="wallet" element={<ClubWallet />} />
-            <Route path="shop" element={<ClubShop />} />
-            <Route path="tickets" element={<ClubTickets />} />
+          <Route element={<ClubLayout />}>
+            <Route path="/" element={<ClubLanding />} />
+            <Route path="/club" element={<Navigate to="/" replace />} />
+            <Route path="/club/login" element={<ClubLogin />} />
+            <Route path="/club/register" element={<ClubRegister />} />
+            <Route path="/club/wallet" element={<ClubWallet />} />
+            <Route path="/club/shop" element={<ClubShop />} />
+            <Route path="/club/tickets" element={<ClubTickets />} />
           </Route>
-          <Route path="*" element={<Navigate to="/club/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     );
@@ -486,12 +490,13 @@ const AppRoutes = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/pos/login" element={<PosLogin />} />
-        <Route path="/club" element={<ClubLayout />}>
-          <Route index element={<Navigate to="/club/login" replace />} />
-          <Route path="login" element={<ClubLogin />} />
-          <Route path="wallet" element={<ClubWallet />} />
-          <Route path="shop" element={<ClubShop />} />
-          <Route path="tickets" element={<ClubTickets />} />
+        <Route element={<ClubLayout />}>
+          <Route path="/club" element={<Navigate to="/club/login" replace />} />
+          <Route path="/club/login" element={<ClubLogin />} />
+          <Route path="/club/register" element={<ClubRegister />} />
+          <Route path="/club/wallet" element={<ClubWallet />} />
+          <Route path="/club/shop" element={<ClubShop />} />
+          <Route path="/club/tickets" element={<ClubTickets />} />
         </Route>
         <Route path="/pos" element={<PosLayout />}>
           <Route index element={<Navigate to="/pos/waiter" replace />} />

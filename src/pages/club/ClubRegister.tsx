@@ -1,0 +1,332 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Check } from "lucide-react";
+import { toast } from "sonner";
+import { clubApi, setClubSession, getClubToken } from "@/lib/club-api";
+import ClubBackdrop from "@/components/club/ClubBackdrop";
+import ClubCard from "@/components/club/ClubCard";
+
+const GOLD = "#E8C688";
+const GOLD_DEEP = "#A68E61";
+
+type Step = "phone" | "code" | "profile" | "done";
+
+const BRANCHES: { slug: string; label: string }[] = [
+  { slug: "arusha", label: "Arusha" },
+  { slug: "mwanza", label: "Mwanza" },
+  { slug: "dodoma", label: "Dodoma" },
+  { slug: "mbeya", label: "Mbeya" },
+];
+
+const inputStyle: React.CSSProperties = {
+  backgroundColor: "rgba(0,0,0,0.55)",
+  borderColor: `${GOLD}55`,
+  color: GOLD,
+};
+
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <label className="block">
+    <span
+      className="block text-[10px] tracking-[0.3em] uppercase mb-1.5 font-faberge"
+      style={{ color: GOLD_DEEP }}
+    >
+      {label}
+    </span>
+    {children}
+  </label>
+);
+
+const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input
+    {...props}
+    className={`w-full h-12 rounded-md border px-3 outline-none transition-colors focus:border-[${GOLD}] ${props.className ?? ""}`}
+    style={{ ...inputStyle, ...(props.style || {}) }}
+  />
+);
+
+export default function ClubRegister() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState<Step>(getClubToken() ? "profile" : "phone");
+  const [busy, setBusy] = useState(false);
+
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dob, setDob] = useState("");
+  const [idNumber, setIdNumber] = useState("");
+  const [casinoSlug, setCasinoSlug] = useState("arusha");
+
+  const sendOtp = async () => {
+    setBusy(true);
+    try {
+      await clubApi.sendOtp(phone);
+      toast.success("Code sent to your phone");
+      setStep("code");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to send code");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verify = async () => {
+    setBusy(true);
+    try {
+      const res = await clubApi.verifyOtp(phone, code);
+      setClubSession(res.token, res.phone);
+      if (res.player_exists) {
+        toast.success("Welcome back!");
+        navigate("/club/wallet", { replace: true });
+      } else {
+        setStep("profile");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Verification failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitProfile = async () => {
+    if (!firstName.trim() || !lastName.trim() || !dob) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+    setBusy(true);
+    try {
+      const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+      const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+      const res = await fetch(`${FN_URL}/club-register-player`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: ANON,
+          Authorization: `Bearer ${getClubToken()}`,
+        },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          dob,
+          id_number: idNumber || null,
+          casino_slug: casinoSlug,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || "Registration failed");
+      setStep("done");
+    } catch (e: any) {
+      toast.error(e.message || "Registration failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="relative min-h-screen flex flex-col text-white" style={{ backgroundColor: "#A0000D" }}>
+      <ClubBackdrop />
+
+      <header className="relative px-5 pt-6 flex items-center justify-between">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 text-xs tracking-[0.25em] uppercase"
+          style={{ color: GOLD }}
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </Link>
+        <span
+          className="font-faberge text-xs tracking-[0.3em]"
+          style={{ color: GOLD }}
+        >
+          PREMIER CLUB
+        </span>
+        <span className="w-12" />
+      </header>
+
+      <main className="relative flex-1 flex items-start justify-center px-5 py-10">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-6">
+            <h1
+              className="font-faberge text-3xl leading-tight"
+              style={{ color: GOLD }}
+            >
+              {step === "done" ? "Welcome" : "Join the Club"}
+            </h1>
+            <p
+              className="text-[10px] tracking-[0.4em] uppercase mt-2"
+              style={{ color: GOLD_DEEP }}
+            >
+              {step === "phone" && "Step 1 of 3 · Phone"}
+              {step === "code" && "Step 2 of 3 · Verify"}
+              {step === "profile" && "Step 3 of 3 · Your details"}
+              {step === "done" && "All set"}
+            </p>
+          </div>
+
+          <ClubCard className="p-6 space-y-4">
+            {step === "phone" && (
+              <>
+                <Field label="Phone number">
+                  <TextInput
+                    type="tel"
+                    placeholder="+255 7XX XXX XXX"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    autoFocus
+                  />
+                </Field>
+                <button
+                  onClick={sendOtp}
+                  disabled={!phone || busy}
+                  className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
+                  style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
+                >
+                  {busy ? "Sending…" : "Send Code"}
+                </button>
+              </>
+            )}
+
+            {step === "code" && (
+              <>
+                <Field label="6-digit code">
+                  <TextInput
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    className="text-center text-2xl tracking-[0.5em] font-mono"
+                    autoFocus
+                  />
+                </Field>
+                <button
+                  onClick={verify}
+                  disabled={code.length !== 6 || busy}
+                  className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
+                  style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
+                >
+                  {busy ? "Verifying…" : "Verify"}
+                </button>
+                <button
+                  onClick={() => setStep("phone")}
+                  className="w-full text-xs tracking-[0.25em] uppercase"
+                  style={{ color: GOLD_DEEP }}
+                >
+                  Change phone
+                </button>
+              </>
+            )}
+
+            {step === "profile" && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="First name">
+                    <TextInput
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      autoFocus
+                    />
+                  </Field>
+                  <Field label="Last name">
+                    <TextInput
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </Field>
+                </div>
+                <Field label="Date of birth">
+                  <TextInput
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                  />
+                </Field>
+                <Field label="ID number (optional)">
+                  <TextInput
+                    value={idNumber}
+                    onChange={(e) => setIdNumber(e.target.value)}
+                  />
+                </Field>
+                <Field label="Preferred branch">
+                  <div className="grid grid-cols-2 gap-2">
+                    {BRANCHES.map((b) => {
+                      const active = casinoSlug === b.slug;
+                      return (
+                        <button
+                          key={b.slug}
+                          type="button"
+                          onClick={() => setCasinoSlug(b.slug)}
+                          className="h-11 rounded-md border text-xs tracking-[0.25em] uppercase font-faberge transition-colors"
+                          style={{
+                            backgroundColor: active ? GOLD : "rgba(0,0,0,0.5)",
+                            color: active ? "#0a0a0a" : GOLD,
+                            borderColor: active ? GOLD : `${GOLD}55`,
+                          }}
+                        >
+                          {b.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+                <p
+                  className="text-[10px] tracking-[0.2em] uppercase text-center pt-1"
+                  style={{ color: GOLD_DEEP }}
+                >
+                  By joining you confirm you are 18+ and accept the club rules.
+                </p>
+                <button
+                  onClick={submitProfile}
+                  disabled={busy}
+                  className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
+                  style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
+                >
+                  {busy ? "Creating account…" : "Complete Registration"}
+                </button>
+              </>
+            )}
+
+            {step === "done" && (
+              <div className="text-center py-4">
+                <div
+                  className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-5"
+                  style={{ backgroundColor: GOLD }}
+                >
+                  <Check className="w-8 h-8" style={{ color: "#0a0a0a" }} />
+                </div>
+                <h2 className="font-faberge text-2xl mb-2" style={{ color: GOLD }}>
+                  You're in.
+                </h2>
+                <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.75)" }}>
+                  Welcome to Premier Club, {firstName}.<br />
+                  Visit any branch to start earning credits.
+                </p>
+                <button
+                  onClick={() => navigate("/club/wallet", { replace: true })}
+                  className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase"
+                  style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
+                >
+                  Open My Wallet
+                </button>
+              </div>
+            )}
+          </ClubCard>
+
+          {step === "phone" && (
+            <p className="text-center text-xs mt-6" style={{ color: GOLD_DEEP }}>
+              Already a member?{" "}
+              <Link to="/club/login" className="underline" style={{ color: GOLD }}>
+                Sign in
+              </Link>
+            </p>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
