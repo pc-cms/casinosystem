@@ -199,6 +199,10 @@ const KycReviewsPage = () => {
             Verified by Reception
             {receptionVerified.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5">{receptionVerified.length}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="trusted" className="gap-2">
+            Trusted (AM)
+            {trustedPlayers.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5">{trustedPlayers.length}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="notverified" className="gap-2">
             Not Verified
             {notVerified.length > 0 && <Badge variant="outline" className="text-[10px] px-1.5">{notVerified.length}</Badge>}
