@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { clubApi, fetchLotteries, fetchMyTickets } from "@/lib/club-api";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
@@ -6,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ShieldAlert } from "lucide-react";
+
+const GOLD = "#E8C688";
+const GOLD_DEEP = "#A68E61";
 
 export default function ClubTickets() {
   const qc = useQueryClient();
@@ -21,7 +26,13 @@ export default function ClubTickets() {
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const isVerified = wallet?.player?.verification_status === "verified";
+
   const buy = async (lotteryId: string, casinoId: string, price: number) => {
+    if (!isVerified) {
+      toast.error("Complete verification to buy tickets");
+      return;
+    }
     const qty = qtyMap[lotteryId] || 1;
     const total = price * qty;
     if ((wallet?.balance ?? 0) < total) {
