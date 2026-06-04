@@ -1,0 +1,1 @@
+ALTER TABLE public.club_accounts ADD COLUMN IF NOT EXISTS password_hash text;
