@@ -105,7 +105,7 @@ export default function ClubWallet() {
       {/* ===== Verification CTA ===== */}
       {!isVerified && (
         <Link
-          to="/club/profile"
+          to="/club/verify"
           className="flex items-center justify-between rounded-xl border px-4 py-3 backdrop-blur-sm"
           style={{ borderColor: `${GOLD}66`, backgroundColor: "rgba(232,198,136,0.08)" }}
         >
