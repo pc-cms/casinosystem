@@ -190,7 +190,7 @@ export default function ClubVerifyWizard() {
                 National ID, passport or driver's license
               </p>
             </div>
-            <CameraCapture facing="environment" label="ID front" value={idFront} onChange={setIdFront} gold={GOLD} goldDeep={GOLD_DEEP} />
+            <CameraCapture facing="environment" label="ID front" value={idFront} onChange={setIdFront} gold={GOLD} goldDeep={GOLD_DEEP} allowGallery />
           </>
         )}
 
@@ -202,7 +202,7 @@ export default function ClubVerifyWizard() {
                 Photo of the reverse side
               </p>
             </div>
-            <CameraCapture facing="environment" label="ID back" value={idBack} onChange={setIdBack} gold={GOLD} goldDeep={GOLD_DEEP} />
+            <CameraCapture facing="environment" label="ID back" value={idBack} onChange={setIdBack} gold={GOLD} goldDeep={GOLD_DEEP} allowGallery />
           </>
         )}
 
