@@ -8488,6 +8488,7 @@ export type Database = {
         }
         Returns: Json
       }
+      club_cancel_kyc: { Args: { _player_id: string }; Returns: Json }
       club_place_shop_order: {
         Args: {
           p_casino_id: string
@@ -8505,6 +8506,41 @@ export type Database = {
           _id_number: string
           _last: string
           _phone: string
+        }
+        Returns: Json
+      }
+      club_self_register_minimal: {
+        Args: {
+          _casino_slug: string
+          _dob: string
+          _first: string
+          _last: string
+          _phone: string
+        }
+        Returns: Json
+      }
+      club_submit_kyc: {
+        Args: {
+          _dob: string
+          _first: string
+          _id_back_url: string
+          _id_front_url: string
+          _id_number: string
+          _last: string
+          _ocr: Json
+          _player_id: string
+          _selfie_url: string
+        }
+        Returns: Json
+      }
+      club_update_profile: {
+        Args: {
+          _casino_slug: string
+          _dob: string
+          _first: string
+          _id_number: string
+          _last: string
+          _player_id: string
         }
         Returns: Json
       }
