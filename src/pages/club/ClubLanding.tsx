@@ -46,9 +46,9 @@ export default function ClubLanding() {
 
           <div className="flex flex-col items-center text-center mt-8">
             <img
-              src="/arusha-premier-logo.svg"
-              alt="Premier Casino"
-              className="h-32 w-auto mb-8 drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
+              src="/premier-club-logo.svg"
+              alt="Premier Club"
+              className="h-32 w-32 mb-8 drop-shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
             />
             <h1
               className="font-faberge text-5xl sm:text-6xl leading-none mb-3"

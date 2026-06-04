@@ -71,9 +71,9 @@ export default function ClubLogin() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img
-              src="/arusha-premier-logo.svg"
-              alt="Premier Casino"
-              className="h-20 w-auto mx-auto mb-5"
+              src="/premier-club-logo.svg"
+              alt="Premier Club"
+              className="h-20 w-20 mx-auto mb-5"
             />
             <h1 className="font-faberge text-3xl" style={{ color: GOLD }}>
               Welcome back
