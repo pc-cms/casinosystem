@@ -8851,6 +8851,13 @@ export type Database = {
           drop_recycled: number
         }[]
       }
+      player_lifetime_visit_counts: {
+        Args: { _casino_id: string; _player_ids?: string[] }
+        Returns: {
+          player_id: string
+          visit_count: number
+        }[]
+      }
       player_segment_recalc: { Args: { _casino: string }; Returns: number }
       populate_table_daily_results_for_day: {
         Args: { _business_date: string; _casino_id: string; _user: string }
