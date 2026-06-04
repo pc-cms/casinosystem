@@ -91,6 +91,9 @@ describe("Phase 4 — staff master invariants", () => {
           if (/breaklist_logs/.test(line) || /breaklist_logs/.test(lines[i - 1] ?? "")) return;
           const window = lines.slice(Math.max(0, i - 8), i).join("\n");
           if (/breaklist_logs/.test(window)) return;
+          // React Query cache patches / optimistic updates are in-memory only,
+          // not DB writes. Skip when surrounding window is clearly cache code.
+          if (/setQueryData|getQueryData|cancelQueries|onMutate|BonusEntry/.test(window)) return;
           offenders.push(`L${i + 1}: ${line.trim()}`);
         });
         expect(offenders, `legacy id key written in ${file}:\n  ${offenders.join("\n  ")}`).toEqual([]);

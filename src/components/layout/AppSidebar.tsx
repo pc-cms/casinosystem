@@ -8,7 +8,7 @@ import {
   Building2, UserCheck, ClipboardPen, ShieldCheck, ShieldOff,
   Wallet, DoorOpen, ShieldAlert, Menu, Upload,
   ChevronsLeft, ChevronsRight, CreditCard, CalendarDays, ChevronDown, ChevronRight, Coins, Briefcase,
-  RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone,
+  RefreshCw, AlertTriangle, User as UserIcon, Rows3, Rows2, Gift, CheckCircle2, Coffee, Megaphone, TrendingUp,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { resetPWACache } from "@/lib/pwa-register";
@@ -122,6 +122,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/admin/shop/orders", icon: ClipboardList, label: "Shop Orders", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/kyc", icon: ShieldCheck, label: "KYC Reviews", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/am-budget", icon: Wallet, label: "My AM Budget", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/am-performance", icon: TrendingUp, label: "AM Performance", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/fm-topups", icon: Wallet, label: "FM Top-ups", roles: ["super_admin", "finance_manager"], section: "PROMO" },
   { to: "/reports/promo-issuance", icon: FileBarChart, label: "Report · Issuance", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/reports/promo-redemptions", icon: FileBarChart, label: "Report · Redemptions", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },

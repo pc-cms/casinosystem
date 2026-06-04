@@ -8419,6 +8419,15 @@ export type Database = {
         }
         Returns: Json
       }
+      am_performance_summary: {
+        Args: {
+          _am_id: string
+          _casino_id?: string
+          _from?: string
+          _to?: string
+        }
+        Returns: Json
+      }
       apply_cage_shift_closing: { Args: { _shift_id: string }; Returns: Json }
       approve_expense_as_manager: {
         Args: { p_expense_id: string; p_manager_id: string }
