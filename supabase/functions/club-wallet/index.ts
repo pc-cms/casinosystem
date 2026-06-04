@@ -1,6 +1,6 @@
 // Premier Club: get wallet (active grants, balance, recent redemptions)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifyClubToken, tokenFromRequest } from "../_shared/club-token.ts";
+import { verifyClubToken, tokenFromRequest, issueClubToken } from "../_shared/club-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +41,11 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    return new Response(JSON.stringify({ ok: true, player, balance, grants, redemptions }), {
+    // Short-lived rotating token used as the cashier QR payload (60s).
+    const redeem_token = await issueClubToken(session.phone, 60);
+    const redeem_token_exp = Math.floor(Date.now() / 1000) + 60;
+
+    return new Response(JSON.stringify({ ok: true, player, balance, grants, redemptions, redeem_token, redeem_token_exp }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
