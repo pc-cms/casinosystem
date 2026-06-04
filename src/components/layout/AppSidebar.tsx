@@ -118,8 +118,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/admin/promo-codes", icon: Gift, label: "Promo Codes", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/promo-grants", icon: Gift, label: "Promo Grants", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/lotteries", icon: Gift, label: "Lotteries", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/shop-catalog", icon: Gift, label: "Shop Catalog", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
-  { to: "/admin/shop-orders", icon: ClipboardList, label: "Shop Orders", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/shop", icon: Gift, label: "Shop Catalog", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/admin/shop/orders", icon: ClipboardList, label: "Shop Orders", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/kyc", icon: ShieldCheck, label: "KYC Reviews", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/am-budget", icon: Wallet, label: "My AM Budget", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/admin/fm-topups", icon: Wallet, label: "FM Top-ups", roles: ["super_admin", "finance_manager"], section: "PROMO" },
@@ -128,6 +128,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reports/promo-expiry", icon: FileBarChart, label: "Report · Expiry", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/reports/promo-codes", icon: FileBarChart, label: "Report · Codes", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/reports/cashback", icon: FileBarChart, label: "Report · Cashback", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
+  { to: "/reports/lottery-sales", icon: FileBarChart, label: "Report · Lottery Sales", roles: ["super_admin", "manager", "finance_manager"], section: "PROMO" },
   { to: "/reports/am-budget", icon: FileBarChart, label: "Report · AM Budget", roles: ["super_admin", "finance_manager"], section: "PROMO" },
 
   // SYSTEM — admin/system tools
