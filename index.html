@@ -59,6 +59,17 @@
               var apple = document.querySelector('link[rel="apple-touch-icon"]');
               if (apple) apple.setAttribute("href", "/arusha-logo.png");
             }
+
+            if (branch.favicon) {
+              var fav2 = document.querySelector('link[rel="icon"]');
+              if (fav2) fav2.setAttribute("href", branch.favicon);
+              var apple2 = document.querySelector('link[rel="apple-touch-icon"]');
+              if (apple2) apple2.setAttribute("href", branch.favicon);
+            }
+            if (branch.themeColor) {
+              var tc = document.querySelector('meta[name="theme-color"]');
+              if (tc) tc.setAttribute("content", branch.themeColor);
+            }
           }
         } catch (e) { /* noop */ }
       })();
