@@ -92,6 +92,11 @@ Deno.serve(async (req) => {
     }
 
     const playerId = (data as any)?.player_id;
+
+    // Store password hash on the club_account row created by the RPC.
+    const pwHash = await hashPassword(password);
+    await sb.from("club_accounts").update({ password_hash: pwHash }).eq("phone", session.phone);
+
     const { data: player } = await sb
       .from("players")
       .select("id, first_name, last_name, phone, verification_status, casino_id")
