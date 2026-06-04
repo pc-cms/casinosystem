@@ -18,7 +18,7 @@ export default function ClubLogin() {
 
   const signIn = async () => {
     const phone = buildE164(phoneLocal);
-    if (phoneLocal.length < 9 || !password) return;
+    if (phoneLocal.length < 8 || !password) return;
     setBusy(true);
     try {
       const res = await clubApi.loginPassword(phone, password);
@@ -86,7 +86,7 @@ export default function ClubLogin() {
             </label>
             <button
               onClick={signIn}
-              disabled={phoneLocal.length < 9 || !password || busy}
+              disabled={phoneLocal.length < 8 || !password || busy}
               className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
               style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
             >

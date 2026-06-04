@@ -68,7 +68,7 @@ export default function ClubRegister() {
   const phone = buildE164(phoneLocal);
 
   const sendOtp = async () => {
-    if (phoneLocal.length < 9) return;
+    if (phoneLocal.length < 8) return;
     setBusy(true);
     try {
       await clubApi.sendOtp(phone);
@@ -187,7 +187,7 @@ export default function ClubRegister() {
                 </Field>
                 <button
                   onClick={sendOtp}
-                  disabled={phoneLocal.length < 9 || busy}
+                  disabled={phoneLocal.length < 8 || busy}
                   className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
                   style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
                 >
