@@ -8,11 +8,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function ClubWallet() {
+  const [showQr, setShowQr] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ["club-wallet"],
     queryFn: () => clubApi.wallet(),
     refetchInterval: 30_000,
   });
+  const token = getClubToken();
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
