@@ -88,6 +88,7 @@ export const getSlugFromHostname = (): string | null => {
     const slug = match[1].toLowerCase();
     // Exclude known non-casino subdomains
     if (["www", "api", "admin"].includes(slug)) return null;
+    if (slug === "club") return "__club__";
     if (slug === "premier") return "__premier__";
     return resolveSlugAlias(slug);
   }
