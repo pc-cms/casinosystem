@@ -47,8 +47,8 @@ export default function ClubShop() {
         <ul className="space-y-3">
           {items.map((it: any) => (
             <li key={it.id} className="rounded-lg border border-border bg-card p-3 flex gap-3">
-              {it.image_url && (
-                <img src={it.image_url} alt={it.name} className="w-16 h-16 rounded-md object-cover" />
+              {it.photo_url && (
+                <img src={it.photo_url} alt={it.name} className="w-16 h-16 rounded-md object-cover" />
               )}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{it.name}</p>
