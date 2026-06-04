@@ -54,7 +54,7 @@ export const clubApi = {
 export async function fetchShopCatalog() {
   const { data, error } = await supabase
     .from("shop_items")
-    .select("id, name, description, price_credits, stock_qty, image_url, casino_id, is_active")
+    .select("id, name, description, price_credits, stock_qty, photo_url, casino_id, is_active")
     .eq("is_active", true)
     .gt("stock_qty", 0)
     .order("price_credits", { ascending: true });
