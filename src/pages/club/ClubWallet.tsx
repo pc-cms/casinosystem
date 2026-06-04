@@ -1,15 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { clubApi } from "@/lib/club-api";
+import { clubApi, getClubToken } from "@/lib/club-api";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
-import { Sparkles } from "lucide-react";
+import { Sparkles, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function ClubWallet() {
+  const [showQr, setShowQr] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ["club-wallet"],
     queryFn: () => clubApi.wallet(),
     refetchInterval: 30_000,
   });
+  const token = getClubToken();
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
@@ -36,6 +41,22 @@ export default function ClubWallet() {
           {data.player.first_name} {data.player.last_name}
         </p>
       </div>
+
+      <section className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-4">
+        {showQr && token ? (
+          <>
+            <QRCodeSVG value={token} size={192} bgColor="#ffffff" fgColor="#000000" includeMargin />
+            <p className="text-xs text-muted-foreground text-center">Show this code to the cashier to redeem your credits.</p>
+            <Button variant="outline" size="sm" onClick={() => setShowQr(false)}>Hide QR</Button>
+          </>
+        ) : (
+          <Button onClick={() => setShowQr(true)} className="gap-2 w-full" size="lg">
+            <QrCode className="w-5 h-5" /> Show redemption QR
+          </Button>
+        )}
+      </section>
+
+
 
       <section>
         <h3 className="text-sm font-semibold mb-2">Active grants</h3>
