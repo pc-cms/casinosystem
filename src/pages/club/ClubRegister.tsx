@@ -258,6 +258,14 @@ export default function ClubRegister() {
                     onChange={(e) => setIdNumber(e.target.value)}
                   />
                 </Field>
+                <Field label="Password">
+                  <TextInput
+                    type="password"
+                    placeholder="Min 8 chars, letters + numbers"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </Field>
                 <Field label="Preferred branch">
                   <div className="grid grid-cols-2 gap-2">
                     {BRANCHES.map((b) => {
