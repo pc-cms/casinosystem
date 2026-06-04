@@ -16,8 +16,8 @@ async function hmac(payload: string): Promise<string> {
   return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-export async function issueClubToken(phone: string): Promise<string> {
-  const exp = Math.floor(Date.now() / 1000) + TTL_SECONDS;
+export async function issueClubToken(phone: string, ttlSeconds: number = TTL_SECONDS): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   const payload = `${phone}.${exp}`;
   const sig = await hmac(payload);
   return btoa(payload).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_") + "." + sig;
