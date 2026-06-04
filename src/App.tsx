@@ -120,6 +120,7 @@ const CashbackReport = lazy(() => import("@/pages/reports/CashbackReport"));
 const AmBudgetReport = lazy(() => import("@/pages/reports/AmBudgetReport"));
 const FmTopupsPage = lazy(() => import("@/pages/admin/FmTopupsPage"));
 const PromoCodesReport = lazy(() => import("@/pages/reports/PromoCodesReport"));
+const LotterySalesReport = lazy(() => import("@/pages/reports/LotterySalesReport"));
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
 const MonthlyTips = lazy(() => import("@/pages/MonthlyTips"));
 const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
