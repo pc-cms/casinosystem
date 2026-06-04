@@ -452,6 +452,13 @@ const AppRoutes = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/pos/login" element={<PosLogin />} />
+        <Route path="/club" element={<ClubLayout />}>
+          <Route index element={<Navigate to="/club/login" replace />} />
+          <Route path="login" element={<ClubLogin />} />
+          <Route path="wallet" element={<ClubWallet />} />
+          <Route path="shop" element={<ClubShop />} />
+          <Route path="tickets" element={<ClubTickets />} />
+        </Route>
         <Route path="/pos" element={<PosLayout />}>
           <Route index element={<Navigate to="/pos/waiter" replace />} />
           <Route path="waiter" element={<PosWaiter />} />
