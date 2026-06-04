@@ -652,9 +652,24 @@ export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}
     toast.success("Manager override granted");
   };
 
+  // Age check: must be 18+
+  const isAdult = (() => {
+    if (!form.birth_date) return false;
+    const dob = new Date(form.birth_date);
+    if (isNaN(dob.getTime())) return false;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age >= 18;
+  })();
+
   const canSubmit =
-    form.first_name &&
-    form.last_name &&
+    !!form.first_name &&
+    !!form.last_name &&
+    !!form.phone &&
+    !!form.birth_date &&
+    isAdult &&
     !submitting &&
     !ocrLoading &&
     (dupStatus !== "blocked" || overrideGranted);
