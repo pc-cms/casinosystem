@@ -613,9 +613,6 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <Save className="w-3.5 h-3.5" /> Close Shift
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={() => navigate(`/cage-slots/report/${shift.id}`)} className="gap-1.5 h-8">
-          <Printer className="w-3.5 h-3.5" /> Report
-        </Button>
         {canManage && (
           <Button variant="outline" size="sm" onClick={() => navigate("/cage-slots?view=history")} className="gap-1.5 h-8">
             <History className="w-3.5 h-3.5" /> History
