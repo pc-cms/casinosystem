@@ -250,6 +250,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
         >
           <UserCheck className="w-3.5 h-3.5" /> Tips Floor
         </Button>
+        <Button variant="outline" size="sm" onClick={() => setShowPromoIn(true)} className="gap-1.5 bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/40 hover:bg-violet-500/25">
+          <Sparkles className="w-3.5 h-3.5" /> Promo IN
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
         </Button>
