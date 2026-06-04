@@ -61,6 +61,7 @@ export type ModuleKey =
   | "import_reports"
   | "marketing_campaigns"
   | "crm_players"
+  | "kyc_reviews"
   | "admin";
 
 export interface ModuleDef {
@@ -104,6 +105,7 @@ export const MODULES: ModuleDef[] = [
   { key: "reception_register", label: "Reception · Register", group: "Players" },
   { key: "reception_update", label: "Reception · Update Data", group: "Players" },
   { key: "crm_players", label: "Player CRM", group: "Players" },
+  { key: "kyc_reviews", label: "KYC Reviews (AM)", group: "Players" },
 
   // Finance
   { key: "bank_checks", label: "Bank", group: "Finance" },

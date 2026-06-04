@@ -395,7 +395,7 @@ const ProtectedRoutes = () => {
           <Route path="/admin/shop/orders" element={<RoleGuard path="/admin/shop/orders"><ErrorBoundary><ShopOrdersPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/lotteries" element={<RoleGuard path="/admin/lotteries"><ErrorBoundary><LotteriesPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/promo-grants" element={<RoleGuard path="/admin/promo-grants"><ErrorBoundary><PromoGrantsPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/admin/kyc" element={<RoleGuard path="/admin"><ErrorBoundary><KycReviewsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/kyc" element={<RoleGuard path="/admin/kyc"><ErrorBoundary><KycReviewsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/am-budget" element={<RoleGuard path="/admin/am-budget"><ErrorBoundary><AmBudgetPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/am-performance" element={<RoleGuard path="/admin/am-performance"><ErrorBoundary><AmPerformancePage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/promo-issuance" element={<ErrorBoundary><PromoIssuanceReport /></ErrorBoundary>} />

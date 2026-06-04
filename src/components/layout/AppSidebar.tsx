@@ -106,7 +106,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/crm/players", icon: UsersRound, label: "Player CRM", roles: ["super_admin", "manager", "floor_manager", "finance_manager", "hr", "account_manager" as AppRole], section: "CRM" },
 
   // MARKETING
-  { to: "/marketing/campaigns", icon: Megaphone, label: "Campaigns", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "MARKETING" },
+  { to: "/marketing/campaigns", icon: Megaphone, label: "Promo Campaigns", roles: ["super_admin", "manager", "finance_manager", "account_manager" as AppRole], section: "MARKETING" },
   
   // BAR / POS — visible only to super_admin and dedicated POS roles.
   { to: "/pos/manager", icon: Coffee, label: "Bar Manager", roles: ["super_admin", "pos_manager" as AppRole, "pos_bartender" as AppRole, "pos_waiter" as AppRole], section: "BAR" },

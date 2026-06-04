@@ -134,7 +134,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/admin/shop/orders") return "shop_orders" as ModuleKey;
   if (base === "/admin/am-budget") return "am_budget" as ModuleKey;
   if (base === "/admin/am-performance") return "am_performance" as ModuleKey;
-  if (base === "/admin/kyc") return "admin";
+  if (base === "/admin/kyc") return "kyc_reviews" as ModuleKey;
   if (base === "/admin/fm-topups") return "admin";
   if (base === "/admin" || base.startsWith("/admin/")) return "admin";
 
