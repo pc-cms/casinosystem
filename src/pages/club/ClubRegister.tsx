@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { clubApi, setClubSession, getClubToken } from "@/lib/club-api";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
 import ClubCard from "@/components/club/ClubCard";
+import PhoneInput, { buildE164 } from "@/components/club/PhoneInput";
 
 const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
