@@ -9229,8 +9229,8 @@ export type Database = {
         | "other"
         | "pos_comp"
         | "bar_charge"
-      kyc_review_source: "reception" | "club"
-      kyc_review_status: "pending" | "approved" | "rejected"
+      kyc_review_source: "reception" | "club" | "club_app"
+      kyc_review_status: "pending" | "approved" | "rejected" | "cancelled"
       log_category:
         | "transaction"
         | "edit"
@@ -9529,8 +9529,8 @@ export const Constants = {
         "pos_comp",
         "bar_charge",
       ],
-      kyc_review_source: ["reception", "club"],
-      kyc_review_status: ["pending", "approved", "rejected"],
+      kyc_review_source: ["reception", "club", "club_app"],
+      kyc_review_status: ["pending", "approved", "rejected", "cancelled"],
       log_category: [
         "transaction",
         "edit",
