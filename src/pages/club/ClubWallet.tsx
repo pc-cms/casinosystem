@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 
 export default function ClubWallet() {
   const [showQr, setShowQr] = useState(false);
+  // Faster refresh while QR is visible so the rotating redeem token stays fresh.
   const { data, isLoading, error } = useQuery({
     queryKey: ["club-wallet"],
     queryFn: () => clubApi.wallet(),
-    refetchInterval: 30_000,
+    refetchInterval: showQr ? 30_000 : 60_000,
   });
-  const token = getClubToken();
+  const qrPayload = data?.redeem_token ?? getClubToken();
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
