@@ -18,8 +18,10 @@ const KycReviewsPage = () => {
   const qc = useQueryClient();
   const [decision, setDecision] = useState<{ id: string; approve: boolean } | null>(null);
   const [notes, setNotes] = useState("");
-  const [revoke, setRevoke] = useState<{ player_id: string; name: string } | null>(null);
+  const [revoke, setRevoke] = useState<{ player_id: string; name: string; source: "reception" | "am_trusted" } | null>(null);
   const [revokeReason, setRevokeReason] = useState("");
+  const [trust, setTrust] = useState<{ player_id: string; name: string } | null>(null);
+  const [trustReason, setTrustReason] = useState("");
   const [search, setSearch] = useState("");
 
   // ============= Queries =============
@@ -46,6 +48,22 @@ const KycReviewsPage = () => {
         .from("players")
         .select("id, full_name, first_name, last_name, phone, id_number, casino_id, verified_at, verified_by, casinos(name)")
         .eq("verified_source", "reception")
+        .eq("verification_status", "verified")
+        .order("verified_at", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Tab 2b: AM-trusted (verified bypass, no docs)
+  const { data: trustedPlayers = [], isLoading: trustedLoading } = useQuery({
+    queryKey: ["players", "am_trusted"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("players")
+        .select("id, full_name, first_name, last_name, phone, id_number, casino_id, verified_at, verified_by, casinos(name)")
+        .eq("verified_source", "am_trusted")
         .eq("verification_status", "verified")
         .order("verified_at", { ascending: false })
         .limit(300);
@@ -103,7 +121,8 @@ const KycReviewsPage = () => {
   const revokeMut = useMutation({
     mutationFn: async () => {
       if (!revoke) return;
-      const { error } = await supabase.rpc("kyc_revoke_reception" as any, {
+      const rpcName = revoke.source === "am_trusted" ? "am_revoke_verification" : "kyc_revoke_reception";
+      const { error } = await supabase.rpc(rpcName as any, {
         p_player_id: revoke.player_id,
         p_reason: revokeReason.trim(),
       });
@@ -118,17 +137,37 @@ const KycReviewsPage = () => {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
+  const trustMut = useMutation({
+    mutationFn: async () => {
+      if (!trust) return;
+      const { error } = await supabase.rpc("am_trust_player" as any, {
+        p_player_id: trust.player_id,
+        p_reason: trustReason.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Player marked as Trusted");
+      setTrust(null);
+      setTrustReason("");
+      qc.invalidateQueries({ queryKey: ["players"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
   // ============= Filters =============
-  const rvFiltered = useMemo(() => {
-    if (!search.trim()) return receptionVerified;
+  const filterPlayers = (list: any[]) => {
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return receptionVerified.filter(
+    return list.filter(
       (p) =>
         p.full_name?.toLowerCase().includes(q) ||
         p.phone?.toLowerCase().includes(q) ||
         p.id_number?.toLowerCase().includes(q)
     );
-  }, [receptionVerified, search]);
+  };
+  const rvFiltered = useMemo(() => filterPlayers(receptionVerified), [receptionVerified, search]);
+  const trustedFiltered = useMemo(() => filterPlayers(trustedPlayers), [trustedPlayers, search]);
 
   const nvFiltered = useMemo(() => {
     let list = notVerified;
@@ -159,6 +198,10 @@ const KycReviewsPage = () => {
           <TabsTrigger value="reception" className="gap-2">
             Verified by Reception
             {receptionVerified.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5">{receptionVerified.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="trusted" className="gap-2">
+            Trusted (AM)
+            {trustedPlayers.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5">{trustedPlayers.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="notverified" className="gap-2">
             Not Verified
@@ -249,7 +292,7 @@ const KycReviewsPage = () => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}` })}
+                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}`, source: "reception" })}
                         >
                           <RotateCcw className="size-3.5" /> Revoke
                         </Button>
@@ -261,6 +304,58 @@ const KycReviewsPage = () => {
             </DataTable>
           </PageSection>
         </TabsContent>
+
+        {/* ============ TAB 2b: TRUSTED (AM bypass) ============ */}
+        <TabsContent value="trusted">
+          <PageSection
+            title={`Trusted by AM (${trustedFiltered.length})`}
+            titleRight={
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name / phone / ID…"
+                className="max-w-xs"
+              />
+            }
+            bodyClassName="p-0"
+          >
+            <DataTable>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="text-left p-2">Player</th>
+                    <th className="text-left p-2">Phone</th>
+                    <th className="text-left p-2">Casino</th>
+                    <th className="text-left p-2">Trusted At</th>
+                    <th className="text-right p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trustedLoading && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
+                  {trustedFiltered.map((p) => (
+                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
+                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                      <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
+                      <td className="p-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}`, source: "am_trusted" })}
+                        >
+                          <RotateCcw className="size-3.5" /> Revoke
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTable>
+          </PageSection>
+        </TabsContent>
+
 
         {/* ============ TAB 3: NOT VERIFIED ============ */}
         <TabsContent value="notverified">
@@ -308,7 +403,15 @@ const KycReviewsPage = () => {
                       <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
                       <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
                       <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
-                      <td className="p-2 text-right">
+                      <td className="p-2 text-right whitespace-nowrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mr-2"
+                          onClick={() => setTrust({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}` })}
+                        >
+                          <ShieldCheck className="size-3.5" /> Mark Trusted
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -373,6 +476,33 @@ const KycReviewsPage = () => {
             disabled={revokeMut.isPending || revokeReason.trim().length < 5}
           >
             {revokeMut.isPending ? "Revoking…" : "Revoke verification"}
+          </Button>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialog>
+
+      {/* ============ Mark Trusted dialog (AM bypass KYC) ============ */}
+      <ResponsiveDialog
+        open={!!trust}
+        onOpenChange={(o) => { if (!o) { setTrust(null); setTrustReason(""); } }}
+        title="Mark player as Trusted"
+        description={trust ? `${trust.name} will be marked verified without documents. Affects Club App access only. Reason is mandatory and logged for audit.` : ""}
+      >
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Reason <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">(min 10 chars)</span></label>
+          <Textarea
+            value={trustReason}
+            onChange={(e) => setTrustReason(e.target.value)}
+            placeholder="e.g. Known VIP player, vouched personally, etc."
+            rows={3}
+          />
+        </div>
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={() => { setTrust(null); setTrustReason(""); }}>Cancel</Button>
+          <Button
+            onClick={() => trustMut.mutate()}
+            disabled={trustMut.isPending || trustReason.trim().length < 10}
+          >
+            {trustMut.isPending ? "Saving…" : "Mark as Trusted"}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialog>

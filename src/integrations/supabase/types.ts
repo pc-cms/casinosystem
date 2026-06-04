@@ -8434,6 +8434,14 @@ export type Database = {
         }
         Returns: Json
       }
+      am_revoke_verification: {
+        Args: { p_player_id: string; p_reason: string }
+        Returns: Json
+      }
+      am_trust_player: {
+        Args: { p_player_id: string; p_reason: string }
+        Returns: Json
+      }
       apply_cage_shift_closing: { Args: { _shift_id: string }; Returns: Json }
       approve_expense_as_manager: {
         Args: { p_expense_id: string; p_manager_id: string }
@@ -9291,6 +9299,7 @@ export type Database = {
         | "rejected"
         | "cancelled"
         | "revoked"
+        | "trusted_bypass"
       log_category:
         | "transaction"
         | "edit"
@@ -9596,6 +9605,7 @@ export const Constants = {
         "rejected",
         "cancelled",
         "revoked",
+        "trusted_bypass",
       ],
       log_category: [
         "transaction",
