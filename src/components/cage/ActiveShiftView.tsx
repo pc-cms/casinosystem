@@ -17,6 +17,7 @@ import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Pac
 import TipsDialog, { type TipsKind } from "@/components/cage/TipsDialog";
 import CancelTransactionDialog from "@/components/cage/CancelTransactionDialog";
 import PromoInDialog from "@/components/cage/PromoInDialog";
+import IssueTicketDialog from "@/components/cage/IssueTicketDialog";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -131,6 +132,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const [showCloseTables, setShowCloseTables] = useState(false);
   const [tipsKind, setTipsKind] = useState<TipsKind | null>(null);
   const [showPromoIn, setShowPromoIn] = useState(false);
+  const [showIssueTicket, setShowIssueTicket] = useState(false);
   
   
 
@@ -252,6 +254,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
         </Button>
         <Button variant="outline" size="sm" onClick={() => setShowPromoIn(true)} className="gap-1.5 bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/40 hover:bg-violet-500/25">
           <Sparkles className="w-3.5 h-3.5" /> Promo IN
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setShowIssueTicket(true)} className="gap-1.5 bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/40 hover:bg-pink-500/25">
+          <Ticket className="w-3.5 h-3.5" /> Issue Ticket
         </Button>
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
@@ -384,6 +389,15 @@ const ActiveShiftView = ({ shift, players, tables }: {
         casinoId={shift.casino_id}
         cashierId={user?.id ?? ""}
       />
+
+      <IssueTicketDialog
+        open={showIssueTicket}
+        onOpenChange={setShowIssueTicket}
+        players={players}
+        tables={tables}
+        casinoId={shift.casino_id}
+      />
+
 
     </PageShell>
   );
