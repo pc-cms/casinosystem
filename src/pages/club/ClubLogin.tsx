@@ -17,33 +17,21 @@ const inputStyle: React.CSSProperties = {
 
 export default function ClubLogin() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const sendOtp = async () => {
+  const signIn = async () => {
+    if (!phone || !password) return;
     setBusy(true);
     try {
-      await clubApi.sendOtp(phone);
-      toast.success("Code sent");
-      setStep("code");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to send code");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const verify = async () => {
-    setBusy(true);
-    try {
-      const res = await clubApi.verifyOtp(phone, code);
+      const res = await clubApi.loginPassword(phone, password);
       setClubSession(res.token, res.phone);
-      toast.success(res.player_exists ? `Welcome ${res.player?.first_name ?? ""}` : "Signed in");
-      navigate(res.player_exists ? "/club/wallet" : "/club/register", { replace: true });
+      toast.success(`Welcome ${res.player?.first_name ?? ""}`.trim());
+      navigate("/club/wallet", { replace: true });
     } catch (e: any) {
-      toast.error(e.message || "Verification failed");
+      const msg = e?.message === "invalid_credentials" ? "Invalid phone or password" : (e?.message || "Sign in failed");
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
@@ -87,70 +75,48 @@ export default function ClubLogin() {
           </div>
 
           <ClubCard className="p-6 space-y-4">
-            {step === "phone" ? (
-              <>
-                <label className="block">
-                  <span
-                    className="block text-[10px] tracking-[0.3em] uppercase mb-1.5 font-faberge"
-                    style={{ color: GOLD_DEEP }}
-                  >
-                    Phone number
-                  </span>
-                  <input
-                    type="tel"
-                    placeholder="+255 7XX XXX XXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    autoFocus
-                    className="w-full h-12 rounded-md border px-3 outline-none"
-                    style={inputStyle}
-                  />
-                </label>
-                <button
-                  onClick={sendOtp}
-                  disabled={!phone || busy}
-                  className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
-                  style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
-                >
-                  {busy ? "Sending…" : "Send Code"}
-                </button>
-              </>
-            ) : (
-              <>
-                <label className="block">
-                  <span
-                    className="block text-[10px] tracking-[0.3em] uppercase mb-1.5 font-faberge"
-                    style={{ color: GOLD_DEEP }}
-                  >
-                    6-digit code
-                  </span>
-                  <input
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                    autoFocus
-                    className="w-full h-14 rounded-md border px-3 outline-none text-center text-2xl tracking-[0.5em] font-mono"
-                    style={inputStyle}
-                  />
-                </label>
-                <button
-                  onClick={verify}
-                  disabled={code.length !== 6 || busy}
-                  className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
-                  style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
-                >
-                  {busy ? "Verifying…" : "Verify"}
-                </button>
-                <button
-                  onClick={() => setStep("phone")}
-                  className="w-full text-xs tracking-[0.25em] uppercase"
-                  style={{ color: GOLD_DEEP }}
-                >
-                  Change phone
-                </button>
-              </>
-            )}
+            <label className="block">
+              <span
+                className="block text-[10px] tracking-[0.3em] uppercase mb-1.5 font-faberge"
+                style={{ color: GOLD_DEEP }}
+              >
+                Phone number
+              </span>
+              <input
+                type="tel"
+                placeholder="+255 7XX XXX XXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoFocus
+                className="w-full h-12 rounded-md border px-3 outline-none"
+                style={inputStyle}
+              />
+            </label>
+            <label className="block">
+              <span
+                className="block text-[10px] tracking-[0.3em] uppercase mb-1.5 font-faberge"
+                style={{ color: GOLD_DEEP }}
+              >
+                Password
+              </span>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") signIn(); }}
+                className="w-full h-12 rounded-md border px-3 outline-none"
+                style={inputStyle}
+              />
+            </label>
+            <button
+              onClick={signIn}
+              disabled={!phone || !password || busy}
+              className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
+              style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
+            >
+              {busy ? "Signing in…" : "Sign In"}
+            </button>
           </ClubCard>
 
           <p className="text-center text-xs mt-6" style={{ color: GOLD_DEEP }}>

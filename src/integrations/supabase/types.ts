@@ -2390,6 +2390,7 @@ export type Database = {
           created_at: string
           id: string
           last_login_at: string | null
+          password_hash: string | null
           phone: string
           player_id: string
           totp_secret_enc: string | null
@@ -2399,6 +2400,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_login_at?: string | null
+          password_hash?: string | null
           phone: string
           player_id: string
           totp_secret_enc?: string | null
@@ -2408,6 +2410,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_login_at?: string | null
+          password_hash?: string | null
           phone?: string
           player_id?: string
           totp_secret_enc?: string | null

@@ -1,6 +1,7 @@
 // Premier Club: self-registration. Requires club session token.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyClubToken, tokenFromRequest } from "../_shared/club-token.ts";
+import { hashPassword, validatePasswordStrength } from "../_shared/club-password.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +46,14 @@ Deno.serve(async (req) => {
     const dob = String(body.dob ?? "").trim(); // YYYY-MM-DD
     const idNum = String(body.id_number ?? "").trim();
     const casinoSlug = String(body.casino_slug ?? "").trim().toLowerCase();
+    const password = String(body.password ?? "");
+
+    const pwErr = validatePasswordStrength(password);
+    if (pwErr) {
+      return new Response(JSON.stringify({ error: pwErr }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!ALLOWED_SLUGS.has(casinoSlug)) {
       return new Response(JSON.stringify({ error: ERROR_MESSAGES.invalid_casino }), {
@@ -83,6 +92,11 @@ Deno.serve(async (req) => {
     }
 
     const playerId = (data as any)?.player_id;
+
+    // Store password hash on the club_account row created by the RPC.
+    const pwHash = await hashPassword(password);
+    await sb.from("club_accounts").update({ password_hash: pwHash }).eq("phone", session.phone);
+
     const { data: player } = await sb
       .from("players")
       .select("id, first_name, last_name, phone, verification_status, casino_id")

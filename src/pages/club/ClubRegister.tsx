@@ -61,6 +61,7 @@ export default function ClubRegister() {
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState("");
   const [idNumber, setIdNumber] = useState("");
+  const [password, setPassword] = useState("");
   const [casinoSlug, setCasinoSlug] = useState("arusha");
 
   const sendOtp = async () => {
@@ -99,6 +100,10 @@ export default function ClubRegister() {
       toast.error("Please fill all required fields");
       return;
     }
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      toast.error("Password must be at least 8 characters and include letters and numbers");
+      return;
+    }
     setBusy(true);
     try {
       const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -116,6 +121,7 @@ export default function ClubRegister() {
           dob,
           id_number: idNumber || null,
           casino_slug: casinoSlug,
+          password,
         }),
       });
       const json = await res.json();
@@ -250,6 +256,14 @@ export default function ClubRegister() {
                   <TextInput
                     value={idNumber}
                     onChange={(e) => setIdNumber(e.target.value)}
+                  />
+                </Field>
+                <Field label="Password">
+                  <TextInput
+                    type="password"
+                    placeholder="Min 8 chars, letters + numbers"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                 </Field>
                 <Field label="Preferred branch">
