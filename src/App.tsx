@@ -126,6 +126,11 @@ const PayrollDashboardPage = lazy(() => import("@/pages/payroll/PayrollDashboard
 const PayrollSettingsPage = lazy(() => import("@/pages/payroll/PayrollSettingsPage"));
 const PayrollBankExportPage = lazy(() => import("@/pages/payroll/PayrollBankExportPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const ClubLayout = lazy(() => import("@/pages/club/ClubLayout"));
+const ClubLogin = lazy(() => import("@/pages/club/ClubLogin"));
+const ClubWallet = lazy(() => import("@/pages/club/ClubWallet"));
+const ClubShop = lazy(() => import("@/pages/club/ClubShop"));
+const ClubTickets = lazy(() => import("@/pages/club/ClubTickets"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
