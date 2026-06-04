@@ -8441,6 +8441,16 @@ export type Database = {
         }
         Returns: Json
       }
+      cashier_redeem_promo_by_account: {
+        Args: {
+          p_amount: number
+          p_cage_id: string
+          p_casino_id: string
+          p_club_account_id: string
+          p_shift_id: string
+        }
+        Returns: Json
+      }
       cleanup_old_data: { Args: never; Returns: Json }
       clear_stale_peer_links: { Args: never; Returns: number }
       clear_stale_peer_requests: { Args: never; Returns: number }
@@ -8646,6 +8656,23 @@ export type Database = {
       finalize_player_daily_avg_bets: {
         Args: { p_business_date: string; p_casino_id: string }
         Returns: number
+      }
+      fm_topup_am_budget: {
+        Args: {
+          p_am_user_id: string
+          p_amount: number
+          p_casino_id: string
+          p_note?: string
+        }
+        Returns: string
+      }
+      fm_topup_campaign_budget: {
+        Args: { p_amount: number; p_campaign_id: string; p_note?: string }
+        Returns: string
+      }
+      fm_topup_house_promo_fund: {
+        Args: { p_amount: number; p_casino_id: string; p_note?: string }
+        Returns: string
       }
       gc_pending_server_registrations: { Args: never; Returns: undefined }
       generate_card_number: { Args: never; Returns: string }
