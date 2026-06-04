@@ -202,7 +202,7 @@ export default function ClubVerifyWizard() {
                 Photo of the reverse side
               </p>
             </div>
-            <CameraCapture facing="environment" label="ID back" value={idBack} onChange={setIdBack} gold={GOLD} goldDeep={GOLD_DEEP} />
+            <CameraCapture facing="environment" label="ID back" value={idBack} onChange={setIdBack} gold={GOLD} goldDeep={GOLD_DEEP} allowGallery />
           </>
         )}
 
