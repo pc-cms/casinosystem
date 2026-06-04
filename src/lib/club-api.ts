@@ -46,7 +46,17 @@ export const clubApi = {
   sendOtp: (phone: string) => callFn("club-send-otp", { phone }),
   verifyOtp: (phone: string, code: string) => callFn<{ ok: boolean; token: string; phone: string; player_exists: boolean; player: any }>("club-verify-otp", { phone, code }),
   loginPassword: (phone: string, password: string) => callFn<{ ok: boolean; token: string; phone: string; player_exists: boolean; player: any }>("club-login-password", { phone, password }),
+  registerMinimal: (input: { first_name: string; last_name: string; dob: string; password: string }) =>
+    callFn<{ ok: boolean; player: any }>("club-register-player", input, true),
   wallet: () => callFn<{ ok: boolean; player: any; balance: number; grants: any[]; redemptions: any[]; redeem_token?: string; redeem_token_exp?: number }>("club-wallet", {}, true),
+  updateProfile: (input: { first_name: string; last_name: string; dob: string; id_number?: string | null; casino_slug?: string | null }) =>
+    callFn<{ ok: boolean }>("club-update-profile", input, true),
+  submitKyc: (input: {
+    first_name: string; last_name: string; dob: string; id_number: string;
+    selfie_b64: string; id_front_b64: string; id_back_b64: string;
+    ocr?: Record<string, unknown>;
+  }) => callFn<{ ok: boolean }>("club-submit-kyc", input, true),
+  cancelKyc: () => callFn<{ ok: boolean }>("club-cancel-kyc", {}, true),
   placeShopOrder: (item_id: string, qty: number, casino_id: string) =>
     callFn<{ ok: boolean; order_id: string; total: number }>("club-shop-order", { item_id, qty, casino_id }, true),
   buyTicket: (lottery_id: string, qty: number, casino_id: string) =>

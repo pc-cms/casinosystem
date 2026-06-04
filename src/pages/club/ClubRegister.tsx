@@ -12,13 +12,6 @@ const GOLD_DEEP = "#A68E61";
 
 type Step = "phone" | "code" | "profile" | "done";
 
-const BRANCHES: { slug: string; label: string }[] = [
-  { slug: "arusha", label: "Arusha" },
-  { slug: "mwanza", label: "Mwanza" },
-  { slug: "dodoma", label: "Dodoma" },
-  { slug: "mbeya", label: "Mbeya" },
-];
-
 const inputStyle: React.CSSProperties = {
   backgroundColor: "rgba(0,0,0,0.55)",
   borderColor: `${GOLD}55`,
@@ -61,9 +54,7 @@ export default function ClubRegister() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState("");
-  const [idNumber, setIdNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [casinoSlug, setCasinoSlug] = useState("arusha");
 
   const phone = buildE164(phoneLocal);
 
@@ -110,26 +101,12 @@ export default function ClubRegister() {
     }
     setBusy(true);
     try {
-      const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
-      const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-      const res = await fetch(`${FN_URL}/club-register-player`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: ANON,
-          Authorization: `Bearer ${getClubToken()}`,
-        },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          dob,
-          id_number: idNumber || null,
-          casino_slug: casinoSlug,
-          password,
-        }),
+      await clubApi.registerMinimal({
+        first_name: firstName,
+        last_name: lastName,
+        dob,
+        password,
       });
-      const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error || "Registration failed");
       setStep("done");
     } catch (e: any) {
       toast.error(e.message || "Registration failed");
@@ -250,12 +227,6 @@ export default function ClubRegister() {
                     onChange={(e) => setDob(e.target.value)}
                   />
                 </Field>
-                <Field label="ID number (optional)">
-                  <TextInput
-                    value={idNumber}
-                    onChange={(e) => setIdNumber(e.target.value)}
-                  />
-                </Field>
                 <Field label="Password">
                   <TextInput
                     type="password"
@@ -263,28 +234,6 @@ export default function ClubRegister() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                </Field>
-                <Field label="Preferred branch">
-                  <div className="grid grid-cols-2 gap-2">
-                    {BRANCHES.map((b) => {
-                      const active = casinoSlug === b.slug;
-                      return (
-                        <button
-                          key={b.slug}
-                          type="button"
-                          onClick={() => setCasinoSlug(b.slug)}
-                          className="h-11 rounded-md border text-xs tracking-[0.25em] uppercase font-faberge transition-colors"
-                          style={{
-                            backgroundColor: active ? GOLD : "rgba(0,0,0,0.5)",
-                            color: active ? "#0a0a0a" : GOLD,
-                            borderColor: active ? GOLD : `${GOLD}55`,
-                          }}
-                        >
-                          {b.label}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </Field>
                 <p
                   className="text-[10px] tracking-[0.2em] uppercase text-center pt-1"

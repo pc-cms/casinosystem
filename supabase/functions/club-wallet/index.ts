@@ -21,13 +21,18 @@ Deno.serve(async (req) => {
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: player } = await sb
       .from("players")
-      .select("id, first_name, last_name, phone, verification_status, dob, id_number, casino_id, casinos(name)")
+      .select("id, first_name, last_name, phone, verification_status, birth_date, id_number, photo_url, id_document_url, casino_id, casinos(name, slug)")
       .eq("phone", session.phone)
       .maybeSingle();
     if (!player) {
       return new Response(JSON.stringify({ ok: true, player: null, balance: 0, grants: [], redemptions: [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const playerOut = { ...player, casino_name: (player as any).casinos?.name ?? null };
+    const playerOut = {
+      ...player,
+      dob: (player as any).birth_date,
+      casino_name: (player as any).casinos?.name ?? null,
+      casino_slug: (player as any).casinos?.slug ?? null,
+    };
 
     const { data: grantsRaw } = await sb
       .from("promo_grants")

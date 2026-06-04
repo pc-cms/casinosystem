@@ -1,4 +1,5 @@
-// Premier Club: self-registration. Requires club session token.
+// Premier Club: minimal self-registration (phone + name + DOB + password).
+// Players land as `unverified` and complete profile/KYC inside the PWA.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyClubToken, tokenFromRequest } from "../_shared/club-token.ts";
 import { hashPassword, validatePasswordStrength } from "../_shared/club-password.ts";
@@ -11,7 +12,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const ALLOWED_SLUGS = new Set(["arusha", "mwanza", "dodoma", "mbeya"]);
+const DEFAULT_SLUG = "arusha";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_phone: "Invalid phone number.",
@@ -19,9 +20,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_last_name: "Last name is required.",
   invalid_dob: "Date of birth is required.",
   underage: "You must be at least 18 years old.",
-  invalid_casino: "Please choose a valid branch.",
+  invalid_casino: "Default branch missing.",
   duplicate_phone: "A player with this phone number already exists. Please sign in.",
-  duplicate_id: "A player with this ID number already exists.",
 };
 
 Deno.serve(async (req) => {
@@ -44,19 +44,11 @@ Deno.serve(async (req) => {
     const first = String(body.first_name ?? "").trim();
     const last = String(body.last_name ?? "").trim();
     const dob = String(body.dob ?? "").trim(); // YYYY-MM-DD
-    const idNum = String(body.id_number ?? "").trim();
-    const casinoSlug = String(body.casino_slug ?? "").trim().toLowerCase();
     const password = String(body.password ?? "");
 
     const pwErr = validatePasswordStrength(password);
     if (pwErr) {
       return new Response(JSON.stringify({ error: pwErr }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!ALLOWED_SLUGS.has(casinoSlug)) {
-      return new Response(JSON.stringify({ error: ERROR_MESSAGES.invalid_casino }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -70,18 +62,20 @@ Deno.serve(async (req) => {
       .eq("phone", session.phone)
       .maybeSingle();
     if (existing?.players) {
+      // Make sure the password is set for this account so phone+password works.
+      const pwHash = await hashPassword(password);
+      await sb.from("club_accounts").update({ password_hash: pwHash }).eq("phone", session.phone);
       return new Response(JSON.stringify({ ok: true, player: existing.players, already_registered: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data, error } = await sb.rpc("club_self_register", {
+    const { data, error } = await sb.rpc("club_self_register_minimal", {
       _phone: session.phone,
       _first: first,
       _last: last,
       _dob: dob,
-      _id_number: idNum || null,
-      _casino_slug: casinoSlug,
+      _casino_slug: DEFAULT_SLUG,
     });
     if (error) {
       const code = (error.message || "").replace(/.*: /, "").trim();

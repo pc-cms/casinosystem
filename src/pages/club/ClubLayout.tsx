@@ -8,7 +8,7 @@ const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
 
 // Routes that render their own full-bleed layout (no chrome from ClubLayout).
-const STANDALONE = ["/", "/club/login", "/club/register"];
+const STANDALONE = ["/", "/club/login", "/club/register", "/club/verify"];
 
 export default function ClubLayout() {
   const loc = useLocation();

@@ -24,8 +24,11 @@ Deno.serve(async (req) => {
     }
 
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: player } = await sb.from("players").select("id").eq("phone", session.phone).maybeSingle();
+    const { data: player } = await sb.from("players").select("id, verification_status").eq("phone", session.phone).maybeSingle();
     if (!player) return new Response(JSON.stringify({ error: "player_not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (player.verification_status !== "verified") {
+      return new Response(JSON.stringify({ error: "kyc_required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const { data, error } = await sb.rpc("club_buy_lottery_ticket", {
       p_player_id: player.id,

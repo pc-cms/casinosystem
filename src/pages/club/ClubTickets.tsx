@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { clubApi, fetchLotteries, fetchMyTickets } from "@/lib/club-api";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
@@ -6,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ShieldAlert } from "lucide-react";
+
+const GOLD = "#E8C688";
+const GOLD_DEEP = "#A68E61";
 
 export default function ClubTickets() {
   const qc = useQueryClient();
@@ -21,7 +26,13 @@ export default function ClubTickets() {
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const isVerified = wallet?.player?.verification_status === "verified";
+
   const buy = async (lotteryId: string, casinoId: string, price: number) => {
+    if (!isVerified) {
+      toast.error("Complete verification to buy tickets");
+      return;
+    }
     const qty = qtyMap[lotteryId] || 1;
     const total = price * qty;
     if ((wallet?.balance ?? 0) < total) {
@@ -46,6 +57,24 @@ export default function ClubTickets() {
 
   return (
     <div className="space-y-5">
+      {!isVerified && (
+        <Link
+          to="/club/profile"
+          className="flex items-center gap-3 rounded-xl border px-4 py-3"
+          style={{ borderColor: `${GOLD}66`, backgroundColor: "rgba(232,198,136,0.08)" }}
+        >
+          <ShieldAlert className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
+          <div className="flex-1 min-w-0">
+            <p className="font-faberge text-[11px] tracking-[0.25em] uppercase" style={{ color: GOLD }}>
+              Get verified to buy tickets
+            </p>
+            <p className="text-[10px] tracking-[0.2em] uppercase mt-0.5" style={{ color: GOLD_DEEP }}>
+              Tap to complete verification
+            </p>
+          </div>
+        </Link>
+      )}
+
       <div className="text-sm text-muted-foreground">
         Balance:{" "}
         <span className="font-mono font-semibold text-foreground">
@@ -84,7 +113,7 @@ export default function ClubTickets() {
                   <Button
                     size="sm"
                     className="flex-1"
-                    disabled={busyId === l.id}
+                    disabled={busyId === l.id || !isVerified}
                     onClick={() => buy(l.id, l.casino_id, l.ticket_price_credits)}
                   >
                     {busyId === l.id ? "…" : `Buy · ${formatNumberSpaces(l.ticket_price_credits * (qtyMap[l.id] ?? 1))} cr`}
