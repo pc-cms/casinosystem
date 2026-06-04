@@ -126,6 +126,11 @@ const PayrollDashboardPage = lazy(() => import("@/pages/payroll/PayrollDashboard
 const PayrollSettingsPage = lazy(() => import("@/pages/payroll/PayrollSettingsPage"));
 const PayrollBankExportPage = lazy(() => import("@/pages/payroll/PayrollBankExportPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const ClubLayout = lazy(() => import("@/pages/club/ClubLayout"));
+const ClubLogin = lazy(() => import("@/pages/club/ClubLogin"));
+const ClubWallet = lazy(() => import("@/pages/club/ClubWallet"));
+const ClubShop = lazy(() => import("@/pages/club/ClubShop"));
+const ClubTickets = lazy(() => import("@/pages/club/ClubTickets"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -447,6 +452,13 @@ const AppRoutes = () => {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/pos/login" element={<PosLogin />} />
+        <Route path="/club" element={<ClubLayout />}>
+          <Route index element={<Navigate to="/club/login" replace />} />
+          <Route path="login" element={<ClubLogin />} />
+          <Route path="wallet" element={<ClubWallet />} />
+          <Route path="shop" element={<ClubShop />} />
+          <Route path="tickets" element={<ClubTickets />} />
+        </Route>
         <Route path="/pos" element={<PosLayout />}>
           <Route index element={<Navigate to="/pos/waiter" replace />} />
           <Route path="waiter" element={<PosWaiter />} />

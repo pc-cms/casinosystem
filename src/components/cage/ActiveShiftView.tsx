@@ -13,9 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark, Ban, Gift, Coins, UserCheck } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Square, CheckCircle2, Package, ArrowLeftRight, Landmark, Ban, Gift, Coins, UserCheck, Sparkles } from "lucide-react";
 import TipsDialog, { type TipsKind } from "@/components/cage/TipsDialog";
 import CancelTransactionDialog from "@/components/cage/CancelTransactionDialog";
+import PromoInDialog from "@/components/cage/PromoInDialog";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -129,6 +130,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
   const navigate = useNavigate();
   const [showCloseTables, setShowCloseTables] = useState(false);
   const [tipsKind, setTipsKind] = useState<TipsKind | null>(null);
+  const [showPromoIn, setShowPromoIn] = useState(false);
   
   
 
@@ -168,7 +170,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
 
   // Cancel dialog state
   const [cancelTarget, setCancelTarget] = useState<Tables<"transactions"> | null>(null);
-  const { roles, managerOverride } = useAuth();
+  const { roles, managerOverride, user } = useAuth();
   // Cancel TX is restricted to Cashier, Manager and Surveillance (CCTV).
   // Super Admin and Manager Override also retain access.
   const canCancelTx =
@@ -247,6 +249,9 @@ const ActiveShiftView = ({ shift, players, tables }: {
           className="gap-1.5 bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40 hover:bg-sky-500/25"
         >
           <UserCheck className="w-3.5 h-3.5" /> Tips Floor
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setShowPromoIn(true)} className="gap-1.5 bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/40 hover:bg-violet-500/25">
+          <Sparkles className="w-3.5 h-3.5" /> Promo IN
         </Button>
         <Button variant="outline" size="sm" onClick={() => setShowCloseTables(true)} className="gap-1.5">
           <Package className="w-3.5 h-3.5" /> Close Tables
@@ -370,8 +375,15 @@ const ActiveShiftView = ({ shift, players, tables }: {
         />
       )}
 
-
-
+      <PromoInDialog
+        open={showPromoIn}
+        onOpenChange={setShowPromoIn}
+        players={players}
+        tables={tables}
+        shiftId={shift.id}
+        casinoId={shift.casino_id}
+        cashierId={user?.id ?? ""}
+      />
 
     </PageShell>
   );

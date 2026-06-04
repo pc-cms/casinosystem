@@ -8445,6 +8445,15 @@ export type Database = {
         Returns: Json
       }
       close_open_sessions_5am: { Args: never; Returns: Json }
+      club_place_shop_order: {
+        Args: {
+          p_casino_id: string
+          p_item_id: string
+          p_player_id: string
+          p_qty: number
+        }
+        Returns: Json
+      }
       compute_cage_slots_balance: {
         Args: { p_shift_id: string }
         Returns: Json

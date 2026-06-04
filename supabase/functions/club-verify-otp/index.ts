@@ -1,5 +1,6 @@
-// Premier Club: verify OTP, return short-lived session token (placeholder; integrates with Supabase auth in P2)
+// Premier Club: verify OTP, return signed session token
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { issueClubToken } from "../_shared/club-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,8 +59,9 @@ Deno.serve(async (req) => {
       await sb.from("club_accounts").update({ last_login_at: new Date().toISOString() }).eq("phone", normalized);
     }
 
+    const token = await issueClubToken(normalized);
     return new Response(
-      JSON.stringify({ ok: true, player_exists: !!player, player }),
+      JSON.stringify({ ok: true, player_exists: !!player, player, token, phone: normalized }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
