@@ -34,7 +34,7 @@ const PromoCodesPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("premier_promo_campaigns")
-        .select("id, name, status")
+        .select("id, name, active")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
