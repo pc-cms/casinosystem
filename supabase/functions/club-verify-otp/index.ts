@@ -1,5 +1,6 @@
-// Premier Club: verify OTP, return short-lived session token (placeholder; integrates with Supabase auth in P2)
+// Premier Club: verify OTP, return signed session token
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { issueClubToken } from "../_shared/club-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
