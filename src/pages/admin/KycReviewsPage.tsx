@@ -156,16 +156,18 @@ const KycReviewsPage = () => {
   });
 
   // ============= Filters =============
-  const rvFiltered = useMemo(() => {
-    if (!search.trim()) return receptionVerified;
+  const filterPlayers = (list: any[]) => {
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return receptionVerified.filter(
+    return list.filter(
       (p) =>
         p.full_name?.toLowerCase().includes(q) ||
         p.phone?.toLowerCase().includes(q) ||
         p.id_number?.toLowerCase().includes(q)
     );
-  }, [receptionVerified, search]);
+  };
+  const rvFiltered = useMemo(() => filterPlayers(receptionVerified), [receptionVerified, search]);
+  const trustedFiltered = useMemo(() => filterPlayers(trustedPlayers), [trustedPlayers, search]);
 
   const nvFiltered = useMemo(() => {
     let list = notVerified;
