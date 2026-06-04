@@ -8432,6 +8432,15 @@ export type Database = {
         Args: { p_reason: string; p_transaction_id: string }
         Returns: undefined
       }
+      cashier_issue_lottery_ticket: {
+        Args: {
+          p_casino_id: string
+          p_lottery_id: string
+          p_player_id: string
+          p_qty: number
+        }
+        Returns: Json
+      }
       cleanup_old_data: { Args: never; Returns: Json }
       clear_stale_peer_links: { Args: never; Returns: number }
       clear_stale_peer_requests: { Args: never; Returns: number }
@@ -8445,6 +8454,15 @@ export type Database = {
         Returns: Json
       }
       close_open_sessions_5am: { Args: never; Returns: Json }
+      club_buy_lottery_ticket: {
+        Args: {
+          p_casino_id: string
+          p_lottery_id: string
+          p_player_id: string
+          p_qty: number
+        }
+        Returns: Json
+      }
       club_place_shop_order: {
         Args: {
           p_casino_id: string

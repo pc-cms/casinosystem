@@ -48,6 +48,8 @@ export const clubApi = {
   wallet: () => callFn<{ ok: boolean; player: any; balance: number; grants: any[]; redemptions: any[] }>("club-wallet", {}, true),
   placeShopOrder: (item_id: string, qty: number, casino_id: string) =>
     callFn<{ ok: boolean; order_id: string; total: number }>("club-shop-order", { item_id, qty, casino_id }, true),
+  buyTicket: (lottery_id: string, qty: number, casino_id: string) =>
+    callFn<{ ok: boolean; lottery_id: string; qty: number; total: number; tickets: number[] }>("club-buy-ticket", { lottery_id, qty, casino_id }, true),
 };
 
 // Plain Supabase reads (anonymous; tables have public read policies for catalog)
@@ -65,9 +67,21 @@ export async function fetchShopCatalog() {
 export async function fetchLotteries() {
   const { data, error } = await supabase
     .from("lotteries")
-    .select("id, name, description, ticket_price_credits, draw_date, status, casino_id")
+    .select("id, name, description, ticket_price_credits, draw_business_date, status, casino_id, max_tickets_per_player, total_tickets_cap")
     .eq("status", "open")
-    .order("draw_date", { ascending: true });
+    .order("draw_business_date", { ascending: true });
   if (error) throw error;
   return data ?? [];
 }
+
+export async function fetchMyTickets(playerId: string) {
+  const { data, error } = await supabase
+    .from("lottery_tickets")
+    .select("id, ticket_number, purchased_at, lottery_id, lotteries(name, draw_business_date, status)")
+    .eq("player_id", playerId)
+    .order("purchased_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return data ?? [];
+}
+

@@ -1,36 +1,126 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchLotteries } from "@/lib/club-api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { clubApi, fetchLotteries, fetchMyTickets } from "@/lib/club-api";
 import { formatNumberSpaces } from "@/lib/currency";
-import { fmtDate } from "@/lib/format-date";
+import { fmtDate, fmtDateTime } from "@/lib/format-date";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function ClubTickets() {
+  const qc = useQueryClient();
   const { data: lotteries = [], isLoading } = useQuery({ queryKey: ["club-lotteries"], queryFn: fetchLotteries });
+  const { data: wallet } = useQuery({ queryKey: ["club-wallet"], queryFn: () => clubApi.wallet() });
+  const playerId = wallet?.player?.id as string | undefined;
+  const { data: myTickets = [] } = useQuery({
+    queryKey: ["club-my-tickets", playerId],
+    queryFn: () => (playerId ? fetchMyTickets(playerId) : Promise.resolve([])),
+    enabled: !!playerId,
+  });
+
+  const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const buy = async (lotteryId: string, casinoId: string, price: number) => {
+    const qty = qtyMap[lotteryId] || 1;
+    const total = price * qty;
+    if ((wallet?.balance ?? 0) < total) {
+      toast.error("Insufficient balance");
+      return;
+    }
+    setBusyId(lotteryId);
+    try {
+      const r = await clubApi.buyTicket(lotteryId, qty, casinoId);
+      toast.success(`Issued ${r.tickets.length} ticket(s): #${r.tickets.join(", #")}`);
+      qc.invalidateQueries({ queryKey: ["club-wallet"] });
+      qc.invalidateQueries({ queryKey: ["club-my-tickets"] });
+      qc.invalidateQueries({ queryKey: ["club-lotteries"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-semibold">Open lotteries</h2>
-      {lotteries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No open draws right now.</p>
-      ) : (
-        <ul className="space-y-2">
-          {lotteries.map((l: any) => (
-            <li key={l.id} className="rounded-lg border border-border bg-card p-3">
-              <p className="font-semibold">{l.name}</p>
-              {l.description && <p className="text-xs text-muted-foreground mt-1">{l.description}</p>}
-              <div className="flex items-center justify-between mt-2 text-xs">
-                <span className="text-muted-foreground">Draws {fmtDate(l.draw_date)}</span>
-                <span className="font-mono font-semibold">
-                  {formatNumberSpaces(l.ticket_price_credits)} credits / ticket
+    <div className="space-y-5">
+      <div className="text-sm text-muted-foreground">
+        Balance:{" "}
+        <span className="font-mono font-semibold text-foreground">
+          {formatNumberSpaces(wallet?.balance ?? 0)}
+        </span>{" "}
+        credits
+      </div>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold">Open lotteries</h2>
+        {lotteries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No open draws right now.</p>
+        ) : (
+          <ul className="space-y-2">
+            {lotteries.map((l: any) => (
+              <li key={l.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                <div>
+                  <p className="font-semibold">{l.name}</p>
+                  {l.description && <p className="text-xs text-muted-foreground mt-0.5">{l.description}</p>}
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Draws {fmtDate(l.draw_business_date)}</span>
+                  <span className="font-mono font-semibold">
+                    {formatNumberSpaces(l.ticket_price_credits)} cr / ticket
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={l.max_tickets_per_player ?? 99}
+                    value={qtyMap[l.id] ?? 1}
+                    onChange={(e) => setQtyMap((m) => ({ ...m, [l.id]: Math.max(1, Number(e.target.value) || 1) }))}
+                    className="w-20"
+                  />
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    disabled={busyId === l.id}
+                    onClick={() => buy(l.id, l.casino_id, l.ticket_price_credits)}
+                  >
+                    {busyId === l.id ? "…" : `Buy · ${formatNumberSpaces(l.ticket_price_credits * (qtyMap[l.id] ?? 1))} cr`}
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold">My tickets</h2>
+        {myTickets.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No tickets yet.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {myTickets.map((t: any) => (
+              <li key={t.id} className="rounded-md border border-border bg-card px-3 py-2 flex items-center justify-between text-sm">
+                <div>
+                  <p className="font-semibold">{t.lotteries?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ticket <span className="font-mono">#{String(t.ticket_number).padStart(4, "0")}</span> · {fmtDateTime(t.purchased_at)}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  Draw {t.lotteries?.draw_business_date ? fmtDate(t.lotteries.draw_business_date) : "—"}
                 </span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="text-xs text-muted-foreground pt-4">
-        Ticket purchase opens soon. Draw is offline — winners are contacted by the casino.
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <p className="text-xs text-muted-foreground">
+        Draws are held offline. Winners are contacted by the casino.
       </p>
     </div>
   );
