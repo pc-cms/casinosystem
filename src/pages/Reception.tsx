@@ -826,6 +826,112 @@ export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}
         >
           <UserPlus className="w-5 h-5" /> Register Player
         </Button>
+
+        {/* Verify & Save — single-tap verified registration */}
+        {(() => {
+          const canVerify =
+            !!form.first_name && !!form.last_name && !!form.birth_date && !!form.id_number &&
+            !!photoFile && docFiles.length > 0 && !submitting && !ocrLoading &&
+            (dupStatus !== "blocked" || overrideGranted);
+          const verifyAndSave = async () => {
+            if (!canVerify || !casinoId || !user) return;
+            if (!confirm("Mark this player as VERIFIED?\n\nThe Account Manager will be notified for QA and may revoke if data is wrong.")) return;
+            setSubmitting(true);
+            try {
+              // 1. Create base player row first (so we have an id for storage uploads)
+              const { data: player, error } = await supabase
+                .from("players")
+                .insert({
+                  casino_id: casinoId,
+                  first_name: form.first_name,
+                  last_name: form.last_name,
+                  nickname: form.nickname,
+                  phone: form.phone,
+                  id_number: form.id_number as any,
+                  birth_date: form.birth_date || null,
+                } as any)
+                .select()
+                .single();
+              if (error) throw error;
+
+              // 2. Upload photo + first doc (re-using existing logic)
+              let photoUrl: string | null = null;
+              let docPath: string | null = null;
+              if (photoFile) {
+                const compressed = await compressImage(photoFile);
+                const thumbPath = `${casinoId}/${player.id}/photo_thumb.jpg`;
+                await supabase.storage.from("player-photos").upload(thumbPath, compressed.thumbnail, { upsert: true, contentType: "image/jpeg" });
+                const origExt = photoFile.name.split(".").pop() || "jpg";
+                const origPath = `${casinoId}/${player.id}/photo_original.${origExt}`;
+                await supabase.storage.from("player-photos").upload(origPath, compressed.original, { upsert: true });
+                photoUrl = supabase.storage.from("player-photos").getPublicUrl(thumbPath).data.publicUrl;
+              }
+              for (const doc of docFiles) {
+                const ext = doc.name.split(".").pop()?.toLowerCase();
+                const isImage = doc.type.startsWith("image/");
+                let uploadBlob: Blob = doc;
+                if (isImage && doc.size > 500 * 1024) {
+                  uploadBlob = (await compressImage(doc)).thumbnail;
+                }
+                const path = `${casinoId}/${player.id}/docs/${Date.now()}.${isImage ? "jpg" : ext}`;
+                await supabase.storage.from("player-documents").upload(path, uploadBlob, {
+                  contentType: isImage ? "image/jpeg" : doc.type,
+                });
+                if (doc === docFiles[0]) docPath = path;
+              }
+
+              // 3. Call verify RPC (sets verified + writes audit row)
+              const { error: rpcErr } = await supabase.rpc("reception_verify_player" as any, {
+                p_player_id: player.id,
+                p_first: form.first_name,
+                p_last: form.last_name,
+                p_dob: form.birth_date,
+                p_id_number: form.id_number,
+                p_photo_url: photoUrl,
+                p_id_doc_url: docPath,
+              });
+              if (rpcErr) throw rpcErr;
+
+              // 4. Issue club card
+              const { data: cardNum } = await supabase.rpc("generate_card_number" as any);
+              await supabase.from("player_cards").insert({
+                player_id: player.id,
+                card_number: cardNum || Date.now().toString().slice(-6),
+                card_type: "manual",
+                issued_by: user.id,
+              });
+
+              await logAction(casinoId, "player", "PLAYER_CREATED", {
+                player_id: player.id,
+                name: `${form.first_name} ${form.last_name}`,
+                source: "reception_verified",
+                verified: true,
+              });
+
+              queryClient.invalidateQueries({ queryKey: ["players"] });
+              setForm({ first_name: "", last_name: "", nickname: "", phone: "", id_number: "", birth_date: "" });
+              setPhotoFile(null); setPhotoPreview(null); setDocFiles([]);
+              setOcrDone(false); resetDuplicates(); setOverrideGranted(false);
+              toast.success("Player verified — they can log in via OTP");
+              onRegistered?.();
+            } catch (e: any) {
+              toast.error(e.message ?? "Verify failed");
+            } finally {
+              setSubmitting(false);
+            }
+          };
+          return (
+            <Button
+              onClick={verifyAndSave}
+              disabled={!canVerify}
+              variant="outline"
+              className="w-full gap-1.5 h-11 border-primary/40 text-primary hover:bg-primary/10"
+              title={canVerify ? "" : "Requires first, last, DOB, ID number, photo and document"}
+            >
+              <ShieldCheck className="w-4 h-4" /> Verify &amp; Save
+            </Button>
+          );
+        })()}
       </div>
 
       <ManagerOverrideDialog
