@@ -14,12 +14,13 @@ type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   players: Tables<"players">[];
+  tables: Tables<"gaming_tables">[];
   shiftId: string;
   casinoId: string;
   cashierId: string;
 };
 
-export default function PromoInDialog({ open, onOpenChange, players, shiftId, casinoId, cashierId }: Props) {
+export default function PromoInDialog({ open, onOpenChange, players, tables, shiftId, casinoId, cashierId }: Props) {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [amount, setAmount] = useState(0);
   const [busy, setBusy] = useState(false);
