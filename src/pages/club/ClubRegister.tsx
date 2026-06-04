@@ -61,6 +61,7 @@ export default function ClubRegister() {
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState("");
   const [idNumber, setIdNumber] = useState("");
+  const [password, setPassword] = useState("");
   const [casinoSlug, setCasinoSlug] = useState("arusha");
 
   const sendOtp = async () => {
