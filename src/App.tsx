@@ -112,6 +112,7 @@ const ShopOrdersPage = lazy(() => import("@/pages/admin/ShopOrdersPage"));
 const LotteriesPage = lazy(() => import("@/pages/admin/LotteriesPage"));
 const PromoGrantsPage = lazy(() => import("@/pages/admin/PromoGrantsPage"));
 const KycReviewsPage = lazy(() => import("@/pages/admin/KycReviewsPage"));
+const AmBudgetPage = lazy(() => import("@/pages/admin/AmBudgetPage"));
 const PromoIssuanceReport = lazy(() => import("@/pages/reports/PromoIssuanceReport"));
 const PromoRedemptionsReport = lazy(() => import("@/pages/reports/PromoRedemptionsReport"));
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
@@ -384,6 +385,7 @@ const ProtectedRoutes = () => {
           <Route path="/admin/lotteries" element={<RoleGuard path="/admin"><ErrorBoundary><LotteriesPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/promo-grants" element={<RoleGuard path="/admin"><ErrorBoundary><PromoGrantsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/admin/kyc" element={<RoleGuard path="/admin"><ErrorBoundary><KycReviewsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/am-budget" element={<RoleGuard path="/admin"><ErrorBoundary><AmBudgetPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/promo-issuance" element={<RoleGuard path="/admin"><ErrorBoundary><PromoIssuanceReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/promo-redemptions" element={<RoleGuard path="/admin"><ErrorBoundary><PromoRedemptionsReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
