@@ -8402,6 +8402,20 @@ export type Database = {
         Returns: undefined
       }
       activity_logs_purge: { Args: { p_days?: number }; Returns: number }
+      am_issue_grant: {
+        Args: {
+          p_amount: number
+          p_casino_id: string
+          p_fixed_date?: string
+          p_funding_pool: Database["public"]["Enums"]["promo_funding_source"]
+          p_lifetime_days?: number
+          p_lifetime_mode?: Database["public"]["Enums"]["promo_grant_lifetime_mode"]
+          p_notes?: string
+          p_player_id: string
+          p_source: Database["public"]["Enums"]["promo_grant_source"]
+        }
+        Returns: Json
+      }
       apply_cage_shift_closing: { Args: { _shift_id: string }; Returns: Json }
       approve_expense_as_manager: {
         Args: { p_expense_id: string; p_manager_id: string }
@@ -8677,6 +8691,10 @@ export type Database = {
       is_manager_op: { Args: { _uid: string }; Returns: boolean }
       is_promo_chip: { Args: { p_chip_color_id: string }; Returns: boolean }
       is_super_admin: { Args: { _uid: string }; Returns: boolean }
+      kyc_decide: {
+        Args: { p_approve: boolean; p_notes?: string; p_review_id: string }
+        Returns: Json
+      }
       list_open_cycles_for_day: { Args: { _casino_id: string }; Returns: Json }
       local_servers_overview: {
         Args: never
@@ -8852,6 +8870,18 @@ export type Database = {
       recalc_shift_tables_result: {
         Args: { p_shift_id: string }
         Returns: number
+      }
+      redeem_promo_fifo: {
+        Args: {
+          p_amount: number
+          p_cage_id: string
+          p_cashier_id: string
+          p_casino_id: string
+          p_payout_type?: string
+          p_player_id: string
+          p_shift_id: string
+        }
+        Returns: Json
       }
       refresh_chip_initial_baseline: {
         Args: { _casino_id: string }
