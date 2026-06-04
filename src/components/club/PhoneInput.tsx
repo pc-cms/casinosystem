@@ -1,13 +1,13 @@
 /**
- * PhoneInput — Premier Club gold phone field with fixed +255 prefix.
- * Caller stores 9 local digits; pass to API as `+255XXXXXXXXX`.
+ * PhoneInput — Premier Club gold phone field with fixed "+" prefix.
+ * Caller stores digits only (no +); pass to API as `+{digits}`.
  */
 const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
 
-export function buildE164(local9: string) {
-  const digits = local9.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
-  return digits ? `+255${digits}` : "";
+export function buildE164(digits: string) {
+  const clean = digits.replace(/\D/g, "");
+  return clean ? `+${clean}` : "";
 }
 
 export default function PhoneInput({
@@ -16,7 +16,7 @@ export default function PhoneInput({
   autoFocus,
   onEnter,
 }: {
-  value: string; // local digits only (no +255)
+  value: string; // digits only (no +)
   onChange: (v: string) => void;
   autoFocus?: boolean;
   onEnter?: () => void;
@@ -34,18 +34,18 @@ export default function PhoneInput({
           borderRight: `1px solid ${GOLD_DEEP}`,
         }}
       >
-        +255
+        +
       </div>
       <input
         type="tel"
-        inputMode="numeric"
-        autoComplete="tel-national"
-        placeholder="7XX XXX XXX"
-        maxLength={11}
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder="1 234 567 890"
+        maxLength={15}
         value={value}
         autoFocus={autoFocus}
         onChange={(e) => {
-          const d = e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
+          const d = e.target.value.replace(/\D/g, "").slice(0, 15);
           onChange(d);
         }}
         onKeyDown={(e) => {
