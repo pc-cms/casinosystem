@@ -1,6 +1,7 @@
 // Premier Club: self-registration. Requires club session token.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyClubToken, tokenFromRequest } from "../_shared/club-token.ts";
+import { hashPassword, validatePasswordStrength } from "../_shared/club-password.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
