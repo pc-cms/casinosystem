@@ -56,7 +56,7 @@ export default function ClubRegister() {
   const [step, setStep] = useState<Step>(getClubToken() ? "profile" : "phone");
   const [busy, setBusy] = useState(false);
 
-  const [phone, setPhone] = useState("");
+  const [phoneLocal, setPhoneLocal] = useState("");
   const [code, setCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -65,7 +65,10 @@ export default function ClubRegister() {
   const [password, setPassword] = useState("");
   const [casinoSlug, setCasinoSlug] = useState("arusha");
 
+  const phone = buildE164(phoneLocal);
+
   const sendOtp = async () => {
+    if (phoneLocal.length < 9) return;
     setBusy(true);
     try {
       await clubApi.sendOtp(phone);
