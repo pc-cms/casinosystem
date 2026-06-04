@@ -170,7 +170,7 @@ const ActiveShiftView = ({ shift, players, tables }: {
 
   // Cancel dialog state
   const [cancelTarget, setCancelTarget] = useState<Tables<"transactions"> | null>(null);
-  const { roles, managerOverride } = useAuth();
+  const { roles, managerOverride, user } = useAuth();
   // Cancel TX is restricted to Cashier, Manager and Surveillance (CCTV).
   // Super Admin and Manager Override also retain access.
   const canCancelTx =
