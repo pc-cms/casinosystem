@@ -183,17 +183,11 @@ export default function ClubRegister() {
             {step === "phone" && (
               <>
                 <Field label="Phone number">
-                  <TextInput
-                    type="tel"
-                    placeholder="+255 7XX XXX XXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    autoFocus
-                  />
+                  <PhoneInput value={phoneLocal} onChange={setPhoneLocal} autoFocus onEnter={sendOtp} />
                 </Field>
                 <button
                   onClick={sendOtp}
-                  disabled={!phone || busy}
+                  disabled={phoneLocal.length < 9 || busy}
                   className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
                   style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
                 >
