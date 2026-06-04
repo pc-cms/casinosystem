@@ -20,7 +20,7 @@ import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
 import { BlacklistPlayerDialog } from "@/components/player/BlacklistPlayerDialog";
 import DuplicateCheckResult from "@/components/registration/DuplicateCheckResult";
 import {
-  Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera,
+  Search, UserPlus, LogIn, LogOut, ShieldAlert, Camera, ShieldCheck,
   User, Ban, CheckCircle2, XCircle, CreditCard, AlertTriangle, Eye, ClipboardList,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
