@@ -18,32 +18,23 @@ Deno.serve(async (req) => {
     const session = await verifyClubToken(token);
     if (!session) return new Response(JSON.stringify({ error: "invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { item_id, qty = 1, pickup_casino_id } = await req.json();
-    if (!item_id || qty <= 0) return new Response(JSON.stringify({ error: "item_id + qty required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { item_id, qty = 1, casino_id } = await req.json();
+    if (!item_id || qty <= 0 || !casino_id) return new Response(JSON.stringify({ error: "item_id + qty + casino_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: player, error: pe } = await sb.from("players").select("id").eq("phone", session.phone).maybeSingle();
-    if (pe || !player) return new Response(JSON.stringify({ error: "player_not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: player } = await sb.from("players").select("id").eq("phone", session.phone).maybeSingle();
+    if (!player) return new Response(JSON.stringify({ error: "player_not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: item, error: ie } = await sb.from("shop_items").select("id, price_credits, stock, is_active").eq("id", item_id).maybeSingle();
-    if (ie || !item || !item.is_active) return new Response(JSON.stringify({ error: "item_unavailable" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (Number(item.stock) < qty) return new Response(JSON.stringify({ error: "out_of_stock" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data, error } = await sb.rpc("club_place_shop_order", {
+      p_player_id: player.id,
+      p_item_id: item_id,
+      p_qty: qty,
+      p_casino_id: casino_id,
+    });
 
-    const totalCost = Number(item.price_credits) * qty;
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Insert order; DB trigger reserves stock + debits wallet (per migration spec)
-    const { data: order, error: oe } = await sb.from("shop_orders").insert({
-      player_id: player.id,
-      item_id,
-      qty,
-      total_credits: totalCost,
-      pickup_casino_id: pickup_casino_id ?? null,
-      status: "queued",
-    }).select("id, status, total_credits").single();
-
-    if (oe) return new Response(JSON.stringify({ error: oe.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    return new Response(JSON.stringify({ ok: true, order }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, ...(data as any) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error(e);
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
