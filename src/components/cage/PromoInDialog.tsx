@@ -63,12 +63,12 @@ export default function PromoInDialog({ open, onOpenChange, players, tables, shi
           <div className="space-y-3">
             <div>
               <Label>Player</Label>
-              <PlayerSearch players={players} onSelect={(p) => setPlayerId(p.id)} />
-              {player && <div className="mt-2"><PlayerInfoCard player={player} /></div>}
+              <PlayerSearch players={players as any} value={playerId ?? ""} onChange={(id) => setPlayerId(id || null)} />
+              {player && <div className="mt-2"><PlayerInfoCard player={player as any} tables={tables} /></div>}
             </div>
             <div>
               <Label>Amount (TZS credits)</Label>
-              <NumberInput value={amount} onChange={setAmount} />
+              <NumberInput value={amount} onChange={(v) => setAmount(Number(v) || 0)} />
             </div>
             <p className="text-xs text-muted-foreground">
               Debits FIFO from active promo grants (nearest expiry first). Daily per-casino cap enforced.
