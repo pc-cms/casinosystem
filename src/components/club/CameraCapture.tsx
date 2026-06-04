@@ -1,7 +1,7 @@
 // Camera/file capture with live preview + retake. Uses the OS picker so it
 // works on iOS Safari (no native camera SDK needed).
 import { useRef, useState } from "react";
-import { Camera, RotateCcw } from "lucide-react";
+import { Camera, ImagePlus, RotateCcw } from "lucide-react";
 
 interface Props {
   facing: "user" | "environment";
@@ -14,6 +14,8 @@ interface Props {
   maxSize?: number;
   /** JPEG quality 0-1 (default 0.82) */
   quality?: number;
+  /** Allow picking from gallery in addition to camera (default false) */
+  allowGallery?: boolean;
 }
 
 async function fileToCompressedDataUrl(file: File, maxSize: number, quality: number): Promise<string> {
