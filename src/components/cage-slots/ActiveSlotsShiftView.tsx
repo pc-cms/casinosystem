@@ -554,6 +554,14 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             />
           </div>
         </div>
+
+        {showPrintDialog && (
+          <PrintSlotsShiftDialog
+            open={showPrintDialog}
+            shiftId={shift.id}
+            onClose={() => setShowPrintDialog(false)}
+          />
+        )}
       </PageShell>
     );
   }
