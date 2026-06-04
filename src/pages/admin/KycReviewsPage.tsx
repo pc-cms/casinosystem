@@ -305,6 +305,58 @@ const KycReviewsPage = () => {
           </PageSection>
         </TabsContent>
 
+        {/* ============ TAB 2b: TRUSTED (AM bypass) ============ */}
+        <TabsContent value="trusted">
+          <PageSection
+            title={`Trusted by AM (${trustedFiltered.length})`}
+            titleRight={
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name / phone / ID…"
+                className="max-w-xs"
+              />
+            }
+            bodyClassName="p-0"
+          >
+            <DataTable>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="text-left p-2">Player</th>
+                    <th className="text-left p-2">Phone</th>
+                    <th className="text-left p-2">Casino</th>
+                    <th className="text-left p-2">Trusted At</th>
+                    <th className="text-right p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trustedLoading && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
+                  {trustedFiltered.map((p) => (
+                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
+                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                      <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
+                      <td className="p-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}`, source: "am_trusted" })}
+                        >
+                          <RotateCcw className="size-3.5" /> Revoke
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTable>
+          </PageSection>
+        </TabsContent>
+
+
         {/* ============ TAB 3: NOT VERIFIED ============ */}
         <TabsContent value="notverified">
           <PageSection
