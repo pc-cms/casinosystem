@@ -479,6 +479,33 @@ const KycReviewsPage = () => {
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialog>
+
+      {/* ============ Mark Trusted dialog (AM bypass KYC) ============ */}
+      <ResponsiveDialog
+        open={!!trust}
+        onOpenChange={(o) => { if (!o) { setTrust(null); setTrustReason(""); } }}
+        title="Mark player as Trusted"
+        description={trust ? `${trust.name} will be marked verified without documents. Affects Club App access only. Reason is mandatory and logged for audit.` : ""}
+      >
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Reason <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">(min 10 chars)</span></label>
+          <Textarea
+            value={trustReason}
+            onChange={(e) => setTrustReason(e.target.value)}
+            placeholder="e.g. Known VIP player, vouched personally, etc."
+            rows={3}
+          />
+        </div>
+        <ResponsiveDialogFooter>
+          <Button variant="outline" onClick={() => { setTrust(null); setTrustReason(""); }}>Cancel</Button>
+          <Button
+            onClick={() => trustMut.mutate()}
+            disabled={trustMut.isPending || trustReason.trim().length < 10}
+          >
+            {trustMut.isPending ? "Saving…" : "Mark as Trusted"}
+          </Button>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialog>
     </PageShell>
   );
 };
