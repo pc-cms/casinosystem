@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { clubApi, setClubSession, getClubToken } from "@/lib/club-api";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
 import ClubCard from "@/components/club/ClubCard";
+import PhoneInput, { buildE164 } from "@/components/club/PhoneInput";
 
 const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
@@ -55,7 +56,7 @@ export default function ClubRegister() {
   const [step, setStep] = useState<Step>(getClubToken() ? "profile" : "phone");
   const [busy, setBusy] = useState(false);
 
-  const [phone, setPhone] = useState("");
+  const [phoneLocal, setPhoneLocal] = useState("");
   const [code, setCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -64,7 +65,10 @@ export default function ClubRegister() {
   const [password, setPassword] = useState("");
   const [casinoSlug, setCasinoSlug] = useState("arusha");
 
+  const phone = buildE164(phoneLocal);
+
   const sendOtp = async () => {
+    if (phoneLocal.length < 9) return;
     setBusy(true);
     try {
       await clubApi.sendOtp(phone);
@@ -179,17 +183,11 @@ export default function ClubRegister() {
             {step === "phone" && (
               <>
                 <Field label="Phone number">
-                  <TextInput
-                    type="tel"
-                    placeholder="+255 7XX XXX XXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    autoFocus
-                  />
+                  <PhoneInput value={phoneLocal} onChange={setPhoneLocal} autoFocus onEnter={sendOtp} />
                 </Field>
                 <button
                   onClick={sendOtp}
-                  disabled={!phone || busy}
+                  disabled={phoneLocal.length < 9 || busy}
                   className="w-full h-12 rounded-md font-faberge text-sm tracking-[0.3em] uppercase disabled:opacity-50"
                   style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
                 >

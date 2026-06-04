@@ -141,6 +141,7 @@ const ClubRegister = lazy(() => import("@/pages/club/ClubRegister"));
 const ClubWallet = lazy(() => import("@/pages/club/ClubWallet"));
 const ClubShop = lazy(() => import("@/pages/club/ClubShop"));
 const ClubTickets = lazy(() => import("@/pages/club/ClubTickets"));
+const ClubProfile = lazy(() => import("@/pages/club/ClubProfile"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -477,6 +478,7 @@ const AppRoutes = () => {
             <Route path="/club/wallet" element={<ClubWallet />} />
             <Route path="/club/shop" element={<ClubShop />} />
             <Route path="/club/tickets" element={<ClubTickets />} />
+            <Route path="/club/profile" element={<ClubProfile />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -497,6 +499,7 @@ const AppRoutes = () => {
           <Route path="/club/wallet" element={<ClubWallet />} />
           <Route path="/club/shop" element={<ClubShop />} />
           <Route path="/club/tickets" element={<ClubTickets />} />
+          <Route path="/club/profile" element={<ClubProfile />} />
         </Route>
         <Route path="/pos" element={<PosLayout />}>
           <Route index element={<Navigate to="/pos/waiter" replace />} />
