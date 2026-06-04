@@ -142,6 +142,7 @@ const ClubWallet = lazy(() => import("@/pages/club/ClubWallet"));
 const ClubShop = lazy(() => import("@/pages/club/ClubShop"));
 const ClubTickets = lazy(() => import("@/pages/club/ClubTickets"));
 const ClubProfile = lazy(() => import("@/pages/club/ClubProfile"));
+const ClubVerifyWizard = lazy(() => import("@/pages/club/ClubVerifyWizard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
