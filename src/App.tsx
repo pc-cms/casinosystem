@@ -115,6 +115,10 @@ const KycReviewsPage = lazy(() => import("@/pages/admin/KycReviewsPage"));
 const AmBudgetPage = lazy(() => import("@/pages/admin/AmBudgetPage"));
 const PromoIssuanceReport = lazy(() => import("@/pages/reports/PromoIssuanceReport"));
 const PromoRedemptionsReport = lazy(() => import("@/pages/reports/PromoRedemptionsReport"));
+const PromoExpiryReport = lazy(() => import("@/pages/reports/PromoExpiryReport"));
+const CashbackReport = lazy(() => import("@/pages/reports/CashbackReport"));
+const AmBudgetReport = lazy(() => import("@/pages/reports/AmBudgetReport"));
+const FmTopupsPage = lazy(() => import("@/pages/admin/FmTopupsPage"));
 const WeeklyBonus = lazy(() => import("@/pages/WeeklyBonus"));
 const MonthlyTips = lazy(() => import("@/pages/MonthlyTips"));
 const TipsAndBonuses = lazy(() => import("@/pages/TipsAndBonuses"));
@@ -388,6 +392,10 @@ const ProtectedRoutes = () => {
           <Route path="/admin/am-budget" element={<RoleGuard path="/admin"><ErrorBoundary><AmBudgetPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/promo-issuance" element={<RoleGuard path="/admin"><ErrorBoundary><PromoIssuanceReport /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports/promo-redemptions" element={<RoleGuard path="/admin"><ErrorBoundary><PromoRedemptionsReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/promo-expiry" element={<RoleGuard path="/admin"><ErrorBoundary><PromoExpiryReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/cashback" element={<RoleGuard path="/admin"><ErrorBoundary><CashbackReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/reports/am-budget" element={<RoleGuard path="/admin"><ErrorBoundary><AmBudgetReport /></ErrorBoundary></RoleGuard>} />
+          <Route path="/admin/fm-topups" element={<RoleGuard path="/admin"><ErrorBoundary><FmTopupsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/import-reports" element={<RoleGuard path="/import-reports"><ImportReports /></RoleGuard>} />
           <Route path="/table-results" element={<Navigate to="/reports?tab=table-results" replace />} />
           <Route path="/bank-checks" element={<RoleGuard path="/bank-checks"><BankChecks /></RoleGuard>} />
