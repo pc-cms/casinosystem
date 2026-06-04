@@ -45,7 +45,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   // OVERVIEW
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance"], section: "OVERVIEW" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "manager", "pit", "reception", "finance_manager", "surveillance", "account_manager" as AppRole], section: "OVERVIEW" },
 
 
   // PIT — alphabetical order (trackers + incidents).
