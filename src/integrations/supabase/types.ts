@@ -5147,6 +5147,7 @@ export type Database = {
           category: Database["public"]["Enums"]["player_category"]
           created_at: string
           first_name: string
+          full_name: string | null
           id: string
           id_document_url: string | null
           id_number: string
@@ -5170,6 +5171,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string
           first_name: string
+          full_name?: string | null
           id?: string
           id_document_url?: string | null
           id_number?: string
@@ -5193,6 +5195,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["player_category"]
           created_at?: string
           first_name?: string
+          full_name?: string | null
           id?: string
           id_document_url?: string | null
           id_number?: string
