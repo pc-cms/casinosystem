@@ -1,101 +1,85 @@
-## Account Manager + Club — Final Module Plan
+## Анализ модуля Club + Players + Promo + Account Manager
 
-### 1. Trusted-player verification (AM bypass KYC)
-
-New tab in AM workspace: **Trusted Players**.
-- AM picks a player → "Mark as Trusted" → required reason text (≥10 chars) → record:
-  - `players.verification_status = 'verified'`
-  - `players.verified_source = 'am_trusted'`
-  - `players.verified_by_user = <am>`, `verified_at = now()`
-  - Row inserted in `kyc_reviews` with `decision='trusted_bypass'`, `notes=<reason>` for audit.
-- Same tab lists every player with `verified_source='am_trusted'`; AM can **Revoke** (back to `unverified`, audit row).
-- Only role `account_manager` sees this tab (not manager/floor_manager/finance).
-
-### 2. AM scope — single global role
-
-- `account_manager` is **always network-wide**. Login from any subdomain (Premier / Arusha / Mwanza / on-prem) gives identical workspace.
-- Drop the idea of per-casino AM. No `account_manager_premier` role.
-- RLS update: queries scoped on `casino_id` are bypassed when `has_role(auth.uid(),'account_manager')` (read-only across all casinos for AM-owned tables: players, kyc_reviews, promo_grants, player_crm, club_accounts, lotteries, shop_orders).
-- Write paths (verify/revoke, promo grant, segment edit) still require AM role — no casino filter.
-- Sidebar: `account_manager` sees only the **AM Workspace** section (no Pit/Cage/Finance).
-
-### 3. Merge CRM under AM Workspace
-
-- Move `/crm/players` → `/am/players` (and route alias). Hooks/tables untouched (`player_crm`, `useCrmPlayers`, segments, hosts, tags).
-- New AM sidebar:
-  - **Players** (ex-CRM table, full network)
-  - **KYC Queue** (club-app submissions, pending)
-  - **Verified by Reception** (Reception-source, revocable)
-  - **Trusted Players** (AM-bypass, revocable)
-  - **Not Verified** (all unverified+pending)
-  - **Promo Campaigns** (existing)
-  - **Lotteries** (existing)
-  - **Shop Orders** (existing)
-- Remove duplicate "CRM" top-level entry; old `/crm/*` routes 301-redirect to `/am/*`.
-
-### 4. Verified scope = Club App only
-
-Codify as core memory rule:
-- `verification_status` controls **only**: login to `club.casinosystem.app`, shop checkout, lottery ticket purchase, promo redemption inside Club App.
-- Does **NOT** affect: Pit registration, Player Card visibility, NEP accrual, statistics, blacklist, table tracker, reception search.
-- Unverified player from Reception "Save": card issued, plays normally, appears in stats. Club App login shows profile + persistent "Get verified" banner. No shop / no lottery / no redeem until verified (by Reception, AM trusted, or club-app KYC approval).
-
-### 5. Club domain confirmation
-
-- `club.casinosystem.app` = single Club PWA, network-wide.
-- Reads home casino from `players.home_casino_id`, syncs visits/promo/balance across all casinos via existing sync engine.
-- Promo rules already in DB: `promo_grants` (per-casino, per-player, expiring/non-expiring), `promo_codes` (one-time per player, casino-scoped), `lotteries` (per-casino draw date, ticket cap per player). No schema change.
+Аудит показал: основное всё сделано (RPC, RLS, Trusted-tab, Club App, Reception save, изоляция роли). Остались 5 мелких хвостов.
 
 ---
 
-### Technical changes
+### Что уже работает ✅
+
+- **AM Workspace**: все 10 пунктов меню (CRM, KYC, Promo Codes/Grants, Lotteries, Shop, Shop Orders, AM Budget, AM Performance, Campaigns, Reports) собраны в секции PROMO под `account_manager`.
+- **KYC-страница**: 4 вкладки — Queue / Verified by Reception / Trusted (AM) / Not Verified.
+- **RPC**: `am_trust_player` + `am_revoke_verification` (с reason ≥10 chars, аудит в `kyc_reviews`).
+- **RLS network-wide для AM** на 13 таблицах: players, club_accounts, kyc_reviews, promo_*, lotteries, lottery_tickets, shop_orders, am_budgets, house_promo_fund, premier_promo_campaigns.
+- **Club App** — 8 страниц: Landing, Login, Register (минимальный: phone+name+lastname+dob), Wallet, Profile, Shop, Tickets, VerifyWizard. Unverified пускает в Wallet/Profile, блокирует Shop/Tickets с понятным CTA.
+- **Reception "Save"** без фото/документа разрешён (`Reception.tsx:849`), карта выдаётся, `verification_status='unverified'`.
+- **Изоляция verified scope**: Pit/Cage/Stats/PlayerProfile **не** фильтруют по `verification_status` (grep = 0 совпадений).
+- **AM не видит** Pit/Cage/Finance в сайдбаре.
+- **Promo edge functions**: все `club-*`, `promo-expire`, `promo-generate-codes`, `cashier-redeem-by-qr`.
+
+---
+
+### Что нужно доработать (5 точечных фиксов)
+
+#### 1. RLS на `player_crm` для AM ⚠️ важно
+`account_manager` не указан в политиках `player_crm` и `player_notes`. AM на чужом субдомене не сможет читать/писать CRM-данные сетевых игроков.
+**Фикс**: миграция — добавить `account_manager` bypass на SELECT/INSERT/UPDATE для `player_crm`, `player_notes`.
+
+#### 2. RoleGuard path для `/admin/kyc` ⚠️ мелкое
+В `App.tsx:398` использован общий ключ `path="admin"` вместо собственного → KYC-страница наследует разрешения "admin", а не KYC.
+**Фикс**: заменить на `path="admin/kyc"` (отдельная запись в module map), чтобы дать `account_manager` прямой доступ без admin-флага.
+
+#### 3. Wallet banner → прямая ссылка на Verify ⚠️ UX
+`ClubWallet.tsx:106` "Get verified" ведёт на `/club/profile`, оттуда ещё клик на `/club/verify`.
+**Фикс**: ссылка сразу на `/club/verify`.
+
+#### 4. Promo Campaigns — отдельная страница под AM ⚠️ навигация
+Сейчас "Campaigns" в сайдбаре AM ведёт на `/marketing/campaigns` (модуль Marketing). Для целостности AM-домена — переименовать в "Promo Campaigns" или поднять Marketing-функционал в `/admin/promo-campaigns`.
+**Фикс** (минимальный): переименовать пункт сайдбара в "Promo Campaigns" и оставить роут. Полный перенос — отдельной задачей.
+
+#### 5. Memory-проверка ⚠️ документация
+`mem://features/am-trusted-players` уже создан. Сверить с core-rules в `mem://index.md` — там уже есть пункт про AM network-wide и Club-only verified scope. **Нечего менять.**
+
+---
+
+### Out of scope (по решению предыдущих итераций)
+
+- Никаких `/am/*` редиректов и переноса CRM-роутов — оставляем под `/crm/*` и `/admin/*`, сайдбар группирует визуально.
+- Без удаления `player_crm` или схемы изменений в promo.
+- Без новых лимитов в Club App.
+
+---
+
+### Технические изменения
 
 **Migration**
 ```sql
--- 1. extend verified_source enum
-ALTER TYPE player_verified_source ADD VALUE IF NOT EXISTS 'am_trusted';
+-- player_crm: AM network-wide access
+DROP POLICY IF EXISTS "..." ON public.player_crm;
+CREATE POLICY "AM full access to player_crm"
+ON public.player_crm FOR ALL TO authenticated
+USING (has_role(auth.uid(),'account_manager') OR <existing-casino-scope>)
+WITH CHECK (has_role(auth.uid(),'account_manager') OR <existing-casino-scope>);
 
--- 2. RPC am_trust_player(_player uuid, _reason text)
---    SECURITY DEFINER, asserts has_role(auth.uid(),'account_manager'),
---    sets verification_status='verified', verified_source='am_trusted',
---    inserts kyc_reviews row with decision='trusted_bypass'.
-
--- 3. RPC am_revoke_verification(_player uuid, _reason text)
---    Sets verification_status='unverified', clears verified_source,
---    audit row in kyc_reviews decision='revoked'.
-
--- 4. Add account_manager bypass to RLS on:
---    players, player_crm, kyc_reviews, promo_grants, promo_codes,
---    promo_redemptions, lotteries, lottery_tickets, shop_orders, club_accounts.
---    Pattern: USING (casino_id = ... OR has_role(auth.uid(),'account_manager'))
+-- same for player_notes
 ```
 
 **Frontend**
-- `src/pages/admin/KycReviewsPage.tsx` → rename/move to `src/pages/am/AmWorkspace.tsx` with tabs (Players, KYC Queue, Verified by Reception, Trusted, Not Verified, Promo, Lottery, Shop).
-- Add `TrustedPlayersTab` component with Mark/Revoke + reason dialog.
-- `src/pages/crm/CrmPlayers.tsx` → move under `/am/players`, keep code.
-- `src/components/AppSidebar.tsx` → new "Account Manager" section visible to `account_manager` role only; hide all other sections for that role.
-- Route redirects `/crm/* → /am/*`, `/admin/kyc-reviews → /am/kyc-queue`.
-- `src/lib/casino-context.tsx` / hooks: when role is `account_manager`, queries pass `null` casino filter (or use new `useAmScope()` returning all casino ids).
+- `src/App.tsx` — RoleGuard `path="admin/kyc"` для `/admin/kyc`.
+- `src/lib/route-module-map.ts` — добавить ключ `admin/kyc`.
+- `src/pages/club/ClubWallet.tsx:106` — `to="/club/verify"`.
+- `src/components/layout/AppSidebar.tsx` — пункт "Campaigns" → "Promo Campaigns".
+- `src/lib/modules.ts` (если нужно) — дефолтные права `account_manager` на `admin/kyc`.
 
-**Memory updates**
-- New core rule: "Verified flag controls Club App access only (login, shop, lottery, promo redeem). All operational surfaces ignore it."
-- New core rule: "`account_manager` role is always network-wide regardless of subdomain. Single role, no per-casino variant."
-- New memory `mem://features/am-trusted-players` — Trusted bypass flow, audit via kyc_reviews.
-- Update `mem://features/access-matrix` row for `account_manager`.
-
-**Out of scope**
-- No SMS, no club-app limits change, no new promo rules, no new card-issuance gates.
-- No removal of `player_crm` table — only route consolidation.
+**Версия**: bump `package.json` (миграция backend).
 
 ---
 
-### Acceptance test checklist
+### Acceptance
 
-1. AM logs in on `arusha.casinosystem.app` → sees players from Arusha, Mwanza, Premier.
-2. AM marks Reception-unverified player as Trusted with reason → status becomes verified, appears in Trusted tab, audit row in kyc_reviews.
-3. AM revokes → back to unverified, banner returns in Club App.
-4. Unverified player can log in to Club App, sees balance/profile, cannot buy lottery ticket or place shop order (button disabled with "Verify to continue").
-5. Reception-verified player has full Club access; AM can revoke and verify again.
-6. Pit operator sees player card identically whether status is verified or unverified.
-7. `account_manager` role has no access to Pit/Cage/Finance routes (403).
+1. AM на любом субдомене редактирует CRM-карточку игрока другой казино — без ошибок RLS.
+2. AM логинится → видит `/admin/kyc` напрямую, без admin-прав.
+3. В Club App unverified → "Get verified" в Wallet → сразу на `/club/verify`.
+4. Сайдбар AM: пункт называется "Promo Campaigns".
+5. Все существующие тесты Trusted/Revoke зелёные.
+
+После одобрения — реализую все 4 фикса в одной итерации.
