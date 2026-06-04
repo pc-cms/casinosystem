@@ -5165,6 +5165,7 @@ export type Database = {
           verification_status: Database["public"]["Enums"]["player_verification_status"]
           verified_at: string | null
           verified_by: string | null
+          verified_source: string | null
         }
         Insert: {
           am_reviewed_at?: string | null
@@ -5189,6 +5190,7 @@ export type Database = {
           verification_status?: Database["public"]["Enums"]["player_verification_status"]
           verified_at?: string | null
           verified_by?: string | null
+          verified_source?: string | null
         }
         Update: {
           am_reviewed_at?: string | null
@@ -5213,6 +5215,7 @@ export type Database = {
           verification_status?: Database["public"]["Enums"]["player_verification_status"]
           verified_at?: string | null
           verified_by?: string | null
+          verified_source?: string | null
         }
         Relationships: [
           {
@@ -8811,6 +8814,10 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_review_id: string }
         Returns: Json
       }
+      kyc_revoke_reception: {
+        Args: { p_player_id: string; p_reason: string }
+        Returns: Json
+      }
       list_open_cycles_for_day: { Args: { _casino_id: string }; Returns: Json }
       local_servers_overview: {
         Args: never
@@ -8993,6 +9000,18 @@ export type Database = {
       recalc_shift_tables_result: {
         Args: { p_shift_id: string }
         Returns: number
+      }
+      reception_verify_player: {
+        Args: {
+          p_dob: string
+          p_first: string
+          p_id_doc_url?: string
+          p_id_number: string
+          p_last: string
+          p_photo_url?: string
+          p_player_id: string
+        }
+        Returns: Json
       }
       redeem_promo_fifo: {
         Args: {
@@ -9266,7 +9285,12 @@ export type Database = {
         | "pos_comp"
         | "bar_charge"
       kyc_review_source: "reception" | "club" | "club_app"
-      kyc_review_status: "pending" | "approved" | "rejected" | "cancelled"
+      kyc_review_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+        | "revoked"
       log_category:
         | "transaction"
         | "edit"
@@ -9566,7 +9590,13 @@ export const Constants = {
         "bar_charge",
       ],
       kyc_review_source: ["reception", "club", "club_app"],
-      kyc_review_status: ["pending", "approved", "rejected", "cancelled"],
+      kyc_review_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "cancelled",
+        "revoked",
+      ],
       log_category: [
         "transaction",
         "edit",
