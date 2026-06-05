@@ -178,6 +178,10 @@ export default function FinancesMonthlyReportPage() {
               <Label htmlFor="ytd" className="text-xs">YTD</Label>
             </div>
             <div className="flex items-center gap-2 ml-2">
+              <Switch id="usd" checked={showUsd} onCheckedChange={setShowUsd} />
+              <Label htmlFor="usd" className="text-xs">Show USD</Label>
+            </div>
+            <div className="flex items-center gap-2 ml-2">
               <Label className="text-xs text-muted-foreground">USD rate</Label>
               <Input type="number" value={usdRate} onChange={(e) => setUsdRate(Number(e.target.value))} className="w-24 font-mono" />
             </div>
