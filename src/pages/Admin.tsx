@@ -109,7 +109,7 @@ const Admin = () => {
       />
 
       <Tabs defaultValue={isSuperAdmin ? "casinos" : "users"} className="space-y-4">
-        <TabsList className="flex-wrap">
+        <TabsList className="flex flex-wrap h-auto gap-1 justify-start">
           {isSuperAdmin && (
             <>
               <TabsTrigger value="casinos" className="gap-1.5">
