@@ -72,6 +72,7 @@ const FinancesBudgetVsActualPage = lazy(() => import("@/pages/finances/FinancesB
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 const FinancesExcelImportPage = lazy(() => import("@/pages/finances/FinancesExcelImportPage"));
 const FinancesAuditLogPage = lazy(() => import("@/pages/finances/FinancesAuditLogPage"));
+const FinancesAliasesPage = lazy(() => import("@/pages/finances/FinancesAliasesPage"));
 const Reception = lazy(() => import("@/pages/Reception"));
 const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
@@ -390,6 +391,7 @@ const ProtectedRoutes = () => {
           <Route path="/finances/annual-analytics" element={<Navigate to="/finances/monthly-report" replace />} />
           <Route path="/finances/excel-import" element={<RoleGuard path="/finances/excel-import"><ErrorBoundary><FinancesExcelImportPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finances/audit-log" element={<RoleGuard path="/finances/audit-log"><ErrorBoundary><FinancesAuditLogPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/aliases" element={<RoleGuard path="/finances/aliases"><ErrorBoundary><FinancesAliasesPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />

@@ -90,6 +90,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finances/budget-vs-actual", icon: FileBarChart, label: "Budget vs Actual", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/monthly-report", icon: FileBarChart, label: "Monthly Report", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/excel-import", icon: Upload, label: "Excel Import", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/aliases", icon: ClipboardList, label: "Excel Aliases", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finances/audit-log", icon: ClipboardList, label: "Audit Log", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
 
   // HR — Personnel admin (legacy /dealers and /staff/employees superseded by Staff Master)
