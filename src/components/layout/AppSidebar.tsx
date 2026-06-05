@@ -88,7 +88,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finances/office-safe", icon: Landmark, label: "Office Safe", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/budget", icon: Target, label: "Budget", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finances/budget-vs-actual", icon: FileBarChart, label: "Budget vs Actual", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finances/annual-analytics", icon: FileBarChart, label: "Annual Analytics", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/monthly-report", icon: FileBarChart, label: "Monthly Report", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/excel-import", icon: Upload, label: "Excel Import", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
   { to: "/finances/audit-log", icon: ClipboardList, label: "Audit Log", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
 
