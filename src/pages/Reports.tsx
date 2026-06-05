@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/currency";
 import { BarChart3, Table2, Users, Receipt, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins, CalendarDays, Joystick, CreditCard } from "lucide-react";
 import MissChips from "@/pages/MissChips";
-import Expenses from "@/pages/Expenses";
+import Expenses from "@/pages/finances/FinancesExpensesPage";
 import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
 import CashlessReport from "@/components/reports/CashlessReport";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -128,7 +128,7 @@ const Reports = () => {
         </TabsContent>
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
-        <TabsContent value="expenses"><Expenses embedded /></TabsContent>
+        <TabsContent value="expenses"><Expenses /></TabsContent>
         <TabsContent value="cashless"><CashlessReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips /></TabsContent>
       </Tabs>

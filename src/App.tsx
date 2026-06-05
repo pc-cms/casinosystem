@@ -40,7 +40,7 @@ const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const PlayerProfile = lazy(() => import("@/pages/PlayerProfile"));
 const Cage = lazy(() => import("@/pages/Cage"));
 const Tables = lazy(() => import("@/pages/Tables"));
-const Expenses = lazy(() => import("@/pages/Expenses"));
+const Expenses = lazy(() => import("@/pages/finances/FinancesExpensesPage"));
 const Logs = lazy(() => import("@/pages/Logs"));
 
 const Pit = lazy(() => import("@/pages/Pit"));
@@ -61,14 +61,17 @@ const Groups = lazy(() => import("@/pages/Groups"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const Staff = lazy(() => import("@/pages/Staff"));
-const FinanceWalletsPage = lazy(() => import("@/pages/finance/FinanceWalletsPage"));
-const FinanceDashboardPage = lazy(() => import("@/pages/finance/FinanceDashboardPage"));
-const FinanceReviewPage = lazy(() => import("@/pages/finance/FinanceReviewPage"));
-const FinancePaymentsPage = lazy(() => import("@/pages/finance/FinancePaymentsPage"));
-const FinanceBudgetPage = lazy(() => import("@/pages/finance/FinanceBudgetPage"));
-const FinanceCashCountPage = lazy(() => import("@/pages/finance/FinanceCashCountPage"));
-const FinanceSummaryPage = lazy(() => import("@/pages/finance/FinanceSummaryPage"));
-const FinanceTransfersPage = lazy(() => import("@/pages/finance/FinanceTransfersPage"));
+const FinancesDashboardPage = lazy(() => import("@/pages/finances/FinancesDashboardPage"));
+const FinancesWalletsPage = lazy(() => import("@/pages/finances/FinancesWalletsPage"));
+const FinancesExpensesPage = lazy(() => import("@/pages/finances/FinancesExpensesPage"));
+const FinancesDayClosingPage = lazy(() => import("@/pages/finances/FinancesDayClosingPage"));
+const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
+const FinancesOfficeSafePage = lazy(() => import("@/pages/finances/FinancesOfficeSafePage"));
+const FinancesBudgetPage = lazy(() => import("@/pages/finances/FinancesBudgetPage"));
+const FinancesBudgetVsActualPage = lazy(() => import("@/pages/finances/FinancesBudgetVsActualPage"));
+const FinancesAnnualAnalyticsPage = lazy(() => import("@/pages/finances/FinancesAnnualAnalyticsPage"));
+const FinancesExcelImportPage = lazy(() => import("@/pages/finances/FinancesExcelImportPage"));
+const FinancesAuditLogPage = lazy(() => import("@/pages/finances/FinancesAuditLogPage"));
 const Reception = lazy(() => import("@/pages/Reception"));
 const Guests = lazy(() => import("@/pages/Guests"));
 const Blacklist = lazy(() => import("@/pages/Blacklist"));
@@ -372,16 +375,20 @@ const ProtectedRoutes = () => {
           <Route path="/staff" element={<LegacyStaffRedirect />} />
           <Route path="/floor" element={<LegacyStaffRedirect />} />
           <Route path="/groups" element={<RoleGuard path="/groups"><Groups /></RoleGuard>} />
-          <Route path="/finance" element={<Navigate to="/finance/wallets" replace />} />
-          <Route path="/finance/wallets" element={<RoleGuard path="/finance/wallets"><ErrorBoundary><FinanceWalletsPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/dashboard" element={<RoleGuard path="/finance/dashboard"><ErrorBoundary><FinanceDashboardPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/review" element={<RoleGuard path="/finance/review"><ErrorBoundary><FinanceReviewPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/payments" element={<RoleGuard path="/finance/payments"><ErrorBoundary><FinancePaymentsPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/expenses" element={<Navigate to="/finance/payments" replace />} />
-          <Route path="/finance/budget" element={<RoleGuard path="/finance/budget"><ErrorBoundary><FinanceBudgetPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/cash-count" element={<RoleGuard path="/finance/cash-count"><ErrorBoundary><FinanceCashCountPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/summary" element={<RoleGuard path="/finance/summary"><ErrorBoundary><FinanceSummaryPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finance/transfers" element={<RoleGuard path="/finance/transfers"><ErrorBoundary><FinanceTransfersPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances" element={<Navigate to="/finances/dashboard" replace />} />
+          <Route path="/finance" element={<Navigate to="/finances/dashboard" replace />} />
+          <Route path="/finances/dashboard" element={<RoleGuard path="/finances/dashboard"><ErrorBoundary><FinancesDashboardPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/day-closing" element={<RoleGuard path="/finances/day-closing"><ErrorBoundary><FinancesDayClosingPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/expenses" element={<RoleGuard path="/finances/expenses"><ErrorBoundary><FinancesExpensesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/expenses" element={<RoleGuard path="/expenses"><ErrorBoundary><FinancesExpensesPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/money-change" element={<RoleGuard path="/finances/money-change"><ErrorBoundary><FinancesMoneyChangePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/wallets" element={<RoleGuard path="/finances/wallets"><ErrorBoundary><FinancesWalletsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/office-safe" element={<RoleGuard path="/finances/office-safe"><ErrorBoundary><FinancesOfficeSafePage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/budget" element={<RoleGuard path="/finances/budget"><ErrorBoundary><FinancesBudgetPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/budget-vs-actual" element={<RoleGuard path="/finances/budget-vs-actual"><ErrorBoundary><FinancesBudgetVsActualPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/annual-analytics" element={<RoleGuard path="/finances/annual-analytics"><ErrorBoundary><FinancesAnnualAnalyticsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/excel-import" element={<RoleGuard path="/finances/excel-import"><ErrorBoundary><FinancesExcelImportPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/audit-log" element={<RoleGuard path="/finances/audit-log"><ErrorBoundary><FinancesAuditLogPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/reports" element={<RoleGuard path="/reports"><Reports /></RoleGuard>} />
           <Route path="/stats" element={<Navigate to="/player-statistics" replace />} />
           <Route path="/logs" element={<RoleGuard path="/logs"><Logs /></RoleGuard>} />

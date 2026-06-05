@@ -33,7 +33,7 @@ import { ChipConservationModeCard } from "@/components/admin/ChipConservationMod
 import { ChipEmissionDialog } from "@/components/chips/ChipEmissionDialog";
 import { useCasinoInfo, useUpdateCasinoSchedule, useCancelPendingSchedule } from "@/hooks/use-table-lifecycle";
 import { UsersTab } from "@/components/admin/users/UsersTab";
-import { ExpenseCategoriesSettings } from "@/components/admin/ExpenseCategoriesSettings";
+import { FinCategoriesSettings } from "@/components/admin/FinCategoriesSettings";
 
 // (ROLES / ALL_ROLES / ROLE_LABELS moved to src/components/admin/users/users-hooks.ts)
 
@@ -143,8 +143,8 @@ const Admin = () => {
           <TabsTrigger value="chip-colors" className="gap-1.5">
             <Palette className="w-3.5 h-3.5" /> Chip Colors
           </TabsTrigger>
-          <TabsTrigger value="expense-categories" className="gap-1.5">
-            <Receipt className="w-3.5 h-3.5" /> Expense Categories
+          <TabsTrigger value="fin-categories" className="gap-1.5">
+            <Receipt className="w-3.5 h-3.5" /> Finance Categories
           </TabsTrigger>
           {isSuperAdmin && (
             <TabsTrigger value="branding" className="gap-1.5">
@@ -189,7 +189,7 @@ const Admin = () => {
           </div>
         </TabsContent>
         <TabsContent value="chip-colors"><ChipColorSettings /></TabsContent>
-        <TabsContent value="expense-categories"><ExpenseCategoriesSettings /></TabsContent>
+        <TabsContent value="fin-categories"><FinCategoriesSettings /></TabsContent>
         {isSuperAdmin && <TabsContent value="branding"><BrandingSettings /></TabsContent>}
       </Tabs>
     </div>

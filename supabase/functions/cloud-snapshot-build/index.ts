@@ -38,10 +38,9 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDa
   { name: "chip_initial_baseline", scope: "full" },
   { name: "chip_baseline", scope: "full" },
   { name: "chip_inventory", scope: "full" },
-  { name: "financial_wallets", scope: "full" },
-  { name: "budget_categories", scope: "full" },
-  { name: "budget_periods", scope: "full" },
-  { name: "budget_items", scope: "full" },
+  { name: "fin_categories", scope: "full" },
+  { name: "fin_wallets", scope: "full" },
+  { name: "fin_budget", scope: "full" },
   { name: "dealers", scope: "full" },
   { name: "staff_members", scope: "full" },
   { name: "players", scope: "full" },
@@ -58,7 +57,9 @@ const TABLES: Array<{ name: string; scope: "single" | "full" | "global"; sinceDa
   { name: "breaklist", scope: "full", sinceDays: 90 },
   { name: "pit_rota", scope: "full", sinceDays: 90 },
   { name: "staff_rota", scope: "full", sinceDays: 90 },
-  { name: "daily_summaries", scope: "full", sinceDays: 90 },
+  { name: "fin_wallet_tx", scope: "full", sinceDays: 90 },
+  { name: "fin_day_closing", scope: "full", sinceDays: 90 },
+  { name: "fin_money_change", scope: "full", sinceDays: 90 },
 ];
 
 async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }> {
