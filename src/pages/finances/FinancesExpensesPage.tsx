@@ -15,7 +15,10 @@ import {
 } from "@/hooks/use-fin";
 import { useAuth } from "@/lib/auth-context";
 import { formatNumberSpaces } from "@/lib/currency";
-import { fmtDate } from "@/lib/format-date";
+import {
+  FinTable, FinTHead, FinTBody, FinTR, FinTH, FinTD,
+  FinAmount, FinDate, FinTrunc, FinEmpty, FW,
+} from "@/components/finances/FinTable";
 
 const todayBD = () => new Date().toISOString().slice(0, 10);
 
@@ -62,41 +65,51 @@ export default function FinancesExpensesPage() {
         {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
       </PageHeader>
       <PageSection card={false}>
-        <div className="rounded-md border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-xs uppercase">
-              <tr>
-                <th className="px-3 py-2 text-left">Date</th>
-                <th className="text-left">Category</th>
-                <th className="text-left">Wallet</th>
-                <th className="text-left">Description</th>
-                <th className="text-right">Amount</th>
-                <th className="text-right">TZS</th>
-                <th className="w-20"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((r: any) => (
-                <tr key={r.id} className={`border-t border-border hover:bg-muted/40 ${r.voided_at ? "opacity-50 line-through" : ""}`}>
-                  <td className="px-3 py-1.5 font-mono text-xs">{fmtDate(r.business_date)}</td>
-                  <td>{r.fin_categories?.name || r.category}</td>
-                  <td>{r.fin_wallets?.name || "—"}</td>
-                  <td className="text-muted-foreground text-xs">{r.description}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(Number(r.amount))} {r.currency}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(Number(r.amount_tzs || r.amount))}</td>
-                  <td className="text-right pr-3">
+        <FinTable>
+          <FinTHead>
+            <tr>
+              <FinTH className={FW.date}>Date</FinTH>
+              <FinTH>Category</FinTH>
+              <FinTH className={FW.wallet}>Wallet</FinTH>
+              <FinTH>Description</FinTH>
+              <FinTH align="right" className={FW.amount}>Amount</FinTH>
+              <FinTH className={FW.actions} />
+            </tr>
+          </FinTHead>
+          <FinTBody>
+            {visible.map((r: any) => {
+              const ccy = r.currency || "TZS";
+              const tzs = Number(r.amount_tzs || r.amount || 0);
+              const amt = Number(r.amount || 0);
+              return (
+                <FinTR key={r.id} className={r.voided_at ? "opacity-50 line-through" : ""}>
+                  <FinTD className={FW.date}><FinDate value={r.business_date} /></FinTD>
+                  <FinTD><FinTrunc max="max-w-[220px]">{r.fin_categories?.name || r.category || "—"}</FinTrunc></FinTD>
+                  <FinTD className={FW.wallet}><FinTrunc max="max-w-[140px]" muted>{r.fin_wallets?.name || "—"}</FinTrunc></FinTD>
+                  <FinTD><FinTrunc max="max-w-[380px]" muted>{r.description || ""}</FinTrunc></FinTD>
+                  <FinTD align="right" className={FW.amount}>
+                    <div className="flex flex-col items-end leading-tight">
+                      <FinAmount value={tzs} signed={false} />
+                      {ccy !== "TZS" && (
+                        <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+                          {formatNumberSpaces(amt)} {ccy}
+                        </span>
+                      )}
+                    </div>
+                  </FinTD>
+                  <FinTD align="right" className={FW.actions}>
                     {canManage && !r.voided_at && (
-                      <Button variant="ghost" size="sm" onClick={() => voidExp.mutate(r.id)} title="Void / reverse">
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => voidExp.mutate(r.id)} title="Void / reverse">
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     )}
-                  </td>
-                </tr>
-              ))}
-              {!visible.length && <tr><td colSpan={7} className="text-center text-muted-foreground py-6">No expenses</td></tr>}
-            </tbody>
-          </table>
-        </div>
+                  </FinTD>
+                </FinTR>
+              );
+            })}
+            {!visible.length && <FinEmpty colSpan={6} msg="No expenses" />}
+          </FinTBody>
+        </FinTable>
       </PageSection>
 
       <ResponsiveDialog open={open} onOpenChange={setOpen} title="New expense">

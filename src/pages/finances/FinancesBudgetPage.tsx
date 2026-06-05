@@ -44,13 +44,15 @@ export default function FinancesBudgetPage() {
         </Select>
       </PageHeader>
       <PageSection card={false}>
-        <div className="rounded-md border border-border overflow-auto max-h-[70vh]">
-          <table className="w-full text-xs">
-            <thead className="bg-muted sticky top-0">
-              <tr>
-                <th className="px-2 py-2 text-left">Category</th>
-                {MONTHS.map((m, i) => <th key={m} className="text-right px-1.5 font-medium uppercase">{m}</th>)}
-                <th className="text-right px-2">Annual</th>
+        <div className="rounded-md border border-border overflow-auto max-h-[72vh] bg-card">
+          <table className="w-full text-[11px] border-collapse">
+            <thead className="bg-muted/40 sticky top-0 z-20">
+              <tr className="[&>th]:h-8 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground">
+                <th className="text-left sticky left-0 z-30 bg-muted/40 min-w-[200px]">Category</th>
+                {MONTHS.map((m) => (
+                  <th key={m} className="text-right w-[68px]">{m}</th>
+                ))}
+                <th className="text-right w-[100px] sticky right-0 z-30 bg-muted/40 border-l border-border">Annual</th>
               </tr>
             </thead>
             <tbody>
@@ -58,36 +60,38 @@ export default function FinancesBudgetPage() {
                 const row = grid[c.id] || {};
                 const annual = Object.values(row).reduce((s, v) => s + (v as number), 0);
                 return (
-                  <tr key={c.id} className="border-t border-border hover:bg-muted/30">
-                    <td className="px-2 py-1"><span className="text-muted-foreground text-[10px] uppercase mr-1">{c.group_code}</span>{c.name}</td>
-                    {MONTHS.map((_, i) => (
-                      <td key={i} className="px-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="h-7 text-right font-mono text-xs"
-                          value={row[i + 1] || ""}
-                          onChange={(e) => {
-                            const v = Number(e.target.value);
-                            // optimistic local update via setTimeout debounce
-                            (e.target as any)._pending = v;
-                          }}
-                          onBlur={(e) => {
-                            const v = Number((e.target as HTMLInputElement).value);
-                            onSetMonth(c.id, i + 1, v);
-                          }}
-                        />
-                      </td>
-                    ))}
-                    <td className="px-2 text-right">
+                  <tr key={c.id} className="border-t border-border hover:bg-muted/30 [&>td]:h-8 [&>td]:px-1 [&>td]:align-middle">
+                    <td className="text-left sticky left-0 z-10 bg-card pl-2 pr-3 whitespace-nowrap">
+                      <span className="text-muted-foreground text-[9px] uppercase mr-1">{c.group_code}</span>
+                      <span className="truncate inline-block max-w-[260px] align-middle">{c.name}</span>
+                    </td>
+                    {MONTHS.map((_, i) => {
+                      const val = row[i + 1];
+                      return (
+                        <td key={i} className="w-[68px]">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            className={`h-6 px-1.5 text-right font-mono tabular-nums text-[11px] ${val ? "" : "text-muted-foreground/50"}`}
+                            defaultValue={val || ""}
+                            key={`${c.id}-${i}-${val ?? 0}`}
+                            onBlur={(e) => {
+                              const v = Number((e.target as HTMLInputElement).value);
+                              if (v !== (val || 0)) onSetMonth(c.id, i + 1, v);
+                            }}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="text-right pr-2 sticky right-0 z-10 bg-card border-l border-border">
                       <button
-                        className="font-mono underline-offset-2 hover:underline"
+                        className="font-mono tabular-nums underline-offset-2 hover:underline"
                         onClick={() => {
                           const newAnnual = Number(prompt(`Set annual for ${c.name} (${currency}). Current: ${formatNumberSpaces(annual)}`, String(annual)));
                           if (!isNaN(newAnnual)) setAnnual.mutate({ year, category_id: c.id, currency, annual: newAnnual });
                         }}
                       >
-                        {formatNumberSpaces(annual)}
+                        {annual ? formatNumberSpaces(annual) : <span className="text-muted-foreground/60">·</span>}
                       </button>
                     </td>
                   </tr>

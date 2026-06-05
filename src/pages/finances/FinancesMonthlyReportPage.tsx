@@ -32,6 +32,7 @@ export default function FinancesMonthlyReportPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [ytd, setYtd] = useState(false);
+  const [showUsd, setShowUsd] = useState(false);
   const [scope, setScope] = useState<string>(activeCasinoId || "");
   const [usdRate, setUsdRate] = useState(2500);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -177,6 +178,10 @@ export default function FinancesMonthlyReportPage() {
               <Label htmlFor="ytd" className="text-xs">YTD</Label>
             </div>
             <div className="flex items-center gap-2 ml-2">
+              <Switch id="usd" checked={showUsd} onCheckedChange={setShowUsd} />
+              <Label htmlFor="usd" className="text-xs">Show USD</Label>
+            </div>
+            <div className="flex items-center gap-2 ml-2">
               <Label className="text-xs text-muted-foreground">USD rate</Label>
               <Input type="number" value={usdRate} onChange={(e) => setUsdRate(Number(e.target.value))} className="w-24 font-mono" />
             </div>
@@ -214,6 +219,7 @@ export default function FinancesMonthlyReportPage() {
           onToggle={toggle}
           usdRate={usdRate}
           isNetwork={scope === "network"}
+          showUsd={showUsd}
         />
       ))}
 
@@ -251,48 +257,59 @@ const Kpi = ({ label, v, signed }: { label: string; v: number; signed?: boolean 
   </div>
 );
 
-const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork }: {
+const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
   usdRate: number;
   isNetwork: boolean;
+  showUsd: boolean;
 }) => {
+  const colCount = 6 + (showUsd ? 4 : 0); // Category + 5 metrics + optional 4 USD
   return (
     <PageSection title={group.name} card={false}>
-      <div className="rounded-md border border-border overflow-hidden">
-        <table className="w-full text-xs">
-          <thead className="bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 text-left w-[28%]">Category</th>
-              <th className="text-right">Plan/Year TZS</th>
-              <th className="text-right">USD</th>
-              <th className="text-right">Plan/Month TZS</th>
-              <th className="text-right">USD</th>
-              <th className="text-right border-l border-border">Actual TZS</th>
-              <th className="text-right">USD</th>
-              <th className="text-right">%</th>
-              <th className="text-right border-l border-border">Remain TZS</th>
-              <th className="text-right">USD</th>
-              <th className="text-right">%</th>
+      <div className="rounded-md border border-border overflow-auto bg-card">
+        <table className="w-full text-[11px] border-collapse">
+          <thead className="bg-muted/40">
+            <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-[10px] [&>th]:text-muted-foreground [&>th]:whitespace-nowrap">
+              <th className="text-left sticky left-0 z-10 bg-muted/40 min-w-[220px]">Category</th>
+              <th className="text-right w-[110px]">Plan/Year</th>
+              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[110px]">Plan/Mo</th>
+              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[110px] border-l border-border">Actual</th>
+              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[52px]">%</th>
+              <th className="text-right w-[110px] border-l border-border">Remain</th>
+              {showUsd && <th className="text-right w-[80px]">USD</th>}
+              <th className="text-right w-[52px] pr-3">%</th>
             </tr>
           </thead>
           <tbody>
             {group.categories.map((c) => (
-              <Row key={c.id} c={c} expanded={expandedId === c.id} onToggle={() => onToggle(c.id)} usdRate={usdRate} isNetwork={isNetwork} />
+              <Row
+                key={c.id}
+                c={c}
+                expanded={expandedId === c.id}
+                onToggle={() => onToggle(c.id)}
+                usdRate={usdRate}
+                isNetwork={isNetwork}
+                showUsd={showUsd}
+                colCount={colCount}
+              />
             ))}
-            <tr className="bg-muted/40 font-semibold border-t-2 border-border">
-              <td className="px-3 py-2">Total</td>
-              <td className="text-right font-mono">{fmt(group.totals.plan_year_tzs)}</td>
-              <td className="text-right font-mono">{fmt(group.totals.plan_year_usd)}</td>
-              <td className="text-right font-mono">{fmt(group.totals.plan_month_tzs)}</td>
-              <td className="text-right font-mono">{fmt(group.totals.plan_month_usd)}</td>
-              <td className="text-right font-mono border-l border-border">{fmt(group.totals.actual_tzs)}</td>
-              <td className="text-right font-mono">{fmt(group.totals.actual_usd)}</td>
-              <td className="text-right font-mono">{group.totals.plan_month_tzs ? pct(group.totals.actual_tzs / group.totals.plan_month_tzs) : "—"}</td>
-              <td className={cn("text-right font-mono border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmt(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
-              <td className={cn("text-right font-mono", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmt(group.totals.plan_month_usd - group.totals.actual_usd)}</td>
-              <td className="text-right font-mono pr-3">{group.totals.plan_month_tzs ? pct((group.totals.plan_month_tzs - group.totals.actual_tzs) / group.totals.plan_month_tzs) : "—"}</td>
+            <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
+              <td className="sticky left-0 z-10 bg-muted/40">Total</td>
+              <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_year_tzs)}</td>
+              {showUsd && <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_year_usd)}</td>}
+              <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_month_tzs)}</td>
+              {showUsd && <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_month_usd)}</td>}
+              <td className="text-right font-mono tabular-nums border-l border-border">{fmt(group.totals.actual_tzs)}</td>
+              {showUsd && <td className="text-right font-mono tabular-nums">{fmt(group.totals.actual_usd)}</td>}
+              <td className="text-right font-mono tabular-nums">{group.totals.plan_month_tzs ? pct(group.totals.actual_tzs / group.totals.plan_month_tzs) : "—"}</td>
+              <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(group.totals.plan_month_tzs - group.totals.actual_tzs))}>{fmt(group.totals.plan_month_tzs - group.totals.actual_tzs)}</td>
+              {showUsd && <td className={cn("text-right font-mono tabular-nums", cls(group.totals.plan_month_usd - group.totals.actual_usd))}>{fmt(group.totals.plan_month_usd - group.totals.actual_usd)}</td>}
+              <td className="text-right font-mono tabular-nums pr-3">{group.totals.plan_month_tzs ? pct((group.totals.plan_month_tzs - group.totals.actual_tzs) / group.totals.plan_month_tzs) : "—"}</td>
             </tr>
           </tbody>
         </table>
@@ -301,69 +318,76 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork }: {
   );
 };
 
-const Row = ({ c, expanded, onToggle, usdRate, isNetwork }: {
-  c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean;
+const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
+  c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean; showUsd: boolean; colCount: number;
 }) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
   const remUsd = c.plan_month_usd - c.actual_usd;
   return (
     <>
-      <tr className={cn("border-t border-border hover:bg-muted/30 cursor-pointer", expanded && "bg-muted/30")} onClick={onToggle}>
-        <td className="px-3 py-1.5">
-          <div className="flex items-center gap-1">
-            {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <span>{c.name}</span>
-            {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground">({c.expenses.length})</span>}
+      <tr
+        className={cn(
+          "border-t border-border hover:bg-muted/30 cursor-pointer [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle",
+          expanded && "bg-muted/30",
+        )}
+        onClick={onToggle}
+      >
+        <td className="sticky left-0 z-10 bg-card">
+          <div className="flex items-center gap-1 min-w-0">
+            {expanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+            <span className="truncate" title={c.name}>{c.name}</span>
+            {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
           </div>
         </td>
-        <td className="text-right font-mono">{fmt(c.plan_year_tzs)}</td>
-        <td className="text-right font-mono">{fmt(c.plan_year_usd)}</td>
-        <td className="text-right font-mono">{fmt(c.plan_month_tzs)}</td>
-        <td className="text-right font-mono">{fmt(c.plan_month_usd)}</td>
-        <td className="text-right font-mono border-l border-border">{fmt(c.actual_tzs)}</td>
-        <td className="text-right font-mono">{fmt(c.actual_usd)}</td>
-        <td className="text-right font-mono">{c.plan_month_tzs ? pct(c.actual_tzs / c.plan_month_tzs) : "—"}</td>
-        <td className={cn("text-right font-mono border-l border-border", cls(remTzs))}>{fmt(remTzs)}</td>
-        <td className={cn("text-right font-mono", cls(remUsd))}>{fmt(remUsd)}</td>
-        <td className="text-right font-mono pr-3">{c.plan_month_tzs ? pct(remTzs / c.plan_month_tzs) : "—"}</td>
+        <td className="text-right font-mono tabular-nums">{fmt(c.plan_year_tzs)}</td>
+        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.plan_year_usd)}</td>}
+        <td className="text-right font-mono tabular-nums">{fmt(c.plan_month_tzs)}</td>
+        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.plan_month_usd)}</td>}
+        <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
+        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>}
+        <td className="text-right font-mono tabular-nums">{c.plan_month_tzs ? pct(c.actual_tzs / c.plan_month_tzs) : "—"}</td>
+        <td className={cn("text-right font-mono tabular-nums border-l border-border", cls(remTzs))}>{fmt(remTzs)}</td>
+        {showUsd && <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(remUsd))}>{fmt(remUsd)}</td>}
+        <td className="text-right font-mono tabular-nums pr-3">{c.plan_month_tzs ? pct(remTzs / c.plan_month_tzs) : "—"}</td>
       </tr>
       {expanded && (
         <tr className="bg-muted/10">
-          <td colSpan={11} className="px-4 py-3">
+          <td colSpan={colCount} className="px-3 py-2">
             {c.expenses.length === 0 ? (
-              <div className="text-xs text-muted-foreground text-center py-2">No expenses recorded</div>
+              <div className="text-[11px] text-muted-foreground text-center py-2">No expenses recorded</div>
             ) : (
-              <div className="rounded-md border border-border overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead className="bg-background text-[10px] uppercase text-muted-foreground">
-                    <tr>
-                      <th className="px-2 py-1.5 text-left w-24">Date</th>
-                      {isNetwork && <th className="text-left w-14">Casino</th>}
+              <div className="rounded-md border border-border overflow-auto bg-card">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead className="bg-muted/30">
+                    <tr className="[&>th]:h-7 [&>th]:px-2 [&>th]:text-[10px] [&>th]:uppercase [&>th]:tracking-wider [&>th]:text-muted-foreground">
+                      <th className="text-left w-[88px]">Date</th>
+                      {isNetwork && <th className="text-left w-[44px]">Cas</th>}
                       <th className="text-left">Description</th>
-                      <th className="text-left w-32">Wallet</th>
-                      <th className="text-right w-32">Amount</th>
-                      <th className="text-right w-24">CCY</th>
-                      <th className="text-right w-32">TZS</th>
-                      <th className="text-right w-28 pr-2">USD</th>
+                      <th className="text-left w-[140px]">Wallet</th>
+                      <th className="text-right w-[120px]">Amount</th>
+                      <th className="text-right w-[120px]">TZS</th>
+                      {showUsd && <th className="text-right w-[100px] pr-2">USD</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {c.expenses.map((e) => (
-                      <tr key={e.id} className="border-t border-border">
-                        <td className="px-2 py-1 font-mono">{fmtDateOnly(e.business_date)}</td>
-                        {isNetwork && <td className="font-mono">{CASINO_CODE[e.casino_slug || ""] || (e.casino_slug || "").slice(0, 3).toUpperCase()}</td>}
-                        <td className="text-foreground">{e.description || <span className="text-muted-foreground italic">—</span>}</td>
-                        <td className="text-muted-foreground">{e.wallet_name || "—"}</td>
-                        <td className="text-right font-mono">{formatNumberSpaces(e.amount)}</td>
-                        <td className="text-right font-mono">{e.currency}</td>
-                        <td className="text-right font-mono">{formatNumberSpaces(e.amount_tzs)}</td>
-                        <td className="text-right font-mono pr-2">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>
+                      <tr key={e.id} className="border-t border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
+                        <td className="font-mono tabular-nums text-[10px] text-muted-foreground">{fmtDateOnly(e.business_date)}</td>
+                        {isNetwork && <td className="font-mono text-[10px]">{CASINO_CODE[e.casino_slug || ""] || (e.casino_slug || "").slice(0, 3).toUpperCase()}</td>}
+                        <td className="text-foreground"><span className="block truncate max-w-[420px]" title={e.description || ""}>{e.description || <span className="text-muted-foreground italic">—</span>}</span></td>
+                        <td className="text-muted-foreground"><span className="block truncate max-w-[140px]" title={e.wallet_name || ""}>{e.wallet_name || "—"}</span></td>
+                        <td className="text-right font-mono tabular-nums">
+                          {formatNumberSpaces(e.amount)}
+                          {e.currency && e.currency !== "TZS" && <span className="ml-1 text-[10px] text-muted-foreground">{e.currency}</span>}
+                        </td>
+                        <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
+                        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground pr-2">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
                       </tr>
                     ))}
-                    <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                      <td className="px-2 py-1" colSpan={isNetwork ? 6 : 5}>Total · {c.expenses.length}</td>
-                      <td className="text-right font-mono">{formatNumberSpaces(c.actual_tzs)}</td>
-                      <td className="text-right font-mono pr-2">{formatNumberSpaces(Math.round(c.actual_tzs / (usdRate || 1)))}</td>
+                    <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:h-7 [&>td]:px-2">
+                      <td colSpan={isNetwork ? 5 : 4}>Total · {c.expenses.length}</td>
+                      <td className="text-right font-mono tabular-nums">{formatNumberSpaces(c.actual_tzs)}</td>
+                      {showUsd && <td className="text-right font-mono tabular-nums pr-2">{formatNumberSpaces(Math.round(c.actual_tzs / (usdRate || 1)))}</td>}
                     </tr>
                   </tbody>
                 </table>
