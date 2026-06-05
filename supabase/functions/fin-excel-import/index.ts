@@ -56,7 +56,7 @@ function detectCasinoCode(sheetName: string): string {
   return "JC";
 }
 
-function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
+function parseSheet(ws: XLSX.WorkSheet, cats: any[], aliases: Map<string, string>) {
   const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, blankrows: false, defval: null });
 
   const incomes: Record<string, number> = { live_game: 0, slots: 0, other: 0, total: 0 };
@@ -74,7 +74,6 @@ function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
     const a = r[0] ? String(r[0]).trim() : "";
     const b = r[1] ? String(r[1]).trim() : "";
 
-    // Group header row: column B contains "Average per YEAR"
     if (a && b && /average.*year/i.test(b)) {
       currentSection = { group_label: a, rows: [] };
       sections.push(currentSection);
@@ -94,7 +93,7 @@ function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
 
     if (planYearTzs === 0 && planMonthTzs === 0 && actualTzs === 0 && actualUsd === 0 && planYearUsd === 0) continue;
 
-    const match = bestMatch(a, cats);
+    const match = bestMatch(a, cats, aliases);
     currentSection.rows.push({
       excel_name: a,
       plan_year_tzs: planYearTzs,
@@ -106,6 +105,7 @@ function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
       suggested_category_id: match?.id || null,
       suggested_category_name: match?.name || null,
       match_score: match?.score || 0,
+      match_source: match?.source || null,
     });
   }
 
