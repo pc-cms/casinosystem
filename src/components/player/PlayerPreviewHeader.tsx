@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerPhotoLightbox from "@/components/player/PlayerPhotoLightbox";
 import { useNavigate } from "react-router-dom";
-import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed, Megaphone } from "lucide-react";
+import { X, ExternalLink, User, ArrowDownToLine, ArrowUpFromLine, Check, UtensilsCrossed, Megaphone, MessageSquare } from "lucide-react";
+import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { PitQuickOrderDialog } from "@/components/pos/PitQuickOrderDialog";
 import { usePlayerPromoCampaigns } from "@/hooks/use-promo-campaigns";
 import { useQuery } from "@tanstack/react-query";
