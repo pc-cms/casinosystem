@@ -749,11 +749,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
             {densityEffective === "compact" ? <Rows3 className="w-3.5 h-3.5" /> : <Rows2 className="w-3.5 h-3.5" />}
           </button>
           <button
-            onClick={() => {
-              if (confirm("Reload app and clear cache?\n\nUse this if the app shows outdated data or behaves strangely after an update.")) {
-                void resetPWACache();
-              }
-            }}
+            onClick={() => { void resetPWACache(); }}
             title="Force update"
             className="h-7 flex-1 flex items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
