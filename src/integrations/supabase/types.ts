@@ -8806,6 +8806,12 @@ export type Database = {
         }[]
       }
       export_full_schema_ddl: { Args: never; Returns: string }
+      fin_auto_close_old_days: {
+        Args: { p_age_days?: number }
+        Returns: {
+          closed_count: number
+        }[]
+      }
       fin_budget_set_annual: {
         Args: {
           p_annual: number
