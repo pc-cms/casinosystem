@@ -1569,6 +1569,9 @@ export type Database = {
           slug: string | null
           tables_open: string
           timezone: string
+          verification_bonus_amount: number
+          verification_bonus_funding_pool: string
+          verification_bonus_lifetime_days: number
         }
         Insert: {
           brand_accent_hsl?: string | null
@@ -1591,6 +1594,9 @@ export type Database = {
           slug?: string | null
           tables_open?: string
           timezone?: string
+          verification_bonus_amount?: number
+          verification_bonus_funding_pool?: string
+          verification_bonus_lifetime_days?: number
         }
         Update: {
           brand_accent_hsl?: string | null
@@ -1613,6 +1619,9 @@ export type Database = {
           slug?: string | null
           tables_open?: string
           timezone?: string
+          verification_bonus_amount?: number
+          verification_bonus_funding_pool?: string
+          verification_bonus_lifetime_days?: number
         }
         Relationships: []
       }

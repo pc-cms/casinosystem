@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
+import VerificationBonusSettings from "@/components/admin/VerificationBonusSettings";
 
 const fmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
 
@@ -217,6 +218,9 @@ const PromoGrantsPage = () => {
           </Button>
         </div>
       </PageSection>
+
+      <VerificationBonusSettings casinoId={activeCasinoId} />
+
 
       <PageSection title="Recent Grants (this casino)" bodyClassName="p-0">
         <DataTable>
