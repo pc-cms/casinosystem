@@ -519,210 +519,6 @@ export type Database = {
         }
         Relationships: []
       }
-      budget_categories: {
-        Row: {
-          casino_id: string
-          created_at: string
-          created_by: string
-          expense_mapping: string | null
-          id: string
-          name: string
-          parent_group: string
-        }
-        Insert: {
-          casino_id: string
-          created_at?: string
-          created_by: string
-          expense_mapping?: string | null
-          id?: string
-          name: string
-          parent_group: string
-        }
-        Update: {
-          casino_id?: string
-          created_at?: string
-          created_by?: string
-          expense_mapping?: string | null
-          id?: string
-          name?: string
-          parent_group?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_categories_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_items: {
-        Row: {
-          actual_amount: number
-          casino_id: string
-          category_id: string
-          created_at: string
-          id: string
-          item_name: string
-          logic_type: string
-          monthly_amount: number
-          period_id: string
-          reserved_amount: number
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          actual_amount?: number
-          casino_id: string
-          category_id: string
-          created_at?: string
-          id?: string
-          item_name: string
-          logic_type: string
-          monthly_amount?: number
-          period_id: string
-          reserved_amount?: number
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          actual_amount?: number
-          casino_id?: string
-          category_id?: string
-          created_at?: string
-          id?: string
-          item_name?: string
-          logic_type?: string
-          monthly_amount?: number
-          period_id?: string
-          reserved_amount?: number
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_items_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budget_items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "budget_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budget_items_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "budget_periods"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_logs: {
-        Row: {
-          action: string
-          casino_id: string
-          created_at: string
-          details: Json
-          id: string
-          item_id: string | null
-          operator_id: string
-          period_id: string | null
-        }
-        Insert: {
-          action: string
-          casino_id: string
-          created_at?: string
-          details?: Json
-          id?: string
-          item_id?: string | null
-          operator_id: string
-          period_id?: string | null
-        }
-        Update: {
-          action?: string
-          casino_id?: string
-          created_at?: string
-          details?: Json
-          id?: string
-          item_id?: string | null
-          operator_id?: string
-          period_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_logs_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budget_logs_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "budget_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budget_logs_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "budget_periods"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_periods: {
-        Row: {
-          casino_id: string
-          created_at: string
-          id: string
-          is_locked: boolean
-          locked_by: string | null
-          month: string
-          unlocked_at: string | null
-          unlocked_by: string | null
-          updated_at: string
-        }
-        Insert: {
-          casino_id: string
-          created_at?: string
-          id?: string
-          is_locked?: boolean
-          locked_by?: string | null
-          month: string
-          unlocked_at?: string | null
-          unlocked_by?: string | null
-          updated_at?: string
-        }
-        Update: {
-          casino_id?: string
-          created_at?: string
-          id?: string
-          is_locked?: boolean
-          locked_by?: string | null
-          month?: string
-          unlocked_at?: string | null
-          unlocked_by?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_periods_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       business_day_closures: {
         Row: {
           business_date: string
@@ -2587,62 +2383,6 @@ export type Database = {
           },
         ]
       }
-      daily_summaries: {
-        Row: {
-          casino_id: string
-          comment: string
-          confirmed: boolean
-          confirmed_at: string | null
-          confirmed_by: string | null
-          created_at: string
-          date: string
-          id: string
-          slots_result: number
-          tables_result: number
-          total_expenses: number
-          total_result: number
-          updated_at: string
-        }
-        Insert: {
-          casino_id: string
-          comment?: string
-          confirmed?: boolean
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string
-          date: string
-          id?: string
-          slots_result?: number
-          tables_result?: number
-          total_expenses?: number
-          total_result?: number
-          updated_at?: string
-        }
-        Update: {
-          casino_id?: string
-          comment?: string
-          confirmed?: boolean
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string
-          date?: string
-          id?: string
-          slots_result?: number
-          tables_result?: number
-          total_expenses?: number
-          total_result?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "daily_summaries_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dealer_attendance: {
         Row: {
           casino_id: string
@@ -3002,56 +2742,14 @@ export type Database = {
         }
         Relationships: []
       }
-      expense_categories: {
-        Row: {
-          active: boolean
-          casino_id: string
-          code: string
-          created_at: string
-          id: string
-          label: string
-          scope: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          casino_id: string
-          code: string
-          created_at?: string
-          id?: string
-          label: string
-          scope?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          casino_id?: string
-          code?: string
-          created_at?: string
-          id?: string
-          label?: string
-          scope?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expense_categories_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       expenses: {
         Row: {
           amount: number
+          amount_tzs: number | null
           approved: boolean
           approved_at: string | null
           approved_by: string | null
+          attachment_url: string | null
           business_date: string | null
           cage_slots_shift_id: string | null
           cage_type: string
@@ -3060,18 +2758,31 @@ export type Database = {
           category_code: string | null
           created_at: string
           created_by: string
+          currency: string
           description: string
+          exchange_rate: number
+          fin_category_id: string | null
           id: string
+          is_overrun: boolean
+          overrun_approved_by: string | null
+          overrun_reason: string | null
           player_id: string | null
           player_name: string
+          reversal_of: string | null
+          reversed_by: string | null
           shift_id: string | null
           source: string
+          voided_at: string | null
+          voided_by: string | null
+          wallet_id: string | null
         }
         Insert: {
           amount: number
+          amount_tzs?: number | null
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          attachment_url?: string | null
           business_date?: string | null
           cage_slots_shift_id?: string | null
           cage_type?: string
@@ -3080,18 +2791,31 @@ export type Database = {
           category_code?: string | null
           created_at?: string
           created_by: string
+          currency?: string
           description?: string
+          exchange_rate?: number
+          fin_category_id?: string | null
           id?: string
+          is_overrun?: boolean
+          overrun_approved_by?: string | null
+          overrun_reason?: string | null
           player_id?: string | null
           player_name?: string
+          reversal_of?: string | null
+          reversed_by?: string | null
           shift_id?: string | null
           source?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          wallet_id?: string | null
         }
         Update: {
           amount?: number
+          amount_tzs?: number | null
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          attachment_url?: string | null
           business_date?: string | null
           cage_slots_shift_id?: string | null
           cage_type?: string
@@ -3100,12 +2824,23 @@ export type Database = {
           category_code?: string | null
           created_at?: string
           created_by?: string
+          currency?: string
           description?: string
+          exchange_rate?: number
+          fin_category_id?: string | null
           id?: string
+          is_overrun?: boolean
+          overrun_approved_by?: string | null
+          overrun_reason?: string | null
           player_id?: string | null
           player_name?: string
+          reversal_of?: string | null
+          reversed_by?: string | null
           shift_id?: string | null
           source?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          wallet_id?: string | null
         }
         Relationships: [
           {
@@ -3120,6 +2855,13 @@ export type Database = {
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_fin_category_fk"
+            columns: ["fin_category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
             referencedColumns: ["id"]
           },
           {
@@ -3143,36 +2885,462 @@ export type Database = {
             referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "expenses_wallet_fk"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      financial_wallets: {
+      fin_audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          after: Json | null
+          before: Json | null
+          casino_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_table: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after?: Json | null
+          before?: Json | null
+          casino_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_table: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after?: Json | null
+          before?: Json | null
+          casino_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      fin_budget: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          casino_id: string
+          category_id: string
+          created_at: string
+          currency: string
+          id: string
+          locked_at: string | null
+          month: number
+          overrun_limit_pct: number
+          planned_amount: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          casino_id: string
+          category_id: string
+          created_at?: string
+          currency: string
+          id?: string
+          locked_at?: string | null
+          month: number
+          overrun_limit_pct?: number
+          planned_amount?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          casino_id?: string
+          category_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          locked_at?: string | null
+          month?: number
+          overrun_limit_pct?: number
+          planned_amount?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_budget_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_budget_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_categories: {
+        Row: {
+          created_at: string
+          group_code: string
+          group_name: string
+          id: string
+          is_active: boolean
+          is_income: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_code: string
+          group_name: string
+          id?: string
+          is_active?: boolean
+          is_income?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_code?: string
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          is_income?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fin_day_closing: {
+        Row: {
+          business_date: string
+          casino_id: string
+          closed_by: string | null
+          created_at: string
+          id: string
+          income_lines: Json
+          locked_at: string | null
+          notes: string | null
+          slots_result: number
+          tables_result: number
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          income_lines?: Json
+          locked_at?: string | null
+          notes?: string | null
+          slots_result?: number
+          tables_result?: number
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          income_lines?: Json
+          locked_at?: string | null
+          notes?: string | null
+          slots_result?: number
+          tables_result?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_day_closing_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_excel_imports: {
+        Row: {
+          applied_at: string | null
+          casino_id: string
+          created_at: string
+          error_log: string | null
+          filename: string
+          id: string
+          imported_by: string
+          mapping: Json | null
+          raw_data: Json
+          rows_imported: number | null
+          status: string
+          target_kind: string
+        }
+        Insert: {
+          applied_at?: string | null
+          casino_id: string
+          created_at?: string
+          error_log?: string | null
+          filename: string
+          id?: string
+          imported_by: string
+          mapping?: Json | null
+          raw_data: Json
+          rows_imported?: number | null
+          status?: string
+          target_kind: string
+        }
+        Update: {
+          applied_at?: string | null
+          casino_id?: string
+          created_at?: string
+          error_log?: string | null
+          filename?: string
+          id?: string
+          imported_by?: string
+          mapping?: Json | null
+          raw_data?: Json
+          rows_imported?: number | null
+          status?: string
+          target_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_excel_imports_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_money_change: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          from_amount: number
+          from_currency: string
+          from_wallet_id: string
+          id: string
+          manager_id: string
+          note: string | null
+          rate: number
+          to_amount: number
+          to_casino_id: string | null
+          to_currency: string
+          to_wallet_id: string
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          from_amount: number
+          from_currency: string
+          from_wallet_id: string
+          id?: string
+          manager_id: string
+          note?: string | null
+          rate: number
+          to_amount: number
+          to_casino_id?: string | null
+          to_currency: string
+          to_wallet_id: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          from_amount?: number
+          from_currency?: string
+          from_wallet_id?: string
+          id?: string
+          manager_id?: string
+          note?: string | null
+          rate?: number
+          to_amount?: number
+          to_casino_id?: string | null
+          to_currency?: string
+          to_wallet_id?: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_money_change_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_money_change_from_wallet_id_fkey"
+            columns: ["from_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_money_change_to_casino_id_fkey"
+            columns: ["to_casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_money_change_to_wallet_id_fkey"
+            columns: ["to_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_wallet_tx: {
+        Row: {
+          amount: number
+          amount_tzs: number
+          business_date: string
+          casino_id: string
+          category_id: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          fx_rate: number
+          id: string
+          kind: string
+          note: string | null
+          ref_id: string | null
+          ref_table: string | null
+          reversal_of: string | null
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          amount_tzs: number
+          business_date: string
+          casino_id: string
+          category_id?: string | null
+          created_at?: string
+          created_by: string
+          currency: string
+          fx_rate?: number
+          id?: string
+          kind: string
+          note?: string | null
+          ref_id?: string | null
+          ref_table?: string | null
+          reversal_of?: string | null
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          amount_tzs?: number
+          business_date?: string
+          casino_id?: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          fx_rate?: number
+          id?: string
+          kind?: string
+          note?: string | null
+          ref_id?: string | null
+          ref_table?: string | null
+          reversal_of?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_wallet_tx_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_wallet_tx_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_wallet_tx_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "fin_wallet_tx"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_wallet_tx_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fin_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_wallets: {
         Row: {
           casino_id: string
           created_at: string
-          current_balance: number
+          currency: string
           id: string
+          is_active: boolean
+          kind: string
+          name: string
+          sort_order: number
           updated_at: string
-          wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
         Insert: {
           casino_id: string
           created_at?: string
-          current_balance?: number
+          currency: string
           id?: string
+          is_active?: boolean
+          kind: string
+          name: string
+          sort_order?: number
           updated_at?: string
-          wallet_type: Database["public"]["Enums"]["wallet_type"]
         }
         Update: {
           casino_id?: string
           created_at?: string
-          current_balance?: number
+          currency?: string
           id?: string
+          is_active?: boolean
+          kind?: string
+          name?: string
+          sort_order?: number
           updated_at?: string
-          wallet_type?: Database["public"]["Enums"]["wallet_type"]
         }
         Relationships: [
           {
-            foreignKeyName: "financial_wallets_casino_id_fkey"
+            foreignKeyName: "fin_wallets_casino_id_fkey"
             columns: ["casino_id"]
             isOneToOne: false
             referencedRelation: "casinos"
@@ -3511,69 +3679,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      inter_casino_transfers: {
-        Row: {
-          amount: number
-          confirmed_at: string | null
-          confirmed_by: string | null
-          created_at: string
-          currency: string
-          description: string
-          from_casino_id: string
-          id: string
-          initiated_by: string
-          rejected_reason: string | null
-          status: string
-          to_casino_id: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string
-          currency?: string
-          description?: string
-          from_casino_id: string
-          id?: string
-          initiated_by: string
-          rejected_reason?: string | null
-          status?: string
-          to_casino_id: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string
-          currency?: string
-          description?: string
-          from_casino_id?: string
-          id?: string
-          initiated_by?: string
-          rejected_reason?: string | null
-          status?: string
-          to_casino_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inter_casino_transfers_from_casino_id_fkey"
-            columns: ["from_casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inter_casino_transfers_to_casino_id_fkey"
-            columns: ["to_casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       kyc_reviews: {
         Row: {
@@ -8030,62 +8135,6 @@ export type Database = {
         }
         Relationships: []
       }
-      wallet_transactions: {
-        Row: {
-          amount: number
-          business_date: string | null
-          casino_id: string
-          created_at: string
-          description: string
-          expense_category:
-            | Database["public"]["Enums"]["office_expense_category"]
-            | null
-          from_wallet: Database["public"]["Enums"]["wallet_type"] | null
-          id: string
-          operator_id: string
-          to_wallet: Database["public"]["Enums"]["wallet_type"] | null
-          tx_type: Database["public"]["Enums"]["wallet_tx_type"]
-        }
-        Insert: {
-          amount: number
-          business_date?: string | null
-          casino_id: string
-          created_at?: string
-          description?: string
-          expense_category?:
-            | Database["public"]["Enums"]["office_expense_category"]
-            | null
-          from_wallet?: Database["public"]["Enums"]["wallet_type"] | null
-          id?: string
-          operator_id: string
-          to_wallet?: Database["public"]["Enums"]["wallet_type"] | null
-          tx_type: Database["public"]["Enums"]["wallet_tx_type"]
-        }
-        Update: {
-          amount?: number
-          business_date?: string | null
-          casino_id?: string
-          created_at?: string
-          description?: string
-          expense_category?:
-            | Database["public"]["Enums"]["office_expense_category"]
-            | null
-          from_wallet?: Database["public"]["Enums"]["wallet_type"] | null
-          id?: string
-          operator_id?: string
-          to_wallet?: Database["public"]["Enums"]["wallet_type"] | null
-          tx_type?: Database["public"]["Enums"]["wallet_tx_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wallet_transactions_casino_id_fkey"
-            columns: ["casino_id"]
-            isOneToOne: false
-            referencedRelation: "casinos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       weekly_bonus_entries: {
         Row: {
           bonus_points: number
@@ -8722,6 +8771,37 @@ export type Database = {
         }[]
       }
       export_full_schema_ddl: { Args: never; Returns: string }
+      fin_budget_set_annual: {
+        Args: {
+          p_annual: number
+          p_casino: string
+          p_category: string
+          p_currency: string
+          p_year: number
+        }
+        Returns: undefined
+      }
+      fin_lock_day_closing: { Args: { p_id: string }; Returns: undefined }
+      fin_money_change_create: {
+        Args: {
+          p_business_date: string
+          p_casino: string
+          p_from_amount: number
+          p_from_ccy: string
+          p_from_wallet: string
+          p_note: string
+          p_rate: number
+          p_to_amount: number
+          p_to_casino: string
+          p_to_ccy: string
+          p_to_wallet: string
+        }
+        Returns: string
+      }
+      fin_reverse_tx: {
+        Args: { p_reason: string; p_tx_id: string }
+        Returns: string
+      }
       finalize_open_cycles_for_close: {
         Args: { _casino_id: string; _user: string }
         Returns: Json
