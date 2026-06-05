@@ -1,0 +1,1 @@
+ALTER FUNCTION public.compute_daily_diff(uuid, date, date) VOLATILE;
