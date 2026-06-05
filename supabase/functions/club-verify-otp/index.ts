@@ -1,4 +1,4 @@
-// Premier Club: verify OTP via Twilio Verify, return signed session token
+// Premier Club: verify OTP against club_otp_codes, issue session token
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { issueClubToken } from "../_shared/club-token.ts";
 
@@ -9,19 +9,17 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID")!;
-const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN")!;
-const TWILIO_VERIFY_SERVICE_SID = Deno.env.get("TWILIO_VERIFY_SERVICE_SID")!;
 
 function normalizePhone(raw: string): string {
-  let p = raw.replace(/[^\d+]/g, "");
+  let p = raw.replace(/\D/g, "");
   if (p.startsWith("0")) p = "255" + p.slice(1);
-  if (!p.startsWith("+")) p = "+" + p.replace(/^\+?/, "");
+  if (!p.startsWith("255") && p.length <= 9) p = "255" + p;
   return p;
 }
 
-function digitsOnly(raw: string): string {
-  return raw.replace(/\D/g, "");
+async function sha256Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req) => {
@@ -31,31 +29,34 @@ Deno.serve(async (req) => {
     if (!phone || !code) {
       return new Response(JSON.stringify({ error: "phone and code required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const e164 = normalizePhone(phone);              // +255... for Twilio
-    const storedPhone = digitsOnly(e164);            // 255... matches players.phone
-
-    // Verify code with Twilio
-    const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
-    const resp = await fetch(
-      `https://verify.twilio.com/v2/Services/${TWILIO_VERIFY_SERVICE_SID}/VerificationCheck`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({ To: e164, Code: String(code) }),
-      }
-    );
-    const body = await resp.json().catch(() => ({}));
-    if (!resp.ok || body?.status !== "approved") {
-      console.error("Twilio VerificationCheck failed", resp.status, body);
-      return new Response(JSON.stringify({ ok: false, error: "invalid_or_expired" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const storedPhone = normalizePhone(phone);
+    const codeStr = String(code).replace(/\D/g, "");
+    if (codeStr.length !== 6) {
+      return new Response(JSON.stringify({ error: "invalid_or_expired" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // Look up player + ensure club_account
+    const { data: row } = await sb
+      .from("club_otp_codes")
+      .select("id, code_hash, expires_at, used_at, attempts")
+      .eq("phone", storedPhone)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!row || row.used_at || new Date(row.expires_at).getTime() < Date.now() || (row.attempts ?? 0) >= 5) {
+      return new Response(JSON.stringify({ ok: false, error: "invalid_or_expired" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const hash = await sha256Hex(codeStr);
+    if (hash !== row.code_hash) {
+      await sb.from("club_otp_codes").update({ attempts: (row.attempts ?? 0) + 1 }).eq("id", row.id);
+      return new Response(JSON.stringify({ ok: false, error: "invalid_or_expired" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    await sb.from("club_otp_codes").update({ used_at: new Date().toISOString() }).eq("id", row.id);
+
     const { data: player } = await sb.from("players").select("id, first_name, last_name, verification_status").eq("phone", storedPhone).maybeSingle();
     if (player) {
       const { data: existing } = await sb.from("club_accounts").select("id").eq("phone", storedPhone).maybeSingle();
