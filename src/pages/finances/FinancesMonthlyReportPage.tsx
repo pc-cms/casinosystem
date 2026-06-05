@@ -42,30 +42,121 @@ export default function FinancesMonthlyReportPage() {
 
   const exportXlsx = async () => {
     if (!data) return;
-    const rows: (string | number | null)[][] = [];
-    rows.push([`${ytd ? "YTD " : ""}${MONTHS[month - 1]} ${year}`, "", scope === "network" ? "Network" : (accessibleCasinos.find(c => c.id === scope)?.name || "")]);
-    rows.push([]);
-    rows.push(["Incomes", "TZS"]);
-    rows.push(["Live Game", data.incomes.live_game]);
-    rows.push(["Slots", data.incomes.slots]);
-    rows.push(["Other Incomes", data.incomes.other]);
-    rows.push(["Total in TZS", data.incomes.total]);
-    rows.push([]);
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Report", { views: [{ state: "frozen", ySplit: 8 }] });
+    const scopeName = scope === "network" ? "Network" : (accessibleCasinos.find((c) => c.id === scope)?.name || "");
+
+    // Title block
+    ws.mergeCells("A1:K1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = `${scopeName} · ${ytd ? "YTD " : ""}${MONTHS[month - 1]} ${year}`;
+    titleCell.font = { bold: true, size: 14 };
+    titleCell.alignment = { horizontal: "center" };
+
+    // Incomes
+    ws.getCell("A3").value = "Incomes";
+    ws.getCell("A3").font = { bold: true };
+    [["Live Game", data.incomes.live_game], ["Slots", data.incomes.slots], ["Other Incomes", data.incomes.other], ["Total in TZS", data.incomes.total]]
+      .forEach(([label, v], i) => {
+        ws.getCell(`G${4 + i}`).value = label as string;
+        ws.getCell(`H${4 + i}`).value = v as number;
+        ws.getCell(`H${4 + i}`).numFmt = "# ##0";
+        if (label === "Total in TZS") {
+          ws.getCell(`G${4 + i}`).font = { bold: true };
+          ws.getCell(`H${4 + i}`).font = { bold: true };
+        }
+      });
+
+    const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } } as const;
+    const groupFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE4D6" } } as const;
+    const totalFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2EFDA" } } as const;
+
+    let r = 10;
+    const writeHeader = () => {
+      const headers = ["Category", "Plan/Year TZS", "Plan/Year USD", "Plan/Month TZS", "Plan/Month USD", "Actual TZS", "Actual USD", "%", "Remain TZS", "Remain USD", "Remain %"];
+      headers.forEach((h, i) => {
+        const cell = ws.getCell(r, i + 1);
+        cell.value = h;
+        cell.font = { bold: true, size: 10 };
+        cell.fill = headerFill as any;
+        cell.alignment = { horizontal: i === 0 ? "left" : "right" };
+        cell.border = { top: { style: "thin" }, bottom: { style: "thin" } };
+      });
+      r++;
+    };
+
     for (const g of data.groups) {
-      rows.push([g.name, "Plan/Year TZS", "Plan/Year USD", "Plan/Month TZS", "Plan/Month USD", "Actual TZS", "Actual USD", "%", "Remain TZS", "Remain USD"]);
+      ws.mergeCells(`A${r}:K${r}`);
+      const gc = ws.getCell(`A${r}`);
+      gc.value = g.name;
+      gc.font = { bold: true, size: 12 };
+      gc.fill = groupFill as any;
+      r++;
+      writeHeader();
+
       for (const c of g.categories) {
-        rows.push([
-          c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd,
-          c.actual_tzs, c.actual_usd,
-          c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : 0,
-          c.plan_month_tzs - c.actual_tzs, c.plan_month_usd - c.actual_usd,
-        ]);
+        const remTzs = c.plan_month_tzs - c.actual_tzs;
+        const remUsd = c.plan_month_usd - c.actual_usd;
+        const pctVal = c.plan_month_tzs ? c.actual_tzs / c.plan_month_tzs : null;
+        const remPct = c.plan_month_tzs ? remTzs / c.plan_month_tzs : null;
+        const row = ws.getRow(r);
+        row.values = [c.name, c.plan_year_tzs, c.plan_year_usd, c.plan_month_tzs, c.plan_month_usd, c.actual_tzs, c.actual_usd, pctVal, remTzs, remUsd, remPct];
+        for (let i = 2; i <= 11; i++) {
+          const cell = row.getCell(i);
+          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+        r++;
       }
-      rows.push(["Total", g.totals.plan_year_tzs, g.totals.plan_year_usd, g.totals.plan_month_tzs, g.totals.plan_month_usd, g.totals.actual_tzs, g.totals.actual_usd]);
-      rows.push([]);
+
+      // Group total
+      const tr = ws.getRow(r);
+      tr.values = ["Total", g.totals.plan_year_tzs, g.totals.plan_year_usd, g.totals.plan_month_tzs, g.totals.plan_month_usd, g.totals.actual_tzs, g.totals.actual_usd,
+        g.totals.plan_month_tzs ? g.totals.actual_tzs / g.totals.plan_month_tzs : null,
+        g.totals.plan_month_tzs - g.totals.actual_tzs, g.totals.plan_month_usd - g.totals.actual_usd,
+        g.totals.plan_month_tzs ? (g.totals.plan_month_tzs - g.totals.actual_tzs) / g.totals.plan_month_tzs : null];
+      for (let i = 1; i <= 11; i++) {
+        const cell = tr.getCell(i);
+        cell.font = { bold: true };
+        cell.fill = totalFill as any;
+        if (i > 1) {
+          cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+          cell.alignment = { horizontal: "right" };
+        }
+      }
+      r += 2;
     }
-    rows.push(["GRAND TOTAL TZS", data.grand.plan_month_tzs, "", "", "", data.grand.actual_tzs]);
-    await downloadXlsx(`Monthly_Report_${year}_${String(month).padStart(2,"0")}${ytd ? "_YTD" : ""}.xlsx`, [{ name: "Report", rows }]);
+
+    // Grand total
+    ws.mergeCells(`A${r}:K${r}`);
+    ws.getCell(`A${r}`).value = "GRAND TOTAL";
+    ws.getCell(`A${r}`).font = { bold: true, size: 12 };
+    ws.getCell(`A${r}`).fill = totalFill as any;
+    r++;
+    const gr = ws.getRow(r);
+    gr.values = ["", "", "", data.grand.plan_month_tzs, data.grand.plan_month_usd, data.grand.actual_tzs, data.grand.actual_usd,
+      data.grand.plan_month_tzs ? data.grand.actual_tzs / data.grand.plan_month_tzs : null,
+      data.grand.plan_month_tzs - data.grand.actual_tzs, data.grand.plan_month_usd - data.grand.actual_usd, null];
+    for (let i = 4; i <= 11; i++) {
+      const cell = gr.getCell(i);
+      cell.font = { bold: true };
+      cell.numFmt = (i === 8 || i === 11) ? "0%" : "# ##0;[Red](# ##0);—";
+      cell.alignment = { horizontal: "right" };
+    }
+
+    // Column widths
+    ws.getColumn(1).width = 36;
+    for (let i = 2; i <= 11; i++) ws.getColumn(i).width = 14;
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Monthly_Report_${year}_${String(month).padStart(2, "0")}${ytd ? "_YTD" : ""}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
