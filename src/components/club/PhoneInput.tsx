@@ -27,11 +27,11 @@ export default function PhoneInput({
       style={{ backgroundColor: "rgba(0,0,0,0.55)", borderColor: `${GOLD}55` }}
     >
       <div
-        className="flex items-center px-3 font-faberge text-sm tracking-[0.2em]"
+        className="flex items-center px-3 font-faberge text-base tracking-[0.2em]"
         style={{
-          color: "#0a0a0a",
-          backgroundColor: GOLD,
-          borderRight: `1px solid ${GOLD_DEEP}`,
+          color: GOLD,
+          backgroundColor: "rgba(0,0,0,0.35)",
+          borderRight: `1px solid ${GOLD}33`,
         }}
       >
         +
