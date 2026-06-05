@@ -62,10 +62,11 @@ export default function VerificationBonusSettings({ casinoId }: Props) {
   });
 
   return (
-    <PageSection
-      title="Verification Bonus (Auto)"
-      subtitle="Automatically issued to a player when AM approves their KYC. Set amount to 0 to disable."
-    >
+    <PageSection title="Verification Bonus (Auto)">
+      <p className="text-sm text-muted-foreground mb-3">
+        Automatically issued to a player when AM approves their KYC. Set amount to 0 to disable.
+      </p>
+
       <FormGrid>
         <div>
           <Label>Amount (credits)</Label>
