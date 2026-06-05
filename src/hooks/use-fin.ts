@@ -335,18 +335,24 @@ export const useLockDayClosing = () => {
   });
 };
 
-/* Auto-pull tables_result from shifts for given business date */
+/* Auto-pull tables_result from shifts for given business date.
+ * Business day = 07:00 EAT (UTC+3) → 04:00 UTC start. */
 export const useShiftsTablesResultForDate = (businessDate?: string) => {
   const { activeCasinoId } = useCasino();
   return useQuery({
     queryKey: ["shifts-tables-result", activeCasinoId, businessDate],
     queryFn: async () => {
       if (!activeCasinoId || !businessDate) return 0;
+      const start = `${businessDate}T04:00:00.000Z`;
+      const d = new Date(businessDate);
+      d.setUTCDate(d.getUTCDate() + 1);
+      const end = `${d.toISOString().slice(0, 10)}T04:00:00.000Z`;
       const { data } = await supabase
         .from("shifts")
         .select("tables_result")
         .eq("casino_id", activeCasinoId)
-        .eq("business_date", businessDate);
+        .gte("opened_at", start)
+        .lt("opened_at", end);
       return (data || []).reduce((s: number, r: any) => s + Number(r.tables_result || 0), 0);
     },
     enabled: !!activeCasinoId && !!businessDate,
