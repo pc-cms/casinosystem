@@ -218,6 +218,9 @@ const PromoGrantsPage = () => {
         </div>
       </PageSection>
 
+      <VerificationBonusSettings casinoId={activeCasinoId} />
+
+
       <PageSection title="Recent Grants (this casino)" bodyClassName="p-0">
         <DataTable>
           <table className="w-full text-sm">
