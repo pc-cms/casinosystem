@@ -604,11 +604,7 @@ const SidebarInner = ({ onNavigate, collapsed = false, onToggle }: InnerProps) =
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={() => {
-                  if (confirm("Reload app and clear cache?\n\nUse this if the app shows outdated data or behaves strangely after an update.")) {
-                    void resetPWACache();
-                  }
-                }}
+                onClick={() => { void resetPWACache(); }}
                 className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground"
               >
                 <RefreshCw className="w-4 h-4" />
