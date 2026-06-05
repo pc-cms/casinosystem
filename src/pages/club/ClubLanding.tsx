@@ -1,6 +1,6 @@
-import { Link } from "react-router-dom";
 import { Coins, Ticket, ShoppingBag, Gift, ArrowRight } from "lucide-react";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
+import ClubFooter from "@/components/club/ClubFooter";
 
 const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
