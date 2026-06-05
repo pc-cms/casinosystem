@@ -27,6 +27,7 @@ export default function FinancesDayClosingPage() {
   const [slots, setSlots] = useState(0);
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<any[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     if (existing) {
@@ -44,9 +45,16 @@ export default function FinancesDayClosingPage() {
     [lines]
   );
 
-  const addLine = () => setLines((l) => [...l, { wallet_id: "", currency: "TZS", amount: 0, fx_rate: 1, denominations: {} }]);
+  const addLine = () => {
+    setExpanded(lines.length);
+    setLines((l) => [...l, { wallet_id: "", currency: "TZS", amount: 0, fx_rate: 1, denominations: {} }]);
+  };
   const updateLine = (i: number, patch: any) => setLines((l) => l.map((x, idx) => idx === i ? { ...x, ...patch } : x));
   const removeLine = (i: number) => setLines((l) => l.filter((_, idx) => idx !== i));
+  const updateDenoms = (i: number, denoms: Record<number, number>) => {
+    const amt = cashSum(denoms);
+    updateLine(i, { denominations: denoms, amount: amt });
+  };
 
   const save = async () => {
     await upsert.mutateAsync({
