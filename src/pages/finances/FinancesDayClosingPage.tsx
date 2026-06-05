@@ -1,17 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
-import { ClipboardPen, Lock, Plus, Trash2 } from "lucide-react";
+import { ClipboardPen, Lock, Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FormGrid, FormField } from "@/components/ui/form-grid";
 import {
   useFinDayClosing, useDayClosingList, useUpsertDayClosing, useLockDayClosing,
   useShiftsTablesResultForDate, useFinWallets,
 } from "@/hooks/use-fin";
-import { formatNumberSpaces } from "@/lib/currency";
+import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
+import CashDenomInput, { cashSum } from "@/components/cage/CashDenomInput";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
