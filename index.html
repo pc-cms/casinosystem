@@ -36,7 +36,7 @@
             dodoma:  { name: "Premier Dodoma",  manifest: "/manifest-dodoma.json"  },
             mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json"   },
             premier: { name: "Premier HQ",      manifest: "/manifest-premier.json" },
-            club:    { name: "Premier Club",    manifest: "/manifest-club.json", themeColor: "#A0000D", favicon: "/favicon-club.png" },
+            club:    { name: "Premier Club",    manifest: "/manifest-club.json", themeColor: "#A0000D", favicon: "/favicon-club.png", appleTouchIcon: "/apple-touch-icon-club.png" },
           };
           // On-prem variants get their own pinnable manifest so installed PWA stays distinct.
           var ONPREM_MANIFEST = { mwz: "/manifest-mwz.json", aru: "/manifest-aru.json", dod: "/manifest-dod.json", mbi: "/manifest-mbi.json" };
@@ -45,27 +45,53 @@
 
           if (branch) {
             var displayName = isOnPrem ? (branch.name + " (Local)") : branch.name;
-            document.title = displayName;
+
+            // Pick branded icons (apple-touch-icon must be a real square PNG with solid background;
+            // iOS overlays transparent icons on black, which we want to avoid).
+            var faviconHref = branch.favicon || "/favicon.png";
+            var appleHref   = branch.appleTouchIcon || branch.favicon || "/apple-touch-icon.png";
+            if (canonical === "arusha") { faviconHref = "/arusha-logo.png"; appleHref = "/arusha-logo.png"; }
+
+            // CRITICAL for iOS "Add to Home Screen":
+            // iOS reads <title>, <meta name="apple-mobile-web-app-title"> and
+            // <link rel="apple-touch-icon"> from the parsed HTML and frequently
+            // IGNORES attribute mutations via setAttribute. To make branding
+            // stick we REMOVE the static tags and APPEND fresh nodes.
+            function replaceTag(selector, build) {
+              var old = document.head.querySelector(selector);
+              if (old) old.parentNode.removeChild(old);
+              var fresh = build();
+              document.head.appendChild(fresh);
+              return fresh;
+            }
+
+            replaceTag('title', function () {
+              var t = document.createElement('title'); t.textContent = displayName; return t;
+            });
+            replaceTag('meta[name="apple-mobile-web-app-title"]', function () {
+              var m = document.createElement('meta');
+              m.setAttribute('name', 'apple-mobile-web-app-title');
+              m.setAttribute('content', displayName);
+              return m;
+            });
+            replaceTag('link[rel="apple-touch-icon"]', function () {
+              var l = document.createElement('link');
+              l.setAttribute('rel', 'apple-touch-icon');
+              l.setAttribute('sizes', '180x180');
+              l.setAttribute('href', appleHref);
+              return l;
+            });
+            replaceTag('link[rel="icon"]', function () {
+              var l = document.createElement('link');
+              l.setAttribute('rel', 'icon');
+              l.setAttribute('type', 'image/png');
+              l.setAttribute('href', faviconHref);
+              return l;
+            });
 
             var link = document.getElementById("app-manifest");
             if (link) link.setAttribute("href", isOnPrem ? ONPREM_MANIFEST[label] : branch.manifest);
 
-            var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-            if (appleTitle) appleTitle.setAttribute("content", displayName);
-
-            if (canonical === "arusha") {
-              var fav = document.querySelector('link[rel="icon"]');
-              if (fav) fav.setAttribute("href", "/arusha-logo.png");
-              var apple = document.querySelector('link[rel="apple-touch-icon"]');
-              if (apple) apple.setAttribute("href", "/arusha-logo.png");
-            }
-
-            if (branch.favicon) {
-              var fav2 = document.querySelector('link[rel="icon"]');
-              if (fav2) fav2.setAttribute("href", branch.favicon);
-              var apple2 = document.querySelector('link[rel="apple-touch-icon"]');
-              if (apple2) apple2.setAttribute("href", branch.favicon);
-            }
             if (branch.themeColor) {
               var tc = document.querySelector('meta[name="theme-color"]');
               if (tc) tc.setAttribute("content", branch.themeColor);
