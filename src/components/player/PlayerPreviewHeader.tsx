@@ -175,7 +175,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   }, [playerId]);
 
   const isBlacklisted = player?.status === "blacklist";
-  const { data: notes = [] } = usePlayerNotes(playerId || undefined, isBlacklisted);
+  const { data: notes = [] } = usePlayerNotes(playerId || undefined, !!playerId);
   const { data: promoTags = [] } = usePlayerPromoCampaigns(playerId || undefined);
 
   if (!playerId) return null;
