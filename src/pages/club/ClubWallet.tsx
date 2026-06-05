@@ -91,14 +91,16 @@ export default function ClubWallet() {
           </p>
         </div>
         <span
-          className="text-[9px] tracking-[0.25em] uppercase px-2 py-1 rounded-full border flex items-center gap-1"
+          title={isVerified ? "Verified" : (player.verification_status || "Unverified")}
+          aria-label={isVerified ? "Verified" : (player.verification_status || "Unverified")}
+          className="shrink-0 w-8 h-8 rounded-full border flex items-center justify-center"
           style={{
             color: isVerified ? GOLD : "#FFB4B4",
             borderColor: isVerified ? `${GOLD}66` : "#FFB4B466",
+            backgroundColor: "rgba(0,0,0,0.35)",
           }}
         >
-          {isVerified ? <ShieldCheck className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
-          {isVerified ? "Verified" : player.verification_status || "Pending"}
+          {isVerified ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
         </span>
       </Panel>
 

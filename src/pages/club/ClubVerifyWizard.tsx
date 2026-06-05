@@ -123,7 +123,11 @@ export default function ClubVerifyWizard() {
       qc.invalidateQueries({ queryKey: ["club-wallet"] });
       nav("/club/profile", { replace: true });
     },
-    onError: (e: any) => toast.error(e.message || "Submit failed"),
+    onError: (e: any) => {
+      const msg = e?.message || "Submit failed";
+      console.error("club-submit-kyc failed:", e);
+      toast.error(msg, { description: e?.code ? `code: ${e.code}` : "Check your connection or try smaller photos." });
+    },
   });
 
   const canNext = (() => {
