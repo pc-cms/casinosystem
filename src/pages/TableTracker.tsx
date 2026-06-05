@@ -147,8 +147,9 @@ const TableTracker = ({ embedded = false }: TableTrackerProps) => {
             <DateNavigator
               value={date}
               onChange={(iso) => setDate(iso || today)}
-              maxDate={new Date(today + "T00:00:00")}
+              maxDate={nowEAT()}
             />
+
           ) : date !== today ? (
             <button
               type="button"
