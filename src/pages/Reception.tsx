@@ -64,9 +64,12 @@ const Reception = () => {
   }, [canCheckin, canRegister, canUpdate]);
 
   const requestedTab = searchParams.get("tab");
-  const tab = requestedTab && allowedTabs.includes(requestedTab)
-    ? requestedTab
-    : (allowedTabs[0] ?? "register");
+  const hasEditParam = !!searchParams.get("edit");
+  const tab = hasEditParam && canCheckin
+    ? "checkin"
+    : (requestedTab && allowedTabs.includes(requestedTab)
+      ? requestedTab
+      : (allowedTabs[0] ?? "register"));
 
   // Auto-correct URL if requested tab is not permitted
   useEffect(() => {
