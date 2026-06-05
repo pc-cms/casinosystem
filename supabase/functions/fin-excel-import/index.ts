@@ -28,11 +28,16 @@ function jaccard(a: string, b: string): number {
   return inter / (A.size + B.size - inter);
 }
 
-function bestMatch(name: string, cats: any[]): { id: string; score: number; name: string } | null {
+function bestMatch(name: string, cats: any[], aliases: Map<string, string>): { id: string; score: number; name: string; source: "alias" | "fuzzy" } | null {
+  const aliasHit = aliases.get(norm(name));
+  if (aliasHit) {
+    const c = cats.find((x) => x.id === aliasHit);
+    if (c) return { id: c.id, score: 1, name: c.name, source: "alias" };
+  }
   let best = null as any;
   for (const c of cats) {
     const s = jaccard(name, c.name);
-    if (!best || s > best.score) best = { id: c.id, score: s, name: c.name };
+    if (!best || s > best.score) best = { id: c.id, score: s, name: c.name, source: "fuzzy" };
   }
   return best && best.score > 0.25 ? best : null;
 }
@@ -51,7 +56,7 @@ function detectCasinoCode(sheetName: string): string {
   return "JC";
 }
 
-function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
+function parseSheet(ws: XLSX.WorkSheet, cats: any[], aliases: Map<string, string>) {
   const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, blankrows: false, defval: null });
 
   const incomes: Record<string, number> = { live_game: 0, slots: 0, other: 0, total: 0 };
@@ -69,7 +74,6 @@ function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
     const a = r[0] ? String(r[0]).trim() : "";
     const b = r[1] ? String(r[1]).trim() : "";
 
-    // Group header row: column B contains "Average per YEAR"
     if (a && b && /average.*year/i.test(b)) {
       currentSection = { group_label: a, rows: [] };
       sections.push(currentSection);
@@ -89,7 +93,7 @@ function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
 
     if (planYearTzs === 0 && planMonthTzs === 0 && actualTzs === 0 && actualUsd === 0 && planYearUsd === 0) continue;
 
-    const match = bestMatch(a, cats);
+    const match = bestMatch(a, cats, aliases);
     currentSection.rows.push({
       excel_name: a,
       plan_year_tzs: planYearTzs,
@@ -101,6 +105,7 @@ function parseSheet(ws: XLSX.WorkSheet, cats: any[]) {
       suggested_category_id: match?.id || null,
       suggested_category_name: match?.name || null,
       match_score: match?.score || 0,
+      match_source: match?.source || null,
     });
   }
 
@@ -120,6 +125,12 @@ Deno.serve(async (req) => {
       .eq("is_active", true);
     if (catErr) throw catErr;
 
+    const { data: aliasRows } = await admin
+      .from("fin_category_aliases")
+      .select("alias_norm, category_id");
+    const aliases = new Map<string, string>();
+    (aliasRows || []).forEach((r: any) => aliases.set(r.alias_norm, r.category_id));
+
     const form = await req.formData();
     const file = form.get("file") as File | null;
     if (!file) throw new Error("missing file");
@@ -128,7 +139,7 @@ Deno.serve(async (req) => {
     const wb = XLSX.read(buf, { type: "array" });
 
     const sheets = wb.SheetNames.map((name) => {
-      const parsed = parseSheet(wb.Sheets[name], cats || []);
+      const parsed = parseSheet(wb.Sheets[name], cats || [], aliases);
       return {
         sheet_name: name,
         detected_casino_code: detectCasinoCode(name),

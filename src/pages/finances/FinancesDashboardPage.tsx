@@ -189,6 +189,31 @@ export default function FinancesDashboardPage() {
           {!wallets.length && <div className="text-sm text-muted-foreground col-span-3 text-center py-4">No wallets configured. Go to Wallets to create.</div>}
         </div>
       </PageSection>
+
+      <PageSection title="Cash by currency">
+        {(() => {
+          const byCcy = new Map<string, number>();
+          wallets.forEach((w: any) => {
+            const v = Number(balances?.get(w.id) || 0);
+            byCcy.set(w.currency, (byCcy.get(w.currency) || 0) + v);
+          });
+          const order = ["TZS", "USD", "EUR", "GBP", "KES"];
+          const rows = Array.from(byCcy.entries()).sort(
+            (a, b) => (order.indexOf(a[0]) === -1 ? 99 : order.indexOf(a[0])) - (order.indexOf(b[0]) === -1 ? 99 : order.indexOf(b[0]))
+          );
+          if (!rows.length) return <div className="text-sm text-muted-foreground text-center py-4">No balances</div>;
+          return (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-2">
+              {rows.map(([ccy, v]) => (
+                <div key={ccy} className="rounded-md border border-border p-3">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">{ccy}</div>
+                  <div className="text-xl font-mono mt-1"><Money v={v} /></div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </PageSection>
     </PageShell>
   );
 }
