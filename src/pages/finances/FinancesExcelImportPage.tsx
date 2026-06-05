@@ -213,12 +213,24 @@ export default function FinancesExcelImportPage() {
           <div className="text-xs text-muted-foreground mb-2">
             Incomes (Oct): Live <b>{formatNumberSpaces(sheet.incomes.live_game)}</b> · Slots <b>{formatNumberSpaces(sheet.incomes.slots)}</b> · Total <b>{formatNumberSpaces(sheet.incomes.total)}</b>
           </div>
+          {(() => {
+            const counts = { new: 0, update: 0, skip: 0 };
+            sheet.sections.forEach((sec) => sec.rows.forEach((r) => counts[rowStatus(sheet.sheet_name, r)]++));
+            return (
+              <div className="text-xs mb-2 flex gap-3">
+                <span className="text-green-600">+ {counts.new} new</span>
+                <span className="text-amber-600">~ {counts.update} update</span>
+                <span className="text-muted-foreground">∅ {counts.skip} skip</span>
+              </div>
+            );
+          })()}
           {sheet.sections.map((sec) => (
             <div key={sec.group_label} className="mb-4">
               <div className="text-sm font-semibold mb-1">{sec.group_label}</div>
               <table className="w-full text-xs">
                 <thead className="bg-muted">
                   <tr>
+                    <th className="text-left px-2 py-1 w-16">Status</th>
                     <th className="text-left px-2 py-1">Excel name</th>
                     <th className="text-left px-2 py-1">Mapped category</th>
                     <th className="text-right px-2 py-1">Plan/Year TZS</th>
@@ -228,8 +240,15 @@ export default function FinancesExcelImportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sec.rows.map((r, i) => (
+                  {sec.rows.map((r, i) => {
+                    const status = rowStatus(sheet.sheet_name, r);
+                    return (
                     <tr key={i} className="border-t border-border">
+                      <td className="px-2 py-1">
+                        {status === "new" && <span className="text-green-600 font-mono text-[10px] uppercase">+ new</span>}
+                        {status === "update" && <span className="text-amber-600 font-mono text-[10px] uppercase">~ update</span>}
+                        {status === "skip" && <span className="text-muted-foreground font-mono text-[10px] uppercase">∅ skip</span>}
+                      </td>
                       <td className="px-2 py-1">{r.excel_name}</td>
                       <td className="px-2 py-1">
                         <Select
