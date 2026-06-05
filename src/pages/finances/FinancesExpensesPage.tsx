@@ -135,14 +135,94 @@ export default function FinancesExpensesPage() {
         {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
       </PageHeader>
       <PageSection card={false}>
+        <FilterBar
+          search={
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search description / category"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-7 h-8 w-[240px]"
+              />
+            </div>
+          }
+          presets={
+            <div className="flex items-center gap-1">
+              {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={period === p ? "default" : "outline"}
+                  className="h-7 px-2 text-xs capitalize"
+                  onClick={() => setPeriod(p)}
+                >
+                  {p === "ytd" ? "YTD" : p}
+                </Button>
+              ))}
+            </div>
+          }
+          filters={
+            <>
+              {period === "day" && (
+                <Input type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} className="h-8 w-[150px]" />
+              )}
+              {period === "month" && (
+                <Input
+                  type="month"
+                  value={anchor.slice(0, 7)}
+                  onChange={(e) => setAnchor(e.target.value + "-01")}
+                  className="h-8 w-[150px]"
+                />
+              )}
+              {period === "custom" && (
+                <>
+                  <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 w-[150px]" />
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-[150px]" />
+                </>
+              )}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-8 w-[200px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent className="max-h-80">
+                  <SelectItem value="all">All categories</SelectItem>
+                  {categories.filter((c: any) => !c.is_income).map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.group_name} · {c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={walletFilter} onValueChange={setWalletFilter}>
+                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Wallet" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All wallets</SelectItem>
+                  {wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </>
+          }
+          right={
+            <div className="text-xs text-muted-foreground">
+              <span className="mr-2">{visible.length} rows</span>
+              <span className="font-mono tabular-nums text-foreground">{formatNumberSpaces(totalTzs)} TZS</span>
+            </div>
+          }
+        />
         <FinTable>
           <FinTHead>
             <tr>
-              <FinTH className={FW.date}>Date</FinTH>
-              <FinTH>Category</FinTH>
-              <FinTH className={FW.wallet}>Wallet</FinTH>
+              <FinTH className={`${FW.date} cursor-pointer select-none`} onClick={() => toggleSort("date")}>
+                Date <SortIcon k="date" />
+              </FinTH>
+              <FinTH className="cursor-pointer select-none" onClick={() => toggleSort("category")}>
+                Category <SortIcon k="category" />
+              </FinTH>
+              <FinTH className={`${FW.wallet} cursor-pointer select-none`} onClick={() => toggleSort("wallet")}>
+                Wallet <SortIcon k="wallet" />
+              </FinTH>
               <FinTH>Description</FinTH>
-              <FinTH align="right" className={FW.amount}>Amount</FinTH>
+              <FinTH align="right" className={`${FW.amount} cursor-pointer select-none`} onClick={() => toggleSort("amount")}>
+                Amount <SortIcon k="amount" />
+              </FinTH>
               <FinTH className={FW.actions} />
             </tr>
           </FinTHead>
@@ -181,6 +261,7 @@ export default function FinancesExpensesPage() {
           </FinTBody>
         </FinTable>
       </PageSection>
+
 
       <ResponsiveDialog open={open} onOpenChange={setOpen} title="New expense">
         <FormGrid>
