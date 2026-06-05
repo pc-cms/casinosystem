@@ -1,13 +1,14 @@
 import { useEffect, useState, useMemo } from "react";
-import { ClipboardPen, Lock, Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { ClipboardPen, Lock, Plus, Trash2, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useFinDayClosing, useDayClosingList, useUpsertDayClosing, useLockDayClosing,
-  useShiftsTablesResultForDate, useFinWallets,
+  useShiftsTablesResultForDate, useFinWallets, useBusinessDayClosureSnapshot,
 } from "@/hooks/use-fin";
 import { formatNumberSpaces, CASH_DENOMS } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
@@ -21,29 +22,39 @@ export default function FinancesDayClosingPage() {
   const { data: list = [] } = useDayClosingList();
   const { data: tablesAuto = 0 } = useShiftsTablesResultForDate(bd);
   const { data: wallets = [] } = useFinWallets();
+  const { data: snap } = useBusinessDayClosureSnapshot(bd);
   const upsert = useUpsertDayClosing();
   const lock = useLockDayClosing();
 
   const [slots, setSlots] = useState(0);
+  const [tables, setTables] = useState(0);
   const [notes, setNotes] = useState("");
+  const [varianceNote, setVarianceNote] = useState("");
   const [lines, setLines] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     if (existing) {
+      setTables(Number(existing.tables_result || 0));
       setSlots(Number(existing.slots_result || 0));
       setNotes(existing.notes || "");
+      setVarianceNote((existing as any).variance_note || "");
       setLines(Array.isArray(existing.income_lines) ? (existing.income_lines as any[]) : []);
     } else {
-      setSlots(0); setNotes(""); setLines([]);
+      setTables(tablesAuto || 0); setSlots(0); setNotes(""); setVarianceNote(""); setLines([]);
     }
-  }, [existing?.id]);
+  }, [existing?.id, tablesAuto]);
 
   const locked = !!existing?.locked_at;
   const incomeTotal = useMemo(
     () => lines.reduce((s, l) => s + Number(l.amount || 0) * Number(l.fx_rate || 1), 0),
     [lines]
   );
+
+  const diffTables = (tables || 0) - (snap?.tables ?? 0);
+  const diffSlots = (slots || 0) - (snap?.slots ?? 0);
+  const needsVariance = !!snap && (Math.abs(diffTables) > 1 || Math.abs(diffSlots) > 1);
+  const noteValid = varianceNote.trim().length >= 3;
 
   const addLine = () => {
     setExpanded(lines.length);
@@ -60,25 +71,103 @@ export default function FinancesDayClosingPage() {
     await upsert.mutateAsync({
       id: existing?.id,
       business_date: bd,
-      tables_result: tablesAuto,
+      tables_result: tables,
       slots_result: slots,
       income_lines: lines,
       notes,
     });
   };
 
+  const lockNow = async () => {
+    await save();
+    if (!existing) return;
+    await lock.mutateAsync({
+      id: existing.id,
+      varianceNote: needsVariance ? varianceNote.trim() : null,
+    });
+  };
+
+  const lockDisabled = !existing || (needsVariance && !noteValid);
+
   return (
     <PageShell>
-      <PageHeader icon={ClipboardPen} title="Day Closing" subtitle="Tables auto · Slots manual · Income lines">
+      <PageHeader icon={ClipboardPen} title="Day Closing" subtitle="Manual entry · reconciled against the Cage closure">
         <Input type="date" value={bd} onChange={(e) => setBd(e.target.value)} className="w-40 font-mono text-xs" />
       </PageHeader>
 
+      {/* Reconciliation panel */}
+      <PageSection
+        title="Reconciliation vs Cage closure"
+        titleRight={
+          snap ? (
+            <span className="text-xs flex items-center gap-1 text-muted-foreground">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+              Cage closed {fmtDate(snap.closedAt)} · {snap.closedMethod}
+            </span>
+          ) : (
+            <span className="text-xs flex items-center gap-1 text-amber-600">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Cage closure not found — lock disabled
+            </span>
+          )
+        }
+      >
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="font-medium text-muted-foreground uppercase tracking-wider"></div>
+          <div className="text-right font-medium text-muted-foreground uppercase tracking-wider">Entered</div>
+          <div className="text-right font-medium text-muted-foreground uppercase tracking-wider">Cage actual / Δ</div>
+
+          <div>Tables</div>
+          <div className="text-right font-mono">{formatNumberSpaces(tables)}</div>
+          <div className="text-right font-mono">
+            {snap ? formatNumberSpaces(snap.tables) : "—"}
+            {snap && (
+              <span className={`ml-2 ${Math.abs(diffTables) > 1 ? "cms-amount-negative font-semibold" : "text-muted-foreground"}`}>
+                ({diffTables > 0 ? "+" : ""}{formatNumberSpaces(diffTables)})
+              </span>
+            )}
+          </div>
+
+          <div>Slots</div>
+          <div className="text-right font-mono">{formatNumberSpaces(slots)}</div>
+          <div className="text-right font-mono">
+            {snap ? formatNumberSpaces(snap.slots) : "—"}
+            {snap && (
+              <span className={`ml-2 ${Math.abs(diffSlots) > 1 ? "cms-amount-negative font-semibold" : "text-muted-foreground"}`}>
+                ({diffSlots > 0 ? "+" : ""}{formatNumberSpaces(diffSlots)})
+              </span>
+            )}
+          </div>
+        </div>
+
+        {needsVariance && (
+          <div className="mt-3 p-3 rounded-md border border-destructive/40 bg-destructive/5">
+            <div className="flex items-center gap-2 text-xs text-destructive font-medium mb-2">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Variance vs Cage — reconciliation comment required (min 3 chars)
+            </div>
+            <Textarea
+              value={varianceNote}
+              disabled={locked}
+              onChange={(e) => setVarianceNote(e.target.value)}
+              placeholder="Explain the discrepancy (e.g. late-night cash adjustment, miscount on slots…)"
+              rows={2}
+            />
+          </div>
+        )}
+        {!needsVariance && snap && (
+          <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Matches Cage closure
+          </div>
+        )}
+      </PageSection>
+
       <div className="grid sm:grid-cols-3 gap-3">
-        <PageSection title="Tables (auto)">
-          <div className="text-2xl font-mono">{formatNumberSpaces(tablesAuto)}</div>
-          <div className="text-xs text-muted-foreground">From shifts.tables_result · read-only</div>
+        <PageSection title="Tables">
+          <Input type="number" step="0.01" disabled={locked} value={tables || ""} onChange={(e) => setTables(Number(e.target.value))} className="text-lg font-mono" />
+          <div className="text-xs text-muted-foreground mt-1">From shifts: {formatNumberSpaces(tablesAuto)}</div>
         </PageSection>
-        <PageSection title="Slots (manual)">
+        <PageSection title="Slots">
           <Input type="number" step="0.01" disabled={locked} value={slots || ""} onChange={(e) => setSlots(Number(e.target.value))} className="text-lg font-mono" />
         </PageSection>
         <PageSection title="Total Income (lines)">
@@ -145,13 +234,22 @@ export default function FinancesDayClosingPage() {
       </PageSection>
 
       <div className="flex justify-end gap-2">
-        {!locked && <Button onClick={save}>Save Draft</Button>}
+        {!locked && <Button variant="outline" onClick={save}>Save Draft</Button>}
         {existing && !locked && (
-          <Button onClick={async () => { await save(); await lock.mutateAsync(existing.id); }}>
+          <Button
+            onClick={lockNow}
+            disabled={lockDisabled}
+            title={!snap ? "Cage closure required first" : needsVariance && !noteValid ? "Variance comment required" : ""}
+          >
             <Lock className="w-4 h-4" /> Lock & Post Income
           </Button>
         )}
-        {locked && <span className="text-xs text-muted-foreground self-center">Locked {fmtDate(existing!.locked_at)}</span>}
+        {locked && (
+          <span className="text-xs text-muted-foreground self-center">
+            Locked {fmtDate(existing!.locked_at)}
+            {(existing as any).variance_note && <> · note: "{(existing as any).variance_note}"</>}
+          </span>
+        )}
       </div>
 
       <PageSection title="Recent closings">
@@ -167,7 +265,10 @@ export default function FinancesDayClosingPage() {
                   <td className="text-right font-mono">{formatNumberSpaces(Number(r.tables_result))}</td>
                   <td className="text-right font-mono">{formatNumberSpaces(Number(r.slots_result))}</td>
                   <td className="text-right">{Array.isArray(r.income_lines) ? r.income_lines.length : 0}</td>
-                  <td className="text-xs">{r.locked_at ? <span className="text-green-600">Locked</span> : <span className="text-muted-foreground">Draft</span>}</td>
+                  <td className="text-xs">
+                    {r.locked_at ? <span className="text-green-600">Locked</span> : <span className="text-muted-foreground">Draft</span>}
+                    {r.variance_note && <span className="ml-1 cms-amount-negative" title={r.variance_note}>· Δ</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>

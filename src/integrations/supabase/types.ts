@@ -3077,6 +3077,7 @@ export type Database = {
           slots_result: number
           tables_result: number
           updated_at: string
+          variance_note: string | null
         }
         Insert: {
           business_date: string
@@ -3090,6 +3091,7 @@ export type Database = {
           slots_result?: number
           tables_result?: number
           updated_at?: string
+          variance_note?: string | null
         }
         Update: {
           business_date?: string
@@ -3103,6 +3105,7 @@ export type Database = {
           slots_result?: number
           tables_result?: number
           updated_at?: string
+          variance_note?: string | null
         }
         Relationships: [
           {
@@ -8806,12 +8809,6 @@ export type Database = {
         }[]
       }
       export_full_schema_ddl: { Args: never; Returns: string }
-      fin_auto_close_old_days: {
-        Args: { p_age_days?: number }
-        Returns: {
-          closed_count: number
-        }[]
-      }
       fin_budget_set_annual: {
         Args: {
           p_annual: number
@@ -8822,7 +8819,10 @@ export type Database = {
         }
         Returns: undefined
       }
-      fin_lock_day_closing: { Args: { p_id: string }; Returns: undefined }
+      fin_lock_day_closing: {
+        Args: { p_id: string; p_variance_note?: string }
+        Returns: undefined
+      }
       fin_money_change_create: {
         Args: {
           p_business_date: string

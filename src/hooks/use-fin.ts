@@ -320,8 +320,11 @@ export const useUpsertDayClosing = () => {
 export const useLockDayClosing = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("fin_lock_day_closing", { p_id: id });
+    mutationFn: async ({ id, varianceNote }: { id: string; varianceNote?: string | null }) => {
+      const { error } = await supabase.rpc("fin_lock_day_closing", {
+        p_id: id,
+        p_variance_note: varianceNote ?? null,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -332,6 +335,34 @@ export const useLockDayClosing = () => {
       toast.success("Locked");
     },
     onError: (e: any) => toast.error(e.message),
+  });
+};
+
+/** Real Cage business-day closure snapshot totals for given date. */
+export const useBusinessDayClosureSnapshot = (businessDate?: string) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["bdc-snapshot", activeCasinoId, businessDate],
+    queryFn: async () => {
+      if (!activeCasinoId || !businessDate) return null;
+      const { data } = await supabase
+        .from("business_day_closures")
+        .select("snapshot, closed_at, closed_method")
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", businessDate)
+        .order("closed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) return null;
+      const totals = (data.snapshot as any)?.totals || {};
+      return {
+        closedAt: data.closed_at as string,
+        closedMethod: data.closed_method as string,
+        tables: Number(totals.tables_result || 0),
+        slots: Number(totals.slots_result || 0),
+      };
+    },
+    enabled: !!activeCasinoId && !!businessDate,
   });
 };
 
