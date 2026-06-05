@@ -175,27 +175,48 @@ export default function FinancesDashboardPage() {
     return Object.values(buckets);
   }, [tx, totalBalance, daysInMonth]);
 
+  const byCcy = useMemo(() => {
+    const m = new Map<string, number>();
+    wallets.forEach((w: any) => {
+      const v = Number(balances?.get(w.id) || 0);
+      m.set(w.currency, (m.get(w.currency) || 0) + v);
+    });
+    const order = ["TZS", "USD", "EUR", "GBP", "KES"];
+    return Array.from(m.entries()).sort(
+      (a, b) => (order.indexOf(a[0]) === -1 ? 99 : order.indexOf(a[0])) - (order.indexOf(b[0]) === -1 ? 99 : order.indexOf(b[0]))
+    );
+  }, [wallets, balances]);
+
   return (
     <PageShell>
       <PageHeader icon={Wallet} title="Finances Dashboard" subtitle="Month-to-date overview" date>
         <FinanceCasinoSwitcher />
       </PageHeader>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <PageSection title="Month Income"><div className="text-2xl"><Money v={stats.income} /></div></PageSection>
-        <PageSection title="Month Expense"><div className="text-2xl"><Money v={stats.expense} /></div></PageSection>
-        <PageSection title="Net (Month)"><div className="text-2xl"><Money v={stats.net} /></div></PageSection>
-        <PageSection title="Total Balance"><div className="text-2xl"><Money v={totalBalance} /></div></PageSection>
+
+      {/* Compact KPI strip */}
+      <div className="rounded-md border border-border bg-card divide-y sm:divide-y-0 sm:divide-x divide-border grid sm:grid-cols-4">
+        {[
+          { k: "Month Income", v: stats.income },
+          { k: "Month Expense", v: stats.expense },
+          { k: "Net (Month)", v: stats.net },
+          { k: "Total Balance", v: totalBalance },
+        ].map((x) => (
+          <div key={x.k} className="px-4 py-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{x.k}</div>
+            <div className="text-base font-mono tabular-nums mt-0.5"><Money v={x.v} /></div>
+          </div>
+        ))}
       </div>
 
       <PageSection title="P&L · last 12 months">
-        <div className="h-72">
+        <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={yearlyPnl}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
               <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="income" fill="hsl(var(--cms-amount-positive))" />
               <Bar dataKey="expense" fill="hsl(var(--cms-amount-negative))" />
               <Bar dataKey="net" fill="hsl(var(--primary))" />
@@ -204,45 +225,47 @@ export default function FinancesDashboardPage() {
         </div>
       </PageSection>
 
-      <PageSection title="Total Balance · daily trend">
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={walletTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
-              <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
-              <Area type="monotone" dataKey="balance" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </PageSection>
-
       <div className="grid lg:grid-cols-2 gap-3">
+        <PageSection title="Total Balance · daily trend">
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={walletTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+                <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
+                <Area type="monotone" dataKey="balance" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </PageSection>
+
         <PageSection title="Income vs Expense · daily">
-          <div className="h-72">
+          <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dailySeries}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
                 <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Line type="monotone" dataKey="income" stroke="hsl(var(--cms-amount-positive))" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="expense" stroke="hsl(var(--cms-amount-negative))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </PageSection>
+      </div>
 
+      <div className="grid lg:grid-cols-2 gap-3">
         <PageSection title="Expense by group · MTD">
-          <div className="h-72">
+          <div className="h-56">
             {byGroup.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No expenses</div>
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">No expenses</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={byGroup} dataKey="value" nameKey="name" outerRadius={90} label={(e: any) => e.name}>
+                  <Pie data={byGroup} dataKey="value" nameKey="name" outerRadius={75} label={(e: any) => e.name}>
                     {byGroup.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
@@ -251,63 +274,56 @@ export default function FinancesDashboardPage() {
             )}
           </div>
         </PageSection>
+
+        <PageSection title="Budget vs Actual · this month" titleRight={<span className="text-[10px] text-muted-foreground">Plan {formatNumberSpaces(plannedTotal)} · Actual {formatNumberSpaces(stats.expense)}</span>}>
+          <div className="h-56">
+            {budgetVsActual.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">No budget data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={budgetVsActual}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="group" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+                  <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Plan" fill="hsl(var(--muted-foreground))" />
+                  <Bar dataKey="Actual" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </PageSection>
       </div>
 
-      <PageSection title="Budget vs Actual · this month" titleRight={<span className="text-xs text-muted-foreground">Plan {formatNumberSpaces(plannedTotal)} · Actual {formatNumberSpaces(stats.expense)}</span>}>
-        <div className="h-72">
-          {budgetVsActual.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No budget data</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={budgetVsActual}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="group" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
-                <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
-                <Legend />
-                <Bar dataKey="Plan" fill="hsl(var(--muted-foreground))" />
-                <Bar dataKey="Actual" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </PageSection>
-
-      <PageSection title="Wallets" titleRight={<span className="text-xs text-muted-foreground">{wallets.length} wallets · {categories.length} categories</span>}>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {wallets.map((w: any) => (
-            <div key={w.id} className="flex items-center justify-between border-b border-border py-1.5 text-sm">
-              <span>{w.name} <span className="text-muted-foreground">· {w.currency}</span></span>
-              <Money v={Number(balances?.get(w.id) || 0)} />
-            </div>
-          ))}
-          {!wallets.length && <div className="text-sm text-muted-foreground col-span-3 text-center py-4">No wallets configured. Go to Wallets to create.</div>}
-        </div>
-      </PageSection>
-
-      <PageSection title="Cash by currency">
-        {(() => {
-          const byCcy = new Map<string, number>();
-          wallets.forEach((w: any) => {
-            const v = Number(balances?.get(w.id) || 0);
-            byCcy.set(w.currency, (byCcy.get(w.currency) || 0) + v);
-          });
-          const order = ["TZS", "USD", "EUR", "GBP", "KES"];
-          const rows = Array.from(byCcy.entries()).sort(
-            (a, b) => (order.indexOf(a[0]) === -1 ? 99 : order.indexOf(a[0])) - (order.indexOf(b[0]) === -1 ? 99 : order.indexOf(b[0]))
-          );
-          if (!rows.length) return <div className="text-sm text-muted-foreground text-center py-4">No balances</div>;
-          return (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-2">
-              {rows.map(([ccy, v]) => (
-                <div key={ccy} className="rounded-md border border-border p-3">
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground">{ccy}</div>
-                  <div className="text-xl font-mono mt-1"><Money v={v} /></div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
+      <PageSection
+        title="Balances"
+        titleRight={<span className="text-[10px] text-muted-foreground">{wallets.length} wallets · {categories.length} categories</span>}
+      >
+        {/* Cash by currency strip */}
+        {byCcy.length > 0 && (
+          <div className="rounded-md border border-border bg-card grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-border mb-3">
+            {byCcy.map(([ccy, v]) => (
+              <div key={ccy} className="px-3 py-2">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{ccy}</div>
+                <div className="text-sm font-mono tabular-nums mt-0.5"><Money v={v} /></div>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Wallets list */}
+        {wallets.length ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
+            {wallets.map((w: any) => (
+              <div key={w.id} className="flex items-center justify-between border-b border-border/60 py-1 text-[12px]">
+                <span className="truncate pr-2">{w.name} <span className="text-muted-foreground">· {w.currency}</span></span>
+                <Money v={Number(balances?.get(w.id) || 0)} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground text-center py-4">No wallets configured.</div>
+        )}
       </PageSection>
     </PageShell>
   );
