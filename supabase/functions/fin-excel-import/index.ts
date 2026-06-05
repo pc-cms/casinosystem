@@ -125,6 +125,12 @@ Deno.serve(async (req) => {
       .eq("is_active", true);
     if (catErr) throw catErr;
 
+    const { data: aliasRows } = await admin
+      .from("fin_category_aliases")
+      .select("alias_norm, category_id");
+    const aliases = new Map<string, string>();
+    (aliasRows || []).forEach((r: any) => aliases.set(r.alias_norm, r.category_id));
+
     const form = await req.formData();
     const file = form.get("file") as File | null;
     if (!file) throw new Error("missing file");
@@ -133,7 +139,7 @@ Deno.serve(async (req) => {
     const wb = XLSX.read(buf, { type: "array" });
 
     const sheets = wb.SheetNames.map((name) => {
-      const parsed = parseSheet(wb.Sheets[name], cats || []);
+      const parsed = parseSheet(wb.Sheets[name], cats || [], aliases);
       return {
         sheet_name: name,
         detected_casino_code: detectCasinoCode(name),
