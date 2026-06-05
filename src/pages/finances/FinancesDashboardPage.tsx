@@ -1,14 +1,18 @@
 import { useMemo } from "react";
 import { Wallet } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCasino } from "@/lib/casino-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import {
   useFinWalletTx, useFinWalletBalances, useFinWallets, useFinBudget, useFinCategories,
 } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend, LineChart, Line,
+  PieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area,
 } from "recharts";
 
 const Money = ({ v }: { v: number }) => (
