@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Receipt, Plus, Trash2 } from "lucide-react";
+import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { FilterBar } from "@/components/layout/FilterBar";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,11 +22,42 @@ import {
 } from "@/components/finances/FinTable";
 
 const todayBD = () => new Date().toISOString().slice(0, 10);
+const pad = (n: number) => String(n).padStart(2, "0");
+
+type Period = "day" | "month" | "ytd" | "all" | "custom";
+
+function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
+  const d = new Date(anchor + "T00:00:00");
+  if (period === "day") return { from: anchor, to: anchor };
+  if (period === "month") {
+    const from = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const to = `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`;
+    return { from, to };
+  }
+  if (period === "ytd") return { from: `${d.getFullYear()}-01-01`, to: todayBD() };
+  return {};
+}
+
+type SortKey = "date" | "category" | "wallet" | "amount";
 
 export default function FinancesExpensesPage() {
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
-  const { data: rows = [] } = useFinExpenses();
+
+  const [period, setPeriod] = useState<Period>("month");
+  const [anchor, setAnchor] = useState<string>(todayBD());
+  const [customFrom, setCustomFrom] = useState<string>(todayBD());
+  const [customTo, setCustomTo] = useState<string>(todayBD());
+  const range = period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
+
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [walletFilter, setWalletFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const { data: rows = [] } = useFinExpenses(range);
   const { data: categories = [] } = useFinCategories();
   const { data: wallets = [] } = useFinWallets();
   const create = useCreateFinExpense();
@@ -41,7 +73,45 @@ export default function FinancesExpensesPage() {
     is_overrun: false, overrun_reason: "",
   });
 
-  const visible = useMemo(() => rows.filter((r: any) => showVoided || !r.voided_at), [rows, showVoided]);
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = rows.filter((r: any) => {
+      if (!showVoided && r.voided_at) return false;
+      if (categoryFilter !== "all" && r.fin_category_id !== categoryFilter) return false;
+      if (walletFilter !== "all" && r.wallet_id !== walletFilter) return false;
+      if (q) {
+        const blob = `${r.description || ""} ${r.fin_categories?.name || ""} ${r.fin_categories?.group_name || ""} ${r.fin_wallets?.name || ""}`.toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+    const dir = sortDir === "asc" ? 1 : -1;
+    filtered.sort((a: any, b: any) => {
+      let av: any, bv: any;
+      switch (sortKey) {
+        case "date": av = a.business_date || ""; bv = b.business_date || ""; break;
+        case "category": av = a.fin_categories?.name || ""; bv = b.fin_categories?.name || ""; break;
+        case "wallet": av = a.fin_wallets?.name || ""; bv = b.fin_wallets?.name || ""; break;
+        case "amount": av = Number(a.amount_tzs || a.amount || 0); bv = Number(b.amount_tzs || b.amount || 0); break;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return filtered;
+  }, [rows, showVoided, categoryFilter, walletFilter, search, sortKey, sortDir]);
+
+  const totalTzs = useMemo(
+    () => visible.reduce((s: number, r: any) => s + (r.voided_at ? 0 : Number(r.amount_tzs || r.amount || 0)), 0),
+    [visible],
+  );
+
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir(k === "date" || k === "amount" ? "desc" : "asc"); }
+  };
+  const SortIcon = ({ k }: { k: SortKey }) =>
+    sortKey === k ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-0.5" /> : <ArrowDown className="w-3 h-3 inline ml-0.5" />) : null;
 
   const overrunCheck = useMemo(() => {
     if (!form.fin_category_id || !form.amount) return null;
