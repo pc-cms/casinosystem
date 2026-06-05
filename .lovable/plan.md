@@ -1,44 +1,47 @@
-## What I'll change
+## Plan: Legal pages & footer for Premier Club
 
-### 1. `/guests` — row click + Edit button (Player-Tracker behavior)
+### 1. Create 3 new pages
+Under `src/pages/club/legal/`:
+- `PrivacyPolicy.tsx` — full Privacy Policy text (sections 1–13)
+- `DataProtection.tsx` — full Personal Data Protection Policy (sections 1–15)
+- `ResponsibleGaming.tsx` — full Responsible Gaming Policy (sections 1–13)
 
-In `src/pages/Guests.tsx`:
-- Make the entire `<tr>` clickable. Clicking anywhere on the row calls `selectPlayer(r.playerId)` — opens the existing `PlayerPreviewHeader` sticky panel, exactly as Player Tracker (`PlayerStatistics.tsx`) does.
-- Add `cursor-pointer` and active-row tint when this player is the selected one.
-- Existing inner controls (Check-In, Check-Out) keep their `e.stopPropagation()` so they don't trigger the row click.
-- Replace the eye `<Eye />` icon button with a labeled **Edit** button (small `outline`, with `Pencil` icon). It navigates to Reception with the player pre-selected: `navigate('/reception?edit=<playerId>')`.
+Each page:
+- Uses the Club gold-on-red theme (same `GOLD`/`GOLD_DEEP` palette + `ClubBackdrop` + `font-faberge` headings as `ClubLanding`/`ClubLayout`).
+- Mobile-first single column, max-w-xl, scrollable.
+- Top bar with back link → `/` (or `history.back()`).
+- Renders headings (`h1`/`h2`) and paragraphs from a structured constant; bullet lists where the source uses lists.
+- Effective Date: June 2026.
 
-In `src/pages/Reception.tsx`:
-- Read `?edit=<playerId>` from the URL on mount. If present, fetch that player and run the existing `handleSelectPlayer(p)` flow (the same the search currently uses), so the user lands directly in the inline edit/update form — no extra screen built.
-- Clear the param after handling so refreshes don't loop.
+### 2. Routes in `src/App.tsx`
+Add lazy imports + routes in BOTH route blocks (club subdomain block ~line 511 and main block ~line 490):
+- `/club/privacy` → `PrivacyPolicy`
+- `/club/data-protection` → `DataProtection`
+- `/club/responsible-gaming` → `ResponsibleGaming`
 
-### 2. Notes panel inside `PlayerPreviewHeader` (works everywhere)
+### 3. Shared footer component
+Create `src/components/club/ClubFooter.tsx`:
+- Text: *"Premier Club is operated by Joker Casino LTD, trading as Premier Casino. Membership is subject to verification, responsible gaming rules and applicable laws of Tanzania."*
+- Three links: **Privacy Policy** · **Personal Data Protection** · **Responsible Gaming**
+- Gold styling, separators between links, centered, small caps.
 
-In `src/components/player/PlayerPreviewHeader.tsx`:
-- Add a collapsible **Notes** section at the bottom of the expanded header (toggle button "Notes (N)" next to the existing controls; opens an inline area).
-- Reuse the existing `NotesPanel` UI from `PlayerProfile.tsx` — extract it into `src/components/player/PlayerNotesPanel.tsx` so both `PlayerProfile` and `PlayerPreviewHeader` share one component.
-- Posting permissions: the existing list `pit | manager | floor_manager | surveillance | super_admin` plus **`reception`** (RLS already allows it — confirmed in DB). No migration needed.
-- Because `PlayerPreviewHeader` is already mounted on `/guests`, `/reception`, `/blacklist`, `/players/stats`, and all CCTV/Tags screens that use it, Notes will automatically appear on all of them — including the Tags views the user mentioned.
+### 4. Mount footer
+- In `ClubLanding.tsx`: replace the current minimal `<footer>` with `<ClubFooter />`.
+- In `ClubLayout.tsx`: add `<ClubFooter />` at bottom of `<main>` (above the fixed bottom tab nav, with extra bottom padding so it isn't hidden).
+- In `ClubLogin.tsx` and `ClubRegister.tsx`: append `<ClubFooter />` at the bottom of the page (these are standalone routes).
 
-### 3. No DB / backend changes
+### 5. Version bump
+Bump `package.json` from `1.3.286` → `1.3.287` (frontend-only, but keeps version indicator fresh).
 
-- RLS on `player_notes` already permits `reception` to insert (verified). 
-- No new tables, no migrations, no edge functions, no version bump.
+### Files touched
+- NEW: `src/pages/club/legal/PrivacyPolicy.tsx`
+- NEW: `src/pages/club/legal/DataProtection.tsx`
+- NEW: `src/pages/club/legal/ResponsibleGaming.tsx`
+- NEW: `src/components/club/ClubFooter.tsx`
+- EDIT: `src/App.tsx` (lazy imports + 6 route entries)
+- EDIT: `src/pages/club/ClubLanding.tsx` (footer)
+- EDIT: `src/pages/club/ClubLayout.tsx` (footer above tabbar)
+- EDIT: `src/pages/club/ClubLogin.tsx`, `ClubRegister.tsx` (footer)
+- EDIT: `package.json`
 
-## Technical notes
-
-- Files touched:
-  - `src/pages/Guests.tsx` — row-level `onClick`, replace Eye → Edit, navigate to `/reception?edit=`.
-  - `src/pages/Reception.tsx` — read `?edit=` query param on mount and auto-select player.
-  - `src/components/player/PlayerPreviewHeader.tsx` — add collapsible Notes section + posting form.
-  - `src/components/player/PlayerNotesPanel.tsx` — new shared component extracted from `PlayerProfile.tsx`.
-  - `src/pages/PlayerProfile.tsx` — swap inline `NotesPanel` for the shared import, add `reception` to `canPost` roles for consistency.
-
-- Design system: uses existing `Button` outline/ghost variants, `Textarea`, `Badge`. No raw `h-*`, no new wrappers.
-- Mobile: Notes panel collapses by default to keep the sticky header compact.
-
-## Out of scope
-
-- No new tag-management UI in Reception (only Notes were requested).
-- No edits to RLS or schema.
-- No changes to the Player Tracker page itself.
+No DB / backend changes.
