@@ -15,7 +15,7 @@ import CategoryBadge, { type PlayerCategory } from "@/components/player/Category
 import CasinoBadge from "@/components/player/CasinoBadge";
 import PlayerStatusTagsEditor, { LevelPicker } from "@/components/player/PlayerStatusTagsEditor";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
-import { fmtDate, fmtDateTime } from "@/lib/format-date";
+import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format-date";
 import {
   usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
@@ -564,8 +564,8 @@ const PlayerProfile = () => {
                             <span className="inline-block w-3 text-muted-foreground">{isExpanded ? "▾" : "▸"}</span> {fmtDate(v.date)}
                           </td>
                           <td className="py-1.5 px-2">{v.casinos?.name || "—"}</td>
-                          <td className="py-1.5 px-2 font-mono text-xs">{fmtDateTime(v.checked_in_at)}</td>
-                          <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtDateTime(v.checked_out_at) : "—"}</td>
+                           <td className="py-1.5 px-2 font-mono text-xs">{fmtTime(v.checked_in_at)}</td>
+                           <td className="py-1.5 px-2 font-mono text-xs">{v.checked_out_at ? fmtTime(v.checked_out_at) : "—"}</td>
                           <td className="py-1.5 px-2">{fmtDuration(visitDuration(v))}</td>
                           
                           {showFinancials && <td className="py-1.5 px-2 font-mono text-xs text-right">{f.dropR ? fmtMoney(f.dropR) : dot()}</td>}
