@@ -176,6 +176,20 @@ const CheckInTab = () => {
     }
   };
 
+  // Auto-select player when arriving with ?edit=<playerId> (e.g. from Guests page)
+  const editPlayerId = searchParams.get("edit");
+  useEffect(() => {
+    if (!editPlayerId || players.length === 0) return;
+    const target = players.find((p: any) => p.id === editPlayerId);
+    if (target) {
+      handleSelectPlayer(target);
+      const next = new URLSearchParams(searchParams);
+      next.delete("edit");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editPlayerId, players]);
+
   const checkIn = useMutation({
     mutationFn: async (playerId: string) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
