@@ -2930,6 +2930,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_audit_log_archive: {
+        Row: {
+          action: string
+          actor: string | null
+          archived_at: string
+          casino_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_table: string | null
+          id: string
+          meta: Json | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          archived_at?: string
+          casino_id?: string | null
+          created_at: string
+          entity_id?: string | null
+          entity_table?: string | null
+          id: string
+          meta?: Json | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          archived_at?: string
+          casino_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string | null
+          id?: string
+          meta?: Json | null
+        }
+        Relationships: []
+      }
       fin_budget: {
         Row: {
           approved_at: string | null
@@ -8809,6 +8845,7 @@ export type Database = {
         }[]
       }
       export_full_schema_ddl: { Args: never; Returns: string }
+      fin_archive_old_audit_log: { Args: never; Returns: number }
       fin_budget_set_annual: {
         Args: {
           p_annual: number
