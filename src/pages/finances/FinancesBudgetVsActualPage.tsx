@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
-import { BarChart3, AlertTriangle, X } from "lucide-react";
+import { BarChart3, AlertTriangle, X, Download } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { useFinBudget, useFinExpenses, useFinCategories } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
+import ExcelJS from "exceljs";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -70,10 +73,41 @@ export default function FinancesBudgetVsActualPage() {
 
   const drillTotal = drillRows.reduce((s: number, r: any) => s + Number(r.amount_tzs || r.amount || 0), 0);
 
+  const exportXlsx = async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(`Budget vs Actual ${year}`);
+    const header = ["Category"];
+    MONTHS.forEach((m) => { header.push(`${m} Plan`); header.push(`${m} Actual`); });
+    header.push("YTD Plan", "YTD Actual", "YTD %");
+    ws.addRow(header);
+    ws.getRow(1).font = { bold: true };
+    expenseCats.forEach((c: any) => {
+      const row: any[] = [c.name];
+      let ytdP = 0, ytdA = 0;
+      for (let mo = 1; mo <= 12; mo++) {
+        const p = planned[c.id]?.[mo] || 0;
+        const a = actual[c.id]?.[mo] || 0;
+        ytdP += p; ytdA += a;
+        row.push(p, a);
+      }
+      row.push(ytdP, ytdA, ytdP > 0 ? ytdA / ytdP : 0);
+      const r = ws.addRow(row);
+      for (let i = 2; i <= 25; i++) r.getCell(i).numFmt = "# ##0;[Red](# ##0);-";
+      r.getCell(26).numFmt = "0.0%";
+    });
+    ws.columns.forEach((col, i) => { col.width = i === 0 ? 32 : 14; });
+    const buf = await wb.xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = `budget-vs-actual-${year}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <PageShell>
       <PageHeader icon={BarChart3} title="Budget vs Actual" subtitle="Per category, monthly variance · click cell to drill">
         <div className="flex items-center gap-2">
+          <FinanceCasinoSwitcher />
           {overrunCount > 0 && (
             <Badge variant="destructive" className="gap-1">
               <AlertTriangle className="w-3 h-3" />
@@ -81,6 +115,9 @@ export default function FinancesBudgetVsActualPage() {
             </Badge>
           )}
           <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 font-mono" />
+          <Button size="sm" variant="outline" onClick={exportXlsx}>
+            <Download className="w-3.5 h-3.5 mr-1" />XLSX
+          </Button>
         </div>
       </PageHeader>
       <PageSection card={false}>
