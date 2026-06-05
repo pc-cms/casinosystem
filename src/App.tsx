@@ -382,7 +382,7 @@ const ProtectedRoutes = () => {
           <Route path="/finances/dashboard" element={<RoleGuard path="/finances/dashboard"><ErrorBoundary><FinancesDashboardPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finances/day-closing" element={<RoleGuard path="/finances/day-closing"><ErrorBoundary><FinancesDayClosingPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finances/expenses" element={<RoleGuard path="/finances/expenses"><ErrorBoundary><FinancesExpensesPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/expenses" element={<RoleGuard path="/expenses"><ErrorBoundary><FinancesExpensesPage /></ErrorBoundary></RoleGuard>} />
+          
           <Route path="/finances/money-change" element={<RoleGuard path="/finances/money-change"><ErrorBoundary><FinancesMoneyChangePage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finances/inter-casino" element={<RoleGuard path="/finances/inter-casino"><ErrorBoundary><FinancesInterCasinoPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/transfers" element={<Navigate to="/finances/inter-casino" replace />} />
