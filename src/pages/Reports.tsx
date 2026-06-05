@@ -128,7 +128,7 @@ const Reports = () => {
         </TabsContent>
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
-        <TabsContent value="expenses"><Expenses embedded /></TabsContent>
+        <TabsContent value="expenses"><Expenses /></TabsContent>
         <TabsContent value="cashless"><CashlessReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips /></TabsContent>
       </Tabs>
