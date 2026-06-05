@@ -23,9 +23,9 @@ export type SafeTransactionInsert = Omit<
   ServerManaged
 >;
 
-/** wallet_transactions: immutable; balance updates are trigger-driven. */
+/** fin_wallet_tx: immutable ledger; balance derived from sum of rows. */
 export type SafeWalletTxInsert = Omit<
-  T["wallet_transactions"]["Insert"],
+  T["fin_wallet_tx"]["Insert"],
   ServerManaged
 >;
 

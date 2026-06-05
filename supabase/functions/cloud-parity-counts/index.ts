@@ -21,7 +21,7 @@ const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Tables scoped directly by casino_id
 const CASINO_TABLES = [
-  "players", "gaming_tables", "shifts", "daily_summaries", "employees",
+  "players", "gaming_tables", "shifts", "fin_day_closing", "employees",
   "transactions", "expenses", "casino_visits", "client_sessions",
   "player_notes", "player_chip_adjustments",
   "chip_inventory", "chip_emissions", "cash_counts",

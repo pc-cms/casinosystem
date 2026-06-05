@@ -45,7 +45,7 @@ const CHECKS: Check[] = [
   { name: "user_roles.list",                 path: "user_roles?select=id,role&limit=1" },
   { name: "user_casino_access.list",         path: "user_casino_access?select=user_id,casino_id&limit=1" },
   // ── Finance ───────────────────────────────────────────────────────────
-  { name: "daily_summaries.list",            path: "daily_summaries?select=id,date,tables_result&limit=1" },
+  { name: "fin_day_closing.list",            path: "fin_day_closing?select=id,business_date,tables_result&limit=1" },
   { name: "shifts.list",                     path: "shifts?select=id,casino_id,opened_at&limit=1" },
 ];
 

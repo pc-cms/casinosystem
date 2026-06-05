@@ -68,30 +68,28 @@ export const useSaveImportedDay = () => {
         .upsert(records, { onConflict: "casino_id,date,table_id" });
       if (error) throw error;
 
-      // Update / insert daily_summaries.tables_result with Total row if available
+      // Update / insert fin_day_closing.tables_result with Total row if available
       const totalRow = rows.find((r) => r.table.toUpperCase() === "TOTAL");
       if (totalRow) {
         const totalResult = parseSpaced(totalRow.result);
         const { data: existing } = await supabase
-          .from("daily_summaries")
+          .from("fin_day_closing")
           .select("id")
           .eq("casino_id", activeCasinoId)
-          .eq("date", date)
+          .eq("business_date", date)
           .maybeSingle();
 
         if (existing) {
           await supabase
-            .from("daily_summaries")
+            .from("fin_day_closing")
             .update({ tables_result: totalResult })
             .eq("id", existing.id);
         } else {
-          await supabase.from("daily_summaries").insert({
+          await supabase.from("fin_day_closing").insert({
             casino_id: activeCasinoId,
-            date,
+            business_date: date,
             tables_result: totalResult,
             slots_result: 0,
-            total_result: totalResult,
-            total_expenses: 0,
           });
         }
       }
