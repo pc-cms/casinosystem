@@ -60,6 +60,8 @@ export default function FinancesExcelImportPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   // sheet_name → casino_id
   const [casinoBySheet, setCasinoBySheet] = useState<Record<string, string>>({});
+  // Diff preview: existing fin_budget rows keyed by `${casino}|${cat}|${ccy}`
+  const [existingKeys, setExistingKeys] = useState<Set<string>>(new Set());
 
   const handleParse = async () => {
     if (!file) return;
@@ -70,10 +72,8 @@ export default function FinancesExcelImportPage() {
       const { data, error } = await supabase.functions.invoke("fin-excel-import", { body: fd });
       if (error) throw error;
       const sh: Sheet[] = data.sheets || [];
-      // auto-apply suggestion to category_id
       sh.forEach((s) => s.sections.forEach((sec) => sec.rows.forEach((r) => (r.category_id = r.suggested_category_id))));
       setSheets(sh);
-      // auto-pick casino from code
       const m: Record<string, string> = {};
       sh.forEach((s) => {
         const name = CASINO_CODE_TO_NAME[s.detected_casino_code];
@@ -81,12 +81,38 @@ export default function FinancesExcelImportPage() {
         if (c) m[s.sheet_name] = c.id;
       });
       setCasinoBySheet(m);
+      // Fetch existing budget rows for diff
+      const casinoIds = Array.from(new Set(Object.values(m))).filter(Boolean);
+      if (casinoIds.length) {
+        const { data: existing } = await supabase
+          .from("fin_budget")
+          .select("casino_id, category_id, currency")
+          .eq("year", year)
+          .in("casino_id", casinoIds);
+        const keys = new Set<string>();
+        (existing || []).forEach((r: any) => keys.add(`${r.casino_id}|${r.category_id}|${r.currency}`));
+        setExistingKeys(keys);
+      } else {
+        setExistingKeys(new Set());
+      }
       toast.success(`Parsed ${sh.length} sheet(s)`);
     } catch (e: any) {
       toast.error(e.message || "Parse failed");
     } finally {
       setParsing(false);
     }
+  };
+
+  // Diff stats per row
+  const rowStatus = (sheetName: string, row: Row): "new" | "update" | "skip" => {
+    if (!row.category_id) return "skip";
+    const casinoId = casinoBySheet[sheetName];
+    if (!casinoId) return "skip";
+    const tzs = row.plan_year_tzs || row.plan_month_tzs * 12;
+    const usd = row.plan_year_usd || row.plan_month_usd * 12;
+    const hasTzs = tzs > 0 && existingKeys.has(`${casinoId}|${row.category_id}|TZS`);
+    const hasUsd = usd > 0 && existingKeys.has(`${casinoId}|${row.category_id}|USD`);
+    return (hasTzs || hasUsd) ? "update" : "new";
   };
 
   const apply = useMutation({
