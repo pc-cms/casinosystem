@@ -277,7 +277,8 @@ export default function FinancesExcelImportPage() {
                       <td className="text-right font-mono px-2 py-1">{formatNumberSpaces(r.actual_tzs)}</td>
                       <td className="text-right font-mono px-2 py-1">{formatNumberSpaces(r.actual_usd)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
