@@ -3,6 +3,7 @@ import { Wallet, ShoppingBag, Ticket, LogOut, User } from "lucide-react";
 import { clearClubSession, getClubToken } from "@/lib/club-api";
 import { useEffect } from "react";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
+import ClubFooter from "@/components/club/ClubFooter";
 
 const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
@@ -65,6 +66,7 @@ export default function ClubLayout() {
 
       <main className="relative flex-1 overflow-y-auto p-5 pb-24 max-w-xl mx-auto w-full">
         <Outlet />
+        <ClubFooter />
       </main>
 
       <nav

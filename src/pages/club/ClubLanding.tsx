@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Coins, Ticket, ShoppingBag, Gift, ArrowRight } from "lucide-react";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
+import ClubFooter from "@/components/club/ClubFooter";
 
 const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
@@ -219,20 +220,7 @@ export default function ClubLanding() {
         </section>
 
         {/* ======== FOOTER ======== */}
-        <footer className="pt-10 pb-6 text-center space-y-1">
-          <p
-            className="font-faberge text-[10px] tracking-[0.4em] uppercase"
-            style={{ color: GOLD_DEEP }}
-          >
-            Premier Casino · Tanzania
-          </p>
-          <p
-            className="font-faberge text-[10px] tracking-[0.4em]"
-            style={{ color: GOLD_DEEP, opacity: 0.7 }}
-          >
-            © 2025
-          </p>
-        </footer>
+        <ClubFooter />
       </div>
     </div>
   );

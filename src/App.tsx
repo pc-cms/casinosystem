@@ -148,6 +148,9 @@ const ClubShop = lazy(() => import("@/pages/club/ClubShop"));
 const ClubTickets = lazy(() => import("@/pages/club/ClubTickets"));
 const ClubProfile = lazy(() => import("@/pages/club/ClubProfile"));
 const ClubVerifyWizard = lazy(() => import("@/pages/club/ClubVerifyWizard"));
+const ClubPrivacyPolicy = lazy(() => import("@/pages/club/legal/PrivacyPolicy"));
+const ClubDataProtection = lazy(() => import("@/pages/club/legal/DataProtection"));
+const ClubResponsibleGaming = lazy(() => import("@/pages/club/legal/ResponsibleGaming"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -494,6 +497,9 @@ const AppRoutes = () => {
             <Route path="/club/tickets" element={<ClubTickets />} />
             <Route path="/club/profile" element={<ClubProfile />} />
             <Route path="/club/verify" element={<ClubVerifyWizard />} />
+            <Route path="/club/privacy" element={<ClubPrivacyPolicy />} />
+            <Route path="/club/data-protection" element={<ClubDataProtection />} />
+            <Route path="/club/responsible-gaming" element={<ClubResponsibleGaming />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -516,6 +522,9 @@ const AppRoutes = () => {
           <Route path="/club/tickets" element={<ClubTickets />} />
           <Route path="/club/profile" element={<ClubProfile />} />
           <Route path="/club/verify" element={<ClubVerifyWizard />} />
+          <Route path="/club/privacy" element={<ClubPrivacyPolicy />} />
+          <Route path="/club/data-protection" element={<ClubDataProtection />} />
+          <Route path="/club/responsible-gaming" element={<ClubResponsibleGaming />} />
         </Route>
         <Route path="/pos" element={<PosLayout />}>
           <Route index element={<Navigate to="/pos/waiter" replace />} />
