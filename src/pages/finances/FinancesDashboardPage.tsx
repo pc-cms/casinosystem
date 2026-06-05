@@ -2,8 +2,14 @@ import { useMemo } from "react";
 import { Wallet } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useFinWalletTx, useFinExpenses, useFinWalletBalances, useFinWallets, useFinBudget } from "@/hooks/use-fin";
+import {
+  useFinWalletTx, useFinWalletBalances, useFinWallets, useFinBudget, useFinCategories,
+} from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+  PieChart, Pie, Cell, Legend, LineChart, Line,
+} from "recharts";
 
 const Money = ({ v }: { v: number }) => (
   <span className={`font-mono ${v < 0 ? "cms-amount-negative" : v > 0 ? "cms-amount-positive" : ""}`}>
@@ -15,15 +21,22 @@ const monthBounds = () => {
   const now = new Date();
   const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
   const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-  return { from, to, year: now.getFullYear(), month: now.getMonth() + 1 };
+  return { from, to, year: now.getFullYear(), month: now.getMonth() + 1, daysInMonth: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() };
 };
 
+const PIE_COLORS = [
+  "hsl(var(--primary))", "hsl(var(--cms-shift-teal))", "hsl(var(--cms-shift-amber))",
+  "hsl(var(--cms-shift-sky))", "hsl(var(--cms-shift-emerald))", "hsl(var(--cms-shift-purple))",
+  "hsl(var(--cms-shift-red))", "hsl(var(--cms-shift-orange))",
+];
+
 export default function FinancesDashboardPage() {
-  const { from, to, year, month } = monthBounds();
+  const { from, to, year, month, daysInMonth } = monthBounds();
   const { data: tx = [] } = useFinWalletTx({ from, to });
   const { data: balances } = useFinWalletBalances();
   const { data: wallets = [] } = useFinWallets();
   const { data: budget = [] } = useFinBudget(year, month);
+  const { data: categories = [] } = useFinCategories();
 
   const stats = useMemo(() => {
     let income = 0, expense = 0;
@@ -42,6 +55,59 @@ export default function FinancesDashboardPage() {
     return s;
   }, [balances]);
 
+  // Daily series: income + expense per day of month
+  const dailySeries = useMemo(() => {
+    const buckets: Record<string, { day: string; income: number; expense: number }> = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+      const k = String(d).padStart(2, "0");
+      buckets[k] = { day: k, income: 0, expense: 0 };
+    }
+    tx.forEach((r: any) => {
+      const d = String(r.business_date || "").slice(8, 10);
+      const b = buckets[d];
+      if (!b) return;
+      const v = Number(r.amount_tzs || 0);
+      if (r.kind === "income") b.income += v;
+      if (r.kind === "expense" || r.kind === "reversal") b.expense += -v;
+    });
+    return Object.values(buckets);
+  }, [tx, daysInMonth]);
+
+  // Expense by group (pie)
+  const byGroup = useMemo(() => {
+    const map = new Map<string, number>();
+    tx.forEach((r: any) => {
+      if (r.kind !== "expense" && r.kind !== "reversal") return;
+      const grp = r.fin_categories?.group_name || "Other";
+      map.set(grp, (map.get(grp) || 0) + -Number(r.amount_tzs || 0));
+    });
+    return Array.from(map.entries())
+      .filter(([, v]) => v > 0)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [tx]);
+
+  // Budget vs Actual per group
+  const budgetVsActual = useMemo(() => {
+    const plan = new Map<string, number>();
+    (budget || []).forEach((r: any) => {
+      const grp = r.fin_categories?.group_name || "Other";
+      plan.set(grp, (plan.get(grp) || 0) + Number(r.planned_amount || 0));
+    });
+    const actual = new Map<string, number>();
+    tx.forEach((r: any) => {
+      if (r.kind !== "expense" && r.kind !== "reversal") return;
+      const grp = r.fin_categories?.group_name || "Other";
+      actual.set(grp, (actual.get(grp) || 0) + -Number(r.amount_tzs || 0));
+    });
+    const groups = new Set([...plan.keys(), ...actual.keys()]);
+    return Array.from(groups).map((g) => ({
+      group: g,
+      Plan: Math.round(plan.get(g) || 0),
+      Actual: Math.round(actual.get(g) || 0),
+    })).sort((a, b) => b.Plan + b.Actual - (a.Plan + a.Actual));
+  }, [budget, tx]);
+
   const plannedTotal = useMemo(
     () => (budget || []).reduce((s: number, r: any) => s + Number(r.planned_amount || 0), 0),
     [budget]
@@ -56,7 +122,63 @@ export default function FinancesDashboardPage() {
         <PageSection title="Net (Month)"><div className="text-2xl"><Money v={stats.net} /></div></PageSection>
         <PageSection title="Total Balance"><div className="text-2xl"><Money v={totalBalance} /></div></PageSection>
       </div>
-      <PageSection title="Wallets" titleRight={<span className="text-xs text-muted-foreground">{wallets.length} wallets</span>}>
+
+      <div className="grid lg:grid-cols-2 gap-3">
+        <PageSection title="Income vs Expense · daily">
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={dailySeries}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+                <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
+                <Legend />
+                <Line type="monotone" dataKey="income" stroke="hsl(var(--cms-amount-positive))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="expense" stroke="hsl(var(--cms-amount-negative))" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </PageSection>
+
+        <PageSection title="Expense by group · MTD">
+          <div className="h-72">
+            {byGroup.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No expenses</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={byGroup} dataKey="value" nameKey="name" outerRadius={90} label={(e: any) => e.name}>
+                    {byGroup.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </PageSection>
+      </div>
+
+      <PageSection title="Budget vs Actual · this month" titleRight={<span className="text-xs text-muted-foreground">Plan {formatNumberSpaces(plannedTotal)} · Actual {formatNumberSpaces(stats.expense)}</span>}>
+        <div className="h-72">
+          {budgetVsActual.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No budget data</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={budgetVsActual}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="group" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+                <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
+                <Legend />
+                <Bar dataKey="Plan" fill="hsl(var(--muted-foreground))" />
+                <Bar dataKey="Actual" fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </PageSection>
+
+      <PageSection title="Wallets" titleRight={<span className="text-xs text-muted-foreground">{wallets.length} wallets · {categories.length} categories</span>}>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {wallets.map((w: any) => (
             <div key={w.id} className="flex items-center justify-between border-b border-border py-1.5 text-sm">
@@ -66,9 +188,6 @@ export default function FinancesDashboardPage() {
           ))}
           {!wallets.length && <div className="text-sm text-muted-foreground col-span-3 text-center py-4">No wallets configured. Go to Wallets to create.</div>}
         </div>
-      </PageSection>
-      <PageSection title="Budget (this month)">
-        <div className="text-sm text-muted-foreground">Planned MTD total: <Money v={plannedTotal} /> · Actual expense: <Money v={stats.expense} /></div>
       </PageSection>
     </PageShell>
   );
