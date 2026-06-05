@@ -9,18 +9,37 @@ const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
 
 // Routes that render their own full-bleed layout (no chrome from ClubLayout).
-const STANDALONE = ["/", "/club/login", "/club/register", "/club/verify"];
+const STANDALONE = [
+  "/",
+  "/club/login",
+  "/club/register",
+  "/club/verify",
+  "/club/privacy",
+  "/club/data-protection",
+  "/club/responsible-gaming",
+];
+
+// Routes that do not require an authenticated club session.
+const PUBLIC_ROUTES = new Set([
+  "/",
+  "/club/login",
+  "/club/register",
+  "/club/privacy",
+  "/club/data-protection",
+  "/club/responsible-gaming",
+]);
 
 export default function ClubLayout() {
   const loc = useLocation();
   const navigate = useNavigate();
   const path = loc.pathname;
   const isStandalone = STANDALONE.includes(path);
-  const isLogin = path === "/club/login" || path === "/club/register" || path === "/";
+  const isPublic = PUBLIC_ROUTES.has(path);
 
   useEffect(() => {
-    if (!isLogin && !getClubToken()) navigate("/club/login", { replace: true });
-  }, [isLogin, path, navigate]);
+    if (!isPublic && !getClubToken()) navigate("/club/login", { replace: true });
+  }, [isPublic, path, navigate]);
+
 
   const handleLogout = () => {
     clearClubSession();
