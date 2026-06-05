@@ -88,29 +88,56 @@ export default function FinancesDayClosingPage() {
 
       <PageSection title="Income Lines" titleRight={!locked && <Button size="sm" variant="outline" onClick={addLine}><Plus className="w-3.5 h-3.5" /> Line</Button>}>
         {!lines.length && <div className="text-sm text-muted-foreground text-center py-4">No income lines</div>}
-        {lines.map((l, i) => (
-          <div key={i} className="grid grid-cols-12 gap-2 mb-2 items-end">
-            <div className="col-span-4">
-              <label className="text-xs text-muted-foreground">Wallet</label>
-              <Select value={l.wallet_id} onValueChange={(v) => {
-                const w = wallets.find((x: any) => x.id === v);
-                updateLine(i, { wallet_id: v, currency: w?.currency || l.currency });
-              }} disabled={locked}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>{wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}</SelectContent>
-              </Select>
+        {lines.map((l, i) => {
+          const denoms = CASH_DENOMS[l.currency] || CASH_DENOMS.TZS;
+          const isOpen = expanded === i;
+          return (
+            <div key={i} className="rounded-md border border-border mb-2">
+              <div className="grid grid-cols-12 gap-2 p-2 items-end">
+                <div className="col-span-1 flex items-end pb-1.5">
+                  <Button variant="ghost" size="sm" onClick={() => setExpanded(isOpen ? null : i)} className="h-7 w-7 p-0">
+                    {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <div className="col-span-3">
+                  <label className="text-xs text-muted-foreground">Wallet</label>
+                  <Select value={l.wallet_id} onValueChange={(v) => {
+                    const w = wallets.find((x: any) => x.id === v);
+                    updateLine(i, { wallet_id: v, currency: w?.currency || l.currency });
+                  }} disabled={locked}>
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>{wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-3"><label className="text-xs text-muted-foreground">Amount</label>
+                  <Input type="number" step="0.01" disabled={locked} value={l.amount || ""} onChange={(e) => updateLine(i, { amount: Number(e.target.value), denominations: {} })} /></div>
+                <div className="col-span-2"><label className="text-xs text-muted-foreground">Currency</label>
+                  <Input value={l.currency} disabled className="font-mono" /></div>
+                <div className="col-span-2"><label className="text-xs text-muted-foreground">FX → TZS</label>
+                  <Input type="number" step="0.000001" disabled={locked} value={l.fx_rate || 1} onChange={(e) => updateLine(i, { fx_rate: Number(e.target.value) })} /></div>
+                <div className="col-span-1 text-right">
+                  {!locked && <Button variant="ghost" size="sm" onClick={() => removeLine(i)}><Trash2 className="w-3.5 h-3.5" /></Button>}
+                </div>
+              </div>
+              {isOpen && (
+                <div className="border-t border-border p-3 bg-muted/30">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                    Denominations · {l.currency} {locked && "(locked)"}
+                  </div>
+                  <div className="max-w-md">
+                    <CashDenomInput
+                      values={l.denominations || {}}
+                      onChange={locked ? () => {} : (v) => updateDenoms(i, v)}
+                      denoms={denoms}
+                      currency={l.currency}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="col-span-3"><label className="text-xs text-muted-foreground">Amount</label>
-              <Input type="number" step="0.01" disabled={locked} value={l.amount || ""} onChange={(e) => updateLine(i, { amount: Number(e.target.value) })} /></div>
-            <div className="col-span-2"><label className="text-xs text-muted-foreground">Currency</label>
-              <Input value={l.currency} disabled className="font-mono" /></div>
-            <div className="col-span-2"><label className="text-xs text-muted-foreground">FX → TZS</label>
-              <Input type="number" step="0.000001" disabled={locked} value={l.fx_rate || 1} onChange={(e) => updateLine(i, { fx_rate: Number(e.target.value) })} /></div>
-            <div className="col-span-1 text-right">
-              {!locked && <Button variant="ghost" size="sm" onClick={() => removeLine(i)}><Trash2 className="w-3.5 h-3.5" /></Button>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </PageSection>
 
       <PageSection title="Notes">
