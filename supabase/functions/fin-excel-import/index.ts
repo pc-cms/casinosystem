@@ -28,11 +28,16 @@ function jaccard(a: string, b: string): number {
   return inter / (A.size + B.size - inter);
 }
 
-function bestMatch(name: string, cats: any[]): { id: string; score: number; name: string } | null {
+function bestMatch(name: string, cats: any[], aliases: Map<string, string>): { id: string; score: number; name: string; source: "alias" | "fuzzy" } | null {
+  const aliasHit = aliases.get(norm(name));
+  if (aliasHit) {
+    const c = cats.find((x) => x.id === aliasHit);
+    if (c) return { id: c.id, score: 1, name: c.name, source: "alias" };
+  }
   let best = null as any;
   for (const c of cats) {
     const s = jaccard(name, c.name);
-    if (!best || s > best.score) best = { id: c.id, score: s, name: c.name };
+    if (!best || s > best.score) best = { id: c.id, score: s, name: c.name, source: "fuzzy" };
   }
   return best && best.score > 0.25 ? best : null;
 }
