@@ -127,7 +127,7 @@ export default function FinancesExpensesPage() {
 
   return (
     <PageShell>
-      <PageHeader icon={Receipt} title="Expenses" subtitle="Per-casino expense ledger">
+      <PageHeader icon={Receipt} title="Monthly Expenses" subtitle="Per-casino expense ledger">
         <FinanceCasinoSwitcher />
         <label className="text-xs flex items-center gap-1.5">
           <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
