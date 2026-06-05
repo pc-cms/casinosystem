@@ -1,65 +1,44 @@
-## Цель
+## What I'll change
 
-Сделать все иконки приложения (вкладка браузера, PWA на Android, apple-touch-icon на iOS, все 6 брендов) визуально круглыми — обрезать содержимое PNG по идеальному кругу с прозрачными углами.
+### 1. `/guests` — row click + Edit button (Player-Tracker behavior)
 
-## Что обрабатываем
+In `src/pages/Guests.tsx`:
+- Make the entire `<tr>` clickable. Clicking anywhere on the row calls `selectPlayer(r.playerId)` — opens the existing `PlayerPreviewHeader` sticky panel, exactly as Player Tracker (`PlayerStatistics.tsx`) does.
+- Add `cursor-pointer` and active-row tint when this player is the selected one.
+- Existing inner controls (Check-In, Check-Out) keep their `e.stopPropagation()` so they don't trigger the row click.
+- Replace the eye `<Eye />` icon button with a labeled **Edit** button (small `outline`, with `Pencil` icon). It navigates to Reception with the player pre-selected: `navigate('/reception?edit=<playerId>')`.
 
-Все PNG-иконки в `public/`:
+In `src/pages/Reception.tsx`:
+- Read `?edit=<playerId>` from the URL on mount. If present, fetch that player and run the existing `handleSelectPlayer(p)` flow (the same the search currently uses), so the user lands directly in the inline edit/update form — no extra screen built.
+- Clear the param after handling so refreshes don't loop.
 
-**Дефолтный набор:**
-- `favicon.png`
-- `apple-touch-icon.png`
-- `icon-192.png`, `icon-192-maskable.png`
-- `icon-512.png`, `icon-512-maskable.png`
+### 2. Notes panel inside `PlayerPreviewHeader` (works everywhere)
 
-**On-prem (local):**
-- `icon-192-local.png`, `icon-192-local-maskable.png`
-- `icon-512-local.png`, `icon-512-local-maskable.png`
+In `src/components/player/PlayerPreviewHeader.tsx`:
+- Add a collapsible **Notes** section at the bottom of the expanded header (toggle button "Notes (N)" next to the existing controls; opens an inline area).
+- Reuse the existing `NotesPanel` UI from `PlayerProfile.tsx` — extract it into `src/components/player/PlayerNotesPanel.tsx` so both `PlayerProfile` and `PlayerPreviewHeader` share one component.
+- Posting permissions: the existing list `pit | manager | floor_manager | surveillance | super_admin` plus **`reception`** (RLS already allows it — confirmed in DB). No migration needed.
+- Because `PlayerPreviewHeader` is already mounted on `/guests`, `/reception`, `/blacklist`, `/players/stats`, and all CCTV/Tags screens that use it, Notes will automatically appear on all of them — including the Tags views the user mentioned.
 
-**Club:**
-- `favicon-club.png`, `apple-touch-icon-club.png`
-- `icon-192-club.png`, `icon-192-club-maskable.png`
-- `icon-512-club.png`, `icon-512-club-maskable.png`
+### 3. No DB / backend changes
 
-**Arusha brand:**
-- `arusha-logo.png` (используется в `index.html` как favicon/apple-touch для Arusha)
+- RLS on `player_notes` already permits `reception` to insert (verified). 
+- No new tables, no migrations, no edge functions, no version bump.
 
-Манифесты Mwanza/Dodoma/Mbeya/Premier ссылаются на общий `icon-192.png` / `icon-512.png` — отдельных PNG у них нет, скругление общих файлов их покрывает автоматически.
+## Technical notes
 
-## Подход
+- Files touched:
+  - `src/pages/Guests.tsx` — row-level `onClick`, replace Eye → Edit, navigate to `/reception?edit=`.
+  - `src/pages/Reception.tsx` — read `?edit=` query param on mount and auto-select player.
+  - `src/components/player/PlayerPreviewHeader.tsx` — add collapsible Notes section + posting form.
+  - `src/components/player/PlayerNotesPanel.tsx` — new shared component extracted from `PlayerProfile.tsx`.
+  - `src/pages/PlayerProfile.tsx` — swap inline `NotesPanel` for the shared import, add `reception` to `canPost` roles for consistency.
 
-Для каждого PNG:
-1. Прочитать как RGBA через Python + Pillow (уже доступен в sandbox).
-2. Создать круглую альфа-маску того же размера (антиалиасинг через downsample 4x).
-3. Применить маску к альфа-каналу → углы становятся прозрачными.
-4. Перезаписать файл (сохраняем имя и размер).
+- Design system: uses existing `Button` outline/ghost variants, `Textarea`, `Badge`. No raw `h-*`, no new wrappers.
+- Mobile: Notes panel collapses by default to keep the sticky header compact.
 
-Для **maskable**-вариантов круг применяется по внешней границе full-bleed — Android safe zone (центральные 80%) остаётся внутри круга, так что брендинг не пострадает.
+## Out of scope
 
-## Технические детали
-
-- Используем Pillow (`PIL.Image`, `PIL.ImageDraw`) — без новых зависимостей в проекте, только в sandbox.
-- Маска рисуется в 4x разрешении и downsample'ится через `LANCZOS` для гладкого края без ступенек.
-- Файлы сохраняются как PNG с альфа-каналом (`RGBA`).
-- Исходные файлы изменяются in-place; PNG лежат в `public/` и кэшируются браузером/SW по имени — поскольку PWA SW использует `registerType: "autoUpdate"` и cache-busting через build hash, повторный визит подтянет новые иконки. Установленные PWA на телефонах увидят круглые иконки только после переустановки (это ограничение iOS/Android, описано в системе).
-
-## Что НЕ трогаем
-
-- `index.html` — пути и `<link>` теги остаются прежними.
-- Манифесты (`manifest-*.json`) — содержимое не меняется.
-- SVG-логотипы (`arusha-premier-logo.svg`, `premier-club-logo.svg`) — векторные, скругление к ним не применяется.
-- Service worker / регистрация PWA — никакой логики не меняем.
-- `favicon.ico` — отсутствует в проекте, не создаём.
-
-## Предупреждение об iOS
-
-На уже установленных PWA на iPhone могут появиться тёмные/прозрачные уголки вокруг иконки на домашнем экране (iOS не любит прозрачность в apple-touch-icon). Пользователь принял этот риск. Решение при необходимости — переустановить PWA после деплоя.
-
-## Шаги
-
-1. Написать одноразовый Python-скрипт `/tmp/round-icons.py` который проходит по списку файлов и применяет круглую маску.
-2. Запустить скрипт.
-3. Проверить размер/прозрачность углов через `identify` или Pillow.
-4. Закоммитить изменённые PNG.
-
-Никакие .ts/.tsx файлы не меняются.
+- No new tag-management UI in Reception (only Notes were requested).
+- No edits to RLS or schema.
+- No changes to the Player Tracker page itself.
