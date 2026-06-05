@@ -40,7 +40,7 @@ const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const PlayerProfile = lazy(() => import("@/pages/PlayerProfile"));
 const Cage = lazy(() => import("@/pages/Cage"));
 const Tables = lazy(() => import("@/pages/Tables"));
-const Expenses = lazy(() => import("@/pages/finances/FinancesExpensesPage"));
+const Expenses = lazy(() => import("@/components/ExpensesRouter"));
 const Logs = lazy(() => import("@/pages/Logs"));
 
 const Pit = lazy(() => import("@/pages/Pit"));
