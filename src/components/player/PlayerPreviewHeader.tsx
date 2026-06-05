@@ -150,6 +150,7 @@ export const PlayerPreviewHeader = ({ playerId: playerIdProp, onClose, className
   const createAdj = useCreatePlayerChipAdjustment();
   const [photoOpen, setPhotoOpen] = useState(false);
   const [posOpen, setPosOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Expose header height as CSS var so downstream sticky elements (table headers,
