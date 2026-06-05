@@ -80,17 +80,17 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/reception", icon: DoorOpen, label: "Reception", roles: ["super_admin", "manager", "floor_manager", "reception", "finance_manager"], section: "RECEPTION" },
 
   // FINANCES — per-casino isolated module
-  { to: "/finances/dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/day-closing", icon: ClipboardPen, label: "Day Closing", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/money-change", icon: Upload, label: "Money Change", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/office-safe", icon: Landmark, label: "Office Safe", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/budget", icon: Target, label: "Budget", roles: ["super_admin", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/budget-vs-actual", icon: FileBarChart, label: "Budget vs Actual", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/annual-analytics", icon: FileBarChart, label: "Annual Analytics", roles: ["super_admin", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/excel-import", icon: Upload, label: "Excel Import", roles: ["super_admin", "finance_manager"], section: "FINANCES" },
-  { to: "/finances/audit-log", icon: ClipboardList, label: "Audit Log", roles: ["super_admin", "finance_manager"], section: "FINANCES" },
+  { to: "/finances/dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/day-closing", icon: ClipboardPen, label: "Day Closing", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/money-change", icon: Upload, label: "Money Change", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/office-safe", icon: Landmark, label: "Office Safe", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/budget", icon: Target, label: "Budget", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/budget-vs-actual", icon: FileBarChart, label: "Budget vs Actual", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/annual-analytics", icon: FileBarChart, label: "Annual Analytics", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/excel-import", icon: Upload, label: "Excel Import", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/audit-log", icon: ClipboardList, label: "Audit Log", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
 
   // HR — Personnel admin (legacy /dealers and /staff/employees superseded by Staff Master)
   { to: "/hr/warnings", icon: AlertTriangle, label: "Warnings", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },
