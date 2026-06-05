@@ -107,6 +107,20 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/finance/transfers") return "finance_transfers";
   if (base === "/finance/wallets") return "finance_wallets";
 
+  // New Finances module (/finances/*) — reuses existing finance_* module keys
+  if (base === "/finances/dashboard") return "finance_dashboard";
+  if (base === "/finances/day-closing") return "finance_review";
+  if (base === "/finances/expenses") return "finance_payments";
+  if (base === "/finances/money-change") return "finance_cash_count";
+  if (base === "/finances/wallets") return "finance_wallets";
+  if (base === "/finances/office-safe") return "finance_cash_count";
+  if (base === "/finances/budget") return "finance_budget";
+  if (base === "/finances/budget-vs-actual") return "finance_budget";
+  if (base === "/finances/monthly-report") return "finance_summary";
+  if (base === "/finances/excel-import") return "finance_budget";
+  if (base === "/finances/audit-log") return "finance_summary";
+  if (base === "/finances/aliases") return "finance_budget";
+
   // ============= REPORTS =============
   if (base === "/miss-chips") return "miss_chips";
   if (base === "/reports") return "reports";
