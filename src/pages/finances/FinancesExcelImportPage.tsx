@@ -92,13 +92,17 @@ export default function FinancesExcelImportPage() {
   const apply = useMutation({
     mutationFn: async () => {
       let total = 0;
+      // Collect aliases (excel_name → category_id) confirmed by user
+      const aliasMap = new Map<string, { alias_original: string; category_id: string }>();
       for (const sheet of sheets) {
         const casinoId = casinoBySheet[sheet.sheet_name];
-        if (!casinoId) continue; // skip JC / unmapped sheets
         const rowsToInsert: any[] = [];
         sheet.sections.forEach((sec) => {
           sec.rows.forEach((r) => {
             if (!r.category_id) return;
+            const aliasNorm = r.excel_name.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+            if (aliasNorm) aliasMap.set(aliasNorm, { alias_original: r.excel_name, category_id: r.category_id });
+            if (!casinoId) return; // skip JC / unmapped sheets for budget rows
             const annualTzs = r.plan_year_tzs || (r.plan_month_tzs * 12);
             const annualUsd = r.plan_year_usd || (r.plan_month_usd * 12);
             const monthlyTzs = annualTzs / 12;
@@ -123,10 +127,17 @@ export default function FinancesExcelImportPage() {
           total += rowsToInsert.length;
         }
       }
+      // Persist learned aliases
+      if (aliasMap.size) {
+        const aliasRows = Array.from(aliasMap.entries()).map(([alias_norm, v]) => ({
+          alias_norm, alias_original: v.alias_original, category_id: v.category_id,
+        }));
+        await (supabase as any).from("fin_category_aliases").upsert(aliasRows, { onConflict: "alias_norm" });
+      }
       return total;
     },
     onSuccess: (n) => {
-      toast.success(`Wrote ${n} budget rows`);
+      toast.success(`Wrote ${n} budget rows · aliases saved`);
       qc.invalidateQueries({ queryKey: ["fin-budget"] });
       setSheets([]);
       setFile(null);
