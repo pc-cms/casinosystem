@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Wallet, Plus } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +26,7 @@ export default function FinancesWalletsPage() {
   return (
     <PageShell>
       <PageHeader icon={Wallet} title="Wallets" subtitle="Per-casino cash, bank, safe, cage">
+        <FinanceCasinoSwitcher allowNetwork={false} />
         <Button onClick={() => { setForm({ name: "", kind: "cash", currency: "TZS", sort_order: 0, is_active: true }); setOpen(true); }}>
           <Plus className="w-4 h-4" /> Add Wallet
         </Button>

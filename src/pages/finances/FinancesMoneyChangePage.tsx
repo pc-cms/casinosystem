@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeftRight, Plus, TrendingUp } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,6 +67,7 @@ export default function FinancesMoneyChangePage() {
   return (
     <PageShell>
       <PageHeader icon={ArrowLeftRight} title="Money Change" subtitle="Cross-currency / cross-casino allowed">
+        <FinanceCasinoSwitcher allowNetwork={false} />
         <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Change</Button>
       </PageHeader>
 

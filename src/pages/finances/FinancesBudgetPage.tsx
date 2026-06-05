@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Target } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ export default function FinancesBudgetPage() {
   return (
     <PageShell>
       <PageHeader icon={Target} title="Budget" subtitle="Per-casino · per-category · per-month">
+        <FinanceCasinoSwitcher allowNetwork={false} />
         <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 font-mono" />
         <Select value={currency} onValueChange={setCurrency}>
           <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
