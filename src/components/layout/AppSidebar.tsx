@@ -84,6 +84,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finances/day-closing", icon: ClipboardPen, label: "Day Closing", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/expenses", icon: Receipt, label: "Expenses", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/money-change", icon: Upload, label: "Money Change", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/inter-casino", icon: Upload, label: "Inter-Casino", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/wallets", icon: Wallet, label: "Wallets", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/office-safe", icon: Landmark, label: "Office Safe", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/budget", icon: Target, label: "Budget", roles: ["super_admin", "finance_manager"], section: "FINANCE" },

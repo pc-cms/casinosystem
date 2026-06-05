@@ -104,7 +104,8 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/finance/dashboard") return "finance_dashboard";
   if (base === "/finance/expenses" || base === "/finance/payments") return "finance_payments";
   if (base === "/finance/summary") return "finance_summary";
-  if (base === "/finance/transfers") return "finance_transfers";
+  if (base === "/finance/transfers") return "finance_payments";
+  if (base === "/finances/inter-casino") return "finance_payments";
   if (base === "/finance/wallets") return "finance_wallets";
 
   // New Finances module (/finances/*) — reuses existing finance_* module keys
