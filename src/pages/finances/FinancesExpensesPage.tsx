@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Receipt, Plus, Trash2 } from "lucide-react";
+import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { FilterBar } from "@/components/layout/FilterBar";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,11 +22,42 @@ import {
 } from "@/components/finances/FinTable";
 
 const todayBD = () => new Date().toISOString().slice(0, 10);
+const pad = (n: number) => String(n).padStart(2, "0");
+
+type Period = "day" | "month" | "ytd" | "all" | "custom";
+
+function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
+  const d = new Date(anchor + "T00:00:00");
+  if (period === "day") return { from: anchor, to: anchor };
+  if (period === "month") {
+    const from = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const to = `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`;
+    return { from, to };
+  }
+  if (period === "ytd") return { from: `${d.getFullYear()}-01-01`, to: todayBD() };
+  return {};
+}
+
+type SortKey = "date" | "category" | "wallet" | "amount";
 
 export default function FinancesExpensesPage() {
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
-  const { data: rows = [] } = useFinExpenses();
+
+  const [period, setPeriod] = useState<Period>("month");
+  const [anchor, setAnchor] = useState<string>(todayBD());
+  const [customFrom, setCustomFrom] = useState<string>(todayBD());
+  const [customTo, setCustomTo] = useState<string>(todayBD());
+  const range = period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
+
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [walletFilter, setWalletFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const { data: rows = [] } = useFinExpenses(range);
   const { data: categories = [] } = useFinCategories();
   const { data: wallets = [] } = useFinWallets();
   const create = useCreateFinExpense();
@@ -41,7 +73,45 @@ export default function FinancesExpensesPage() {
     is_overrun: false, overrun_reason: "",
   });
 
-  const visible = useMemo(() => rows.filter((r: any) => showVoided || !r.voided_at), [rows, showVoided]);
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = rows.filter((r: any) => {
+      if (!showVoided && r.voided_at) return false;
+      if (categoryFilter !== "all" && r.fin_category_id !== categoryFilter) return false;
+      if (walletFilter !== "all" && r.wallet_id !== walletFilter) return false;
+      if (q) {
+        const blob = `${r.description || ""} ${r.fin_categories?.name || ""} ${r.fin_categories?.group_name || ""} ${r.fin_wallets?.name || ""}`.toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+    const dir = sortDir === "asc" ? 1 : -1;
+    filtered.sort((a: any, b: any) => {
+      let av: any, bv: any;
+      switch (sortKey) {
+        case "date": av = a.business_date || ""; bv = b.business_date || ""; break;
+        case "category": av = a.fin_categories?.name || ""; bv = b.fin_categories?.name || ""; break;
+        case "wallet": av = a.fin_wallets?.name || ""; bv = b.fin_wallets?.name || ""; break;
+        case "amount": av = Number(a.amount_tzs || a.amount || 0); bv = Number(b.amount_tzs || b.amount || 0); break;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return filtered;
+  }, [rows, showVoided, categoryFilter, walletFilter, search, sortKey, sortDir]);
+
+  const totalTzs = useMemo(
+    () => visible.reduce((s: number, r: any) => s + (r.voided_at ? 0 : Number(r.amount_tzs || r.amount || 0)), 0),
+    [visible],
+  );
+
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir(k === "date" || k === "amount" ? "desc" : "asc"); }
+  };
+  const SortIcon = ({ k }: { k: SortKey }) =>
+    sortKey === k ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3 inline ml-0.5" /> : <ArrowDown className="w-3 h-3 inline ml-0.5" />) : null;
 
   const overrunCheck = useMemo(() => {
     if (!form.fin_category_id || !form.amount) return null;
@@ -65,14 +135,94 @@ export default function FinancesExpensesPage() {
         {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
       </PageHeader>
       <PageSection card={false}>
+        <FilterBar
+          search={
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search description / category"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-7 h-8 w-[240px]"
+              />
+            </div>
+          }
+          presets={
+            <div className="flex items-center gap-1">
+              {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={period === p ? "default" : "outline"}
+                  className="h-7 px-2 text-xs capitalize"
+                  onClick={() => setPeriod(p)}
+                >
+                  {p === "ytd" ? "YTD" : p}
+                </Button>
+              ))}
+            </div>
+          }
+          filters={
+            <>
+              {period === "day" && (
+                <Input type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} className="h-8 w-[150px]" />
+              )}
+              {period === "month" && (
+                <Input
+                  type="month"
+                  value={anchor.slice(0, 7)}
+                  onChange={(e) => setAnchor(e.target.value + "-01")}
+                  className="h-8 w-[150px]"
+                />
+              )}
+              {period === "custom" && (
+                <>
+                  <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 w-[150px]" />
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-[150px]" />
+                </>
+              )}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-8 w-[200px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent className="max-h-80">
+                  <SelectItem value="all">All categories</SelectItem>
+                  {categories.filter((c: any) => !c.is_income).map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.group_name} · {c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={walletFilter} onValueChange={setWalletFilter}>
+                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Wallet" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All wallets</SelectItem>
+                  {wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </>
+          }
+          right={
+            <div className="text-xs text-muted-foreground">
+              <span className="mr-2">{visible.length} rows</span>
+              <span className="font-mono tabular-nums text-foreground">{formatNumberSpaces(totalTzs)} TZS</span>
+            </div>
+          }
+        />
         <FinTable>
           <FinTHead>
             <tr>
-              <FinTH className={FW.date}>Date</FinTH>
-              <FinTH>Category</FinTH>
-              <FinTH className={FW.wallet}>Wallet</FinTH>
+              <FinTH className={`${FW.date} cursor-pointer select-none`} onClick={() => toggleSort("date")}>
+                Date <SortIcon k="date" />
+              </FinTH>
+              <FinTH className="cursor-pointer select-none" onClick={() => toggleSort("category")}>
+                Category <SortIcon k="category" />
+              </FinTH>
+              <FinTH className={`${FW.wallet} cursor-pointer select-none`} onClick={() => toggleSort("wallet")}>
+                Wallet <SortIcon k="wallet" />
+              </FinTH>
               <FinTH>Description</FinTH>
-              <FinTH align="right" className={FW.amount}>Amount</FinTH>
+              <FinTH align="right" className={`${FW.amount} cursor-pointer select-none`} onClick={() => toggleSort("amount")}>
+                Amount <SortIcon k="amount" />
+              </FinTH>
               <FinTH className={FW.actions} />
             </tr>
           </FinTHead>
@@ -111,6 +261,7 @@ export default function FinancesExpensesPage() {
           </FinTBody>
         </FinTable>
       </PageSection>
+
 
       <ResponsiveDialog open={open} onOpenChange={setOpen} title="New expense">
         <FormGrid>
