@@ -3029,6 +3029,41 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_category_aliases: {
+        Row: {
+          alias_norm: string
+          alias_original: string
+          category_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          alias_norm: string
+          alias_original: string
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          alias_norm?: string
+          alias_original?: string
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_category_aliases_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_day_closing: {
         Row: {
           business_date: string
