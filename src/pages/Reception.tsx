@@ -64,9 +64,12 @@ const Reception = () => {
   }, [canCheckin, canRegister, canUpdate]);
 
   const requestedTab = searchParams.get("tab");
-  const tab = requestedTab && allowedTabs.includes(requestedTab)
-    ? requestedTab
-    : (allowedTabs[0] ?? "register");
+  const hasEditParam = !!searchParams.get("edit");
+  const tab = hasEditParam && canCheckin
+    ? "checkin"
+    : (requestedTab && allowedTabs.includes(requestedTab)
+      ? requestedTab
+      : (allowedTabs[0] ?? "register"));
 
   // Auto-correct URL if requested tab is not permitted
   useEffect(() => {
@@ -130,6 +133,7 @@ const CheckInTab = () => {
   const { data: players = [] } = usePlayers();
   const { data: visits = [] } = useVisitsToday("*, players(first_name, last_name, nickname, photo_url, status, id_number, category, player_type)") as { data: any[] };
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 200);
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
@@ -174,6 +178,20 @@ const CheckInTab = () => {
       toast.warning(`⚠️ Player flagged: ${flags.join(", ")}`, { duration: 5000 });
     }
   };
+
+  // Auto-select player when arriving with ?edit=<playerId> (e.g. from Guests page)
+  const editPlayerId = searchParams.get("edit");
+  useEffect(() => {
+    if (!editPlayerId || players.length === 0) return;
+    const target = players.find((p: any) => p.id === editPlayerId);
+    if (target) {
+      handleSelectPlayer(target);
+      const next = new URLSearchParams(searchParams);
+      next.delete("edit");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editPlayerId, players]);
 
   const checkIn = useMutation({
     mutationFn: async (playerId: string) => {

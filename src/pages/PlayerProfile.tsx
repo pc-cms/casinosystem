@@ -22,6 +22,7 @@ import {
   useCreatePlayerNote, useUpdatePlayerCategory,
 } from "@/hooks/use-player-profile";
 import { Textarea } from "@/components/ui/textarea";
+import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
@@ -519,7 +520,12 @@ const PlayerProfile = () => {
         <TabsContent value="info" className="space-y-4">
           {canSeeNotes && (
             <PageSection card title={`Notes (${notes.length})`}>
-              <NotesPanel playerId={(player as any).id} notes={notes} canPost={roles.some(r => ["pit","manager","floor_manager","surveillance","super_admin"].includes(r))} />
+              <PlayerNotesPanel
+                playerId={(player as any).id}
+                selfFetch={false}
+                notes={notes}
+                canPost={roles.some(r => ["pit","manager","floor_manager","surveillance","super_admin","reception"].includes(r))}
+              />
             </PageSection>
           )}
 

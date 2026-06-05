@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Eye, LogIn } from "lucide-react";
+import { UserCheck, Search, ArrowUp, ArrowDown, ArrowUpDown, LogOut, User, Pencil, LogIn } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -234,7 +234,8 @@ const Guests = () => {
   const renderRow = (r: any, idx: number) => (
     <tr
       key={r.id}
-      className={`border-b border-border hover:bg-muted/30 transition-colors ${r.isCandidate ? "bg-primary/5" : !r.isInside ? "opacity-70" : ""}`}
+      onClick={() => selectPlayer(r.playerId)}
+      className={`border-b border-border hover:bg-muted/30 transition-colors cursor-pointer ${r.isCandidate ? "bg-primary/5" : !r.isInside ? "opacity-70" : ""}`}
     >
       <td className="px-2 py-1.5 w-[36px] text-center font-mono text-[10px] text-muted-foreground">{idx + 1}</td>
       <td className="px-2 py-1.5 w-[42px]">
@@ -255,9 +256,15 @@ const Guests = () => {
       </td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.entryAt)}</td>
       <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.isCandidate ? "·" : formatTime(r.exitAt)}</td>
-      <td className="px-1 py-1.5 text-right whitespace-nowrap">
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View profile" onClick={(e) => { e.stopPropagation(); selectPlayer(r.playerId); }}>
-          <Eye className="w-3.5 h-3.5" />
+      <td className="px-1 py-1.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1"
+          title="Edit player in Reception"
+          onClick={() => navigate(`/reception?edit=${r.playerId}`)}
+        >
+          <Pencil className="w-3 h-3" /> Edit
         </Button>
         {r.isCandidate && canCheckIn && (
           <Button variant="default" size="sm" className="h-7 ml-1 text-xs gap-1" onClick={() => checkIn.mutate(r.playerId)} disabled={checkIn.isPending}>
