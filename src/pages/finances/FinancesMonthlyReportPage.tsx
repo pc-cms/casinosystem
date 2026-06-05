@@ -219,6 +219,7 @@ export default function FinancesMonthlyReportPage() {
           onToggle={toggle}
           usdRate={usdRate}
           isNetwork={scope === "network"}
+          showUsd={showUsd}
         />
       ))}
 
