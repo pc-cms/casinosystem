@@ -22,6 +22,7 @@ import {
   useCreatePlayerNote, useUpdatePlayerCategory,
 } from "@/hooks/use-player-profile";
 import { Textarea } from "@/components/ui/textarea";
+import { PlayerNotesPanel } from "@/components/player/PlayerNotesPanel";
 import { useAuth } from "@/lib/auth-context";
 import { useBusinessDayFilter } from "@/hooks/use-business-day-filter";
 import { edgeFor, theoFromHands, theoFromDrop, holdPct } from "@/lib/casino-edges";
