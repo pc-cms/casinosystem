@@ -824,7 +824,7 @@ export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}
             <Input value={form.nickname} onChange={e => setForm(f => ({ ...f, nickname: e.target.value }))} className="h-10" />
           </FormField>
 
-          <FormField span={6} label="Phone">
+          <FormField span={6} label="Phone *">
             <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="h-10" type="tel" />
           </FormField>
           <FormField span={6} label="ID / Passport #">
@@ -835,7 +835,7 @@ export const RegisterTab = ({ onRegistered }: { onRegistered?: () => void } = {}
               className={`h-10 font-mono ${ocrDone && form.id_number ? "border-primary/50" : ""}`}
             />
           </FormField>
-          <FormField span={12} label="Birth Date">
+          <FormField span={12} label="Birth Date *">
             <Input
               value={form.birth_date}
               onChange={e => setForm(f => ({ ...f, birth_date: e.target.value }))}
