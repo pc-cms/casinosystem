@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ClipboardList, Search } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -57,8 +58,10 @@ export default function FinancesAuditLogPage() {
       <PageHeader
         icon={ClipboardList}
         title="Audit Log"
-        subtitle={`365-day retention · ${filtered.length} of ${rows.length} entries`}
-      />
+        subtitle={`2-year retention · ${filtered.length} of ${rows.length} entries`}
+      >
+        <FinanceCasinoSwitcher />
+      </PageHeader>
       <PageSection card={false}>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3">
           <Select value={action} onValueChange={setAction}>

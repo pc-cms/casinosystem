@@ -60,6 +60,8 @@ export default function FinancesExcelImportPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   // sheet_name → casino_id
   const [casinoBySheet, setCasinoBySheet] = useState<Record<string, string>>({});
+  // Diff preview: existing fin_budget rows keyed by `${casino}|${cat}|${ccy}`
+  const [existingKeys, setExistingKeys] = useState<Set<string>>(new Set());
 
   const handleParse = async () => {
     if (!file) return;
@@ -70,10 +72,8 @@ export default function FinancesExcelImportPage() {
       const { data, error } = await supabase.functions.invoke("fin-excel-import", { body: fd });
       if (error) throw error;
       const sh: Sheet[] = data.sheets || [];
-      // auto-apply suggestion to category_id
       sh.forEach((s) => s.sections.forEach((sec) => sec.rows.forEach((r) => (r.category_id = r.suggested_category_id))));
       setSheets(sh);
-      // auto-pick casino from code
       const m: Record<string, string> = {};
       sh.forEach((s) => {
         const name = CASINO_CODE_TO_NAME[s.detected_casino_code];
@@ -81,12 +81,38 @@ export default function FinancesExcelImportPage() {
         if (c) m[s.sheet_name] = c.id;
       });
       setCasinoBySheet(m);
+      // Fetch existing budget rows for diff
+      const casinoIds = Array.from(new Set(Object.values(m))).filter(Boolean);
+      if (casinoIds.length) {
+        const { data: existing } = await supabase
+          .from("fin_budget")
+          .select("casino_id, category_id, currency")
+          .eq("year", year)
+          .in("casino_id", casinoIds);
+        const keys = new Set<string>();
+        (existing || []).forEach((r: any) => keys.add(`${r.casino_id}|${r.category_id}|${r.currency}`));
+        setExistingKeys(keys);
+      } else {
+        setExistingKeys(new Set());
+      }
       toast.success(`Parsed ${sh.length} sheet(s)`);
     } catch (e: any) {
       toast.error(e.message || "Parse failed");
     } finally {
       setParsing(false);
     }
+  };
+
+  // Diff stats per row
+  const rowStatus = (sheetName: string, row: Row): "new" | "update" | "skip" => {
+    if (!row.category_id) return "skip";
+    const casinoId = casinoBySheet[sheetName];
+    if (!casinoId) return "skip";
+    const tzs = row.plan_year_tzs || row.plan_month_tzs * 12;
+    const usd = row.plan_year_usd || row.plan_month_usd * 12;
+    const hasTzs = tzs > 0 && existingKeys.has(`${casinoId}|${row.category_id}|TZS`);
+    const hasUsd = usd > 0 && existingKeys.has(`${casinoId}|${row.category_id}|USD`);
+    return (hasTzs || hasUsd) ? "update" : "new";
   };
 
   const apply = useMutation({
@@ -187,12 +213,24 @@ export default function FinancesExcelImportPage() {
           <div className="text-xs text-muted-foreground mb-2">
             Incomes (Oct): Live <b>{formatNumberSpaces(sheet.incomes.live_game)}</b> · Slots <b>{formatNumberSpaces(sheet.incomes.slots)}</b> · Total <b>{formatNumberSpaces(sheet.incomes.total)}</b>
           </div>
+          {(() => {
+            const counts = { new: 0, update: 0, skip: 0 };
+            sheet.sections.forEach((sec) => sec.rows.forEach((r) => counts[rowStatus(sheet.sheet_name, r)]++));
+            return (
+              <div className="text-xs mb-2 flex gap-3">
+                <span className="text-green-600">+ {counts.new} new</span>
+                <span className="text-amber-600">~ {counts.update} update</span>
+                <span className="text-muted-foreground">∅ {counts.skip} skip</span>
+              </div>
+            );
+          })()}
           {sheet.sections.map((sec) => (
             <div key={sec.group_label} className="mb-4">
               <div className="text-sm font-semibold mb-1">{sec.group_label}</div>
               <table className="w-full text-xs">
                 <thead className="bg-muted">
                   <tr>
+                    <th className="text-left px-2 py-1 w-16">Status</th>
                     <th className="text-left px-2 py-1">Excel name</th>
                     <th className="text-left px-2 py-1">Mapped category</th>
                     <th className="text-right px-2 py-1">Plan/Year TZS</th>
@@ -202,8 +240,15 @@ export default function FinancesExcelImportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sec.rows.map((r, i) => (
+                  {sec.rows.map((r, i) => {
+                    const status = rowStatus(sheet.sheet_name, r);
+                    return (
                     <tr key={i} className="border-t border-border">
+                      <td className="px-2 py-1">
+                        {status === "new" && <span className="text-green-600 font-mono text-[10px] uppercase">+ new</span>}
+                        {status === "update" && <span className="text-amber-600 font-mono text-[10px] uppercase">~ update</span>}
+                        {status === "skip" && <span className="text-muted-foreground font-mono text-[10px] uppercase">∅ skip</span>}
+                      </td>
                       <td className="px-2 py-1">{r.excel_name}</td>
                       <td className="px-2 py-1">
                         <Select
@@ -232,7 +277,8 @@ export default function FinancesExcelImportPage() {
                       <td className="text-right font-mono px-2 py-1">{formatNumberSpaces(r.actual_tzs)}</td>
                       <td className="text-right font-mono px-2 py-1">{formatNumberSpaces(r.actual_usd)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Tag, Trash2, Search } from "lucide-react";
+import { Tag, Trash2, Search, Merge } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFinCategories } from "@/hooks/use-fin";
 import { fmtDateTime } from "@/lib/format-date";
@@ -29,6 +30,8 @@ export default function FinancesAliasesPage() {
   const { data: aliases = [] } = useAliases();
   const { data: cats = [] } = useFinCategories();
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkTarget, setBulkTarget] = useState<string>("");
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
@@ -38,6 +41,12 @@ export default function FinancesAliasesPage() {
       a.fin_categories?.name?.toLowerCase().includes(s)
     );
   }, [aliases, search]);
+
+  const allChecked = filtered.length > 0 && filtered.every((a: any) => selected.has(a.id));
+  const toggleAll = () => {
+    if (allChecked) setSelected(new Set());
+    else setSelected(new Set(filtered.map((a: any) => a.id)));
+  };
 
   const update = useMutation({
     mutationFn: async ({ id, category_id }: { id: string; category_id: string }) => {
@@ -63,6 +72,41 @@ export default function FinancesAliasesPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const bulkReassign = useMutation({
+    mutationFn: async () => {
+      if (!bulkTarget || !selected.size) throw new Error("Select aliases and target category");
+      const ids = Array.from(selected);
+      const { error } = await supabase
+        .from("fin_category_aliases")
+        .update({ category_id: bulkTarget })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["fin-category-aliases"] });
+      toast.success(`Reassigned ${n} alias${n === 1 ? "" : "es"}`);
+      setSelected(new Set());
+      setBulkTarget("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      const ids = Array.from(selected);
+      const { error } = await supabase.from("fin_category_aliases").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["fin-category-aliases"] });
+      toast.success(`Removed ${n} alias${n === 1 ? "" : "es"}`);
+      setSelected(new Set());
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <PageShell>
       <PageHeader
@@ -71,7 +115,7 @@ export default function FinancesAliasesPage() {
         subtitle={`${aliases.length} learned mappings · used by Excel Import for auto-matching`}
       />
       <PageSection card={false}>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
@@ -81,11 +125,47 @@ export default function FinancesAliasesPage() {
               className="pl-7"
             />
           </div>
+          {selected.size > 0 && (
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+              <Select value={bulkTarget} onValueChange={setBulkTarget}>
+                <SelectTrigger className="h-8 text-xs w-[280px]">
+                  <SelectValue placeholder="Reassign to category…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cats.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                      {c.group_name} → {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={() => bulkReassign.mutate()}
+                disabled={!bulkTarget || bulkReassign.isPending}
+              >
+                <Merge className="w-3.5 h-3.5 mr-1" />
+                Merge
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  if (confirm(`Delete ${selected.size} alias${selected.size === 1 ? "" : "es"}?`)) bulkDelete.mutate();
+                }}
+                disabled={bulkDelete.isPending}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
         <div className="rounded-md border border-border overflow-auto max-h-[70vh]">
           <table className="w-full text-xs">
             <thead className="bg-muted sticky top-0">
               <tr>
+                <th className="px-2 py-2 w-8"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></th>
                 <th className="px-3 py-2 text-left">Excel label</th>
                 <th className="px-3 py-2 text-left">Normalized</th>
                 <th className="px-3 py-2 text-left">Mapped category</th>
@@ -96,6 +176,16 @@ export default function FinancesAliasesPage() {
             <tbody>
               {filtered.map((a: any) => (
                 <tr key={a.id} className="border-t border-border hover:bg-muted/30">
+                  <td className="px-2 py-1.5">
+                    <Checkbox
+                      checked={selected.has(a.id)}
+                      onCheckedChange={(c) => {
+                        const next = new Set(selected);
+                        if (c) next.add(a.id); else next.delete(a.id);
+                        setSelected(next);
+                      }}
+                    />
+                  </td>
                   <td className="px-3 py-1.5">{a.alias_original}</td>
                   <td className="px-3 py-1.5 font-mono text-muted-foreground">{a.alias_norm}</td>
                   <td className="px-3 py-1.5">
@@ -132,7 +222,7 @@ export default function FinancesAliasesPage() {
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted-foreground py-6">
+                  <td colSpan={6} className="text-center text-muted-foreground py-6">
                     {search ? "No matches" : "No aliases yet — confirm mappings during Excel Import"}
                   </td>
                 </tr>

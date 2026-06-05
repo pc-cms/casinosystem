@@ -1,14 +1,18 @@
 import { useMemo } from "react";
 import { Wallet } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCasino } from "@/lib/casino-context";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import {
   useFinWalletTx, useFinWalletBalances, useFinWallets, useFinBudget, useFinCategories,
 } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend, LineChart, Line,
+  PieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area,
 } from "recharts";
 
 const Money = ({ v }: { v: number }) => (
@@ -113,15 +117,106 @@ export default function FinancesDashboardPage() {
     [budget]
   );
 
+  // 12-month P&L trend (year-to-date)
+  const { activeCasinoId, isSummaryMode } = useCasino();
+  const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
+  const { data: yearTx = [] } = useQuery({
+    queryKey: ["fin-dashboard-yearly", isSummaryMode ? "all" : activeCasinoId, yearStart],
+    queryFn: async () => {
+      let q = supabase
+        .from("fin_wallet_tx")
+        .select("business_date, amount_tzs, kind")
+        .gte("business_date", yearStart);
+      if (!isSummaryMode && activeCasinoId) q = q.eq("casino_id", activeCasinoId);
+      const { data } = await q;
+      return data || [];
+    },
+    enabled: isSummaryMode || !!activeCasinoId,
+  });
+
+  const yearlyPnl = useMemo(() => {
+    const months: Record<string, { month: string; income: number; expense: number; net: number }> = {};
+    for (let m = 0; m < 12; m++) {
+      const k = String(m + 1).padStart(2, "0");
+      months[k] = { month: k, income: 0, expense: 0, net: 0 };
+    }
+    yearTx.forEach((r: any) => {
+      const mo = String(r.business_date || "").slice(5, 7);
+      const b = months[mo];
+      if (!b) return;
+      const v = Number(r.amount_tzs || 0);
+      if (r.kind === "income") b.income += v;
+      if (r.kind === "expense" || r.kind === "reversal") b.expense += -v;
+    });
+    Object.values(months).forEach((m) => { m.net = m.income - m.expense; });
+    return Object.values(months);
+  }, [yearTx]);
+
+  // Wallet balance trend (cumulative by day, this month)
+  const walletTrend = useMemo(() => {
+    const sorted = [...tx].sort((a: any, b: any) => (a.business_date || "").localeCompare(b.business_date || ""));
+    let cum = totalBalance - sorted.reduce((s: number, r: any) => s + Number(r.amount_tzs || 0), 0);
+    const buckets: Record<string, { day: string; balance: number }> = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+      const k = String(d).padStart(2, "0");
+      buckets[k] = { day: k, balance: cum };
+    }
+    sorted.forEach((r: any) => {
+      cum += Number(r.amount_tzs || 0);
+      const d = String(r.business_date || "").slice(8, 10);
+      if (buckets[d]) buckets[d].balance = cum;
+    });
+    // Forward-fill
+    let last = 0;
+    Object.keys(buckets).sort().forEach((k) => {
+      if (buckets[k].balance === 0 && Number(k) > 1) buckets[k].balance = last;
+      last = buckets[k].balance;
+    });
+    return Object.values(buckets);
+  }, [tx, totalBalance, daysInMonth]);
+
   return (
     <PageShell>
-      <PageHeader icon={Wallet} title="Finances Dashboard" subtitle="Month-to-date overview" date />
+      <PageHeader icon={Wallet} title="Finances Dashboard" subtitle="Month-to-date overview" date>
+        <FinanceCasinoSwitcher />
+      </PageHeader>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <PageSection title="Month Income"><div className="text-2xl"><Money v={stats.income} /></div></PageSection>
         <PageSection title="Month Expense"><div className="text-2xl"><Money v={stats.expense} /></div></PageSection>
         <PageSection title="Net (Month)"><div className="text-2xl"><Money v={stats.net} /></div></PageSection>
         <PageSection title="Total Balance"><div className="text-2xl"><Money v={totalBalance} /></div></PageSection>
       </div>
+
+      <PageSection title="P&L · last 12 months">
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={yearlyPnl}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+              <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
+              <Legend />
+              <Bar dataKey="income" fill="hsl(var(--cms-amount-positive))" />
+              <Bar dataKey="expense" fill="hsl(var(--cms-amount-negative))" />
+              <Bar dataKey="net" fill="hsl(var(--primary))" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </PageSection>
+
+      <PageSection title="Total Balance · daily trend">
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={walletTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumberSpaces(v / 1000) + "k"} />
+              <Tooltip formatter={(v: any) => formatNumberSpaces(Number(v))} />
+              <Area type="monotone" dataKey="balance" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </PageSection>
 
       <div className="grid lg:grid-cols-2 gap-3">
         <PageSection title="Income vs Expense · daily">

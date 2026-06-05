@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { ClipboardPen, Lock, Plus, Trash2, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -92,6 +93,7 @@ export default function FinancesDayClosingPage() {
   return (
     <PageShell>
       <PageHeader icon={ClipboardPen} title="Day Closing" subtitle="Manual entry · reconciled against the Cage closure">
+        <FinanceCasinoSwitcher allowNetwork={false} />
         <Input type="date" value={bd} onChange={(e) => setBd(e.target.value)} className="w-40 font-mono text-xs" />
       </PageHeader>
 
