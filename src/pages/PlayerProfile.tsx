@@ -15,7 +15,7 @@ import CategoryBadge, { type PlayerCategory } from "@/components/player/Category
 import CasinoBadge from "@/components/player/CasinoBadge";
 import PlayerStatusTagsEditor, { LevelPicker } from "@/components/player/PlayerStatusTagsEditor";
 import PlayerEditDialog from "@/components/PlayerEditDialog";
-import { fmtDate, fmtDateTime } from "@/lib/format-date";
+import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format-date";
 import {
   usePlayer, usePlayerVisits, usePlayerSessions, usePlayerGroupHistory,
   usePlayerNotes, usePlayerTransactions, usePlayerEconomy, usePlayerExpenses,
