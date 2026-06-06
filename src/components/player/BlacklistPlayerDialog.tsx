@@ -6,6 +6,7 @@ import { Ban } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 interface Props {
@@ -17,13 +18,20 @@ interface Props {
 
 export const BlacklistPlayerDialog = ({ open, onClose, playerId, playerName }: Props) => {
   const qc = useQueryClient();
+  const { user, roles } = useAuth();
   const [reason, setReason] = useState("");
   const [showOverride, setShowOverride] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const isManager = roles.includes("manager") || roles.includes("floor_manager") || roles.includes("super_admin");
+
   const handleConfirm = () => {
     if (!reason.trim()) return;
-    setShowOverride(true);
+    if (isManager && user?.id) {
+      void handleManagerVerified(user.id);
+    } else {
+      setShowOverride(true);
+    }
   };
 
   const handleManagerVerified = async (managerId: string) => {
