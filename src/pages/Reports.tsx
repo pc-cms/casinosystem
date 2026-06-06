@@ -442,7 +442,7 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 // - Miss Chips    = Σ shifts.miss_total (informational column only)
 // - Hold %        = Result / Drop (R) × 100
 // - Player Result = Cashout − Cash-in (player tx; positive = player wins)
-// - Diff          = Result + Player Result (should converge to ~0)
+// - Diff          = Result + Player Result − Miss Chips (should converge to ~0)
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const { casinoId } = useAuth();
 
