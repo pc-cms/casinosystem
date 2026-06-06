@@ -9020,6 +9020,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      manager_set_player_blacklist: {
+        Args: {
+          _manager_id: string
+          _player_id: string
+          _reason?: string
+          _status: string
+        }
+        Returns: undefined
+      }
       mirror_freeze_writes: { Args: { p_casino_id: string }; Returns: Json }
       mirror_full_parity_snapshot: {
         Args: { p_casino_id: string }
