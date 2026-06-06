@@ -3,9 +3,10 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Ban } from "lucide-react";
-import { useSetPlayerStatus, useCreatePlayerNote } from "@/hooks/use-player-profile";
-import { logAction } from "@/lib/logging";
-import { useAuth } from "@/lib/auth-context";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import ManagerOverrideDialog from "@/components/ManagerOverrideDialog";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -15,58 +16,79 @@ interface Props {
 }
 
 export const BlacklistPlayerDialog = ({ open, onClose, playerId, playerName }: Props) => {
-  const { casinoId } = useAuth();
+  const qc = useQueryClient();
   const [reason, setReason] = useState("");
-  const setStatus = useSetPlayerStatus();
-  const addNote = useCreatePlayerNote();
+  const [showOverride, setShowOverride] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (!reason.trim()) return;
-    await setStatus.mutateAsync({ player_id: playerId, status: "blacklist" });
-    await addNote.mutateAsync({
-      player_id: playerId,
-      content: `Added to blacklist. Reason: ${reason.trim()}`,
-      note_type: "blacklist",
-    });
-    if (casinoId) {
-      await logAction(casinoId, "player", "PLAYER_BLACKLISTED", {
-        player_id: playerId,
-        player_name: playerName,
-        reason: reason.trim(),
+    setShowOverride(true);
+  };
+
+  const handleManagerVerified = async (managerId: string) => {
+    setShowOverride(false);
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.rpc("manager_set_player_blacklist" as any, {
+        _player_id: playerId,
+        _manager_id: managerId,
+        _status: "blacklist",
+        _reason: reason.trim(),
       });
+      if (error) throw error;
+      toast.success(`${playerName} blacklisted`);
+      qc.invalidateQueries({ queryKey: ["player", playerId] });
+      qc.invalidateQueries({ queryKey: ["players"] });
+      setReason("");
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to blacklist player");
+    } finally {
+      setSubmitting(false);
     }
-    setReason("");
-    onClose();
   };
 
   return (
-    <ResponsiveDialog
-      open={open}
-      onOpenChange={(o) => !o && onClose()}
-      title={`Blacklist ${playerName}`}
-      description="This action restricts entry and financial activity for this player. Reason is required and stored in player notes."
-    >
-      <div className="space-y-3">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reason</div>
-        <Textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Why is this player being blacklisted?"
-          rows={4}
-          autoFocus
-        />
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={!reason.trim() || setStatus.isPending}
-          >
-            <Ban className="w-4 h-4 mr-2" /> Blacklist Player
-          </Button>
+    <>
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={(o) => !o && onClose()}
+        title={`Blacklist ${playerName}`}
+        description="This restricts entry and financial activity for this player. A manager or floor manager password is required."
+      >
+        <div className="space-y-3">
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reason</div>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Why is this player being blacklisted?"
+            rows={4}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirm}
+              disabled={!reason.trim() || submitting}
+            >
+              <Ban className="w-4 h-4 mr-2" /> Blacklist Player
+            </Button>
+          </div>
         </div>
-      </div>
-    </ResponsiveDialog>
+      </ResponsiveDialog>
+
+      <ManagerOverrideDialog
+        open={showOverride}
+        onClose={() => setShowOverride(false)}
+        onConfirm={handleManagerVerified}
+        title="Manager Override Required"
+        description={`Authenticate as manager or floor manager to blacklist ${playerName}.`}
+        actionType="PLAYER_BLACKLIST_OVERRIDE"
+        actionDetails={{ player_id: playerId, player_name: playerName, reason: reason.trim() }}
+      />
+    </>
   );
 };
 
