@@ -442,7 +442,7 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 // - Miss Chips    = Σ shifts.miss_total (informational column only)
 // - Hold %        = Result / Drop (R) × 100
 // - Player Result = Cashout − Cash-in (player tx; positive = player wins)
-// - Diff          = Result + Player Result (should converge to ~0)
+// - Diff          = Result + Player Result − Miss Chips (should converge to ~0)
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const { casinoId } = useAuth();
 
@@ -530,7 +530,7 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
               <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Hold % (R/D)" k="hold" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Player Result" k="playerResult" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Diff (R + P)" k="diff" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Diff (R + P − M)" k="diff" sort={sort} toggle={toggle} align="right" />
             </tr>
           </thead>
           <tbody>
