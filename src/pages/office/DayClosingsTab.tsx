@@ -152,7 +152,8 @@ function DayRow({
   };
 
   return (
-    <tr className={cn("border-t border-border", locked && !unlocked && "bg-muted/30")}>
+    <>
+    <tr className={cn("border-t border-border", locked && !unlocked && "bg-muted/30", needsNote && editable && "bg-amber-500/5")}>
       <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{fmtDate(date)}</td>
 
       <td className="px-3 py-2 text-right">
@@ -230,5 +231,40 @@ function DayRow({
         )}
       </td>
     </tr>
+
+    <ResponsiveDialog
+      open={varianceOpen}
+      onOpenChange={setVarianceOpen}
+      size="md"
+      title={
+        <span className="flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          Variance vs auto
+        </span>
+      }
+      description={`Tables Δ ${formatNumberSpaces(dT)} · Slots Δ ${formatNumberSpaces(dS)}. Please explain why entered values differ from cage actuals.`}
+    >
+      <Textarea
+        value={varianceNote}
+        onChange={(e) => setVarianceNote(e.target.value)}
+        placeholder="Reason (min 3 characters)…"
+        rows={3}
+        autoFocus
+      />
+      <ResponsiveDialogFooter>
+        <Button variant="outline" onClick={() => setVarianceOpen(false)}>Cancel</Button>
+        <Button
+          disabled={varianceNote.trim().length < 3 || upsert.isPending || lock.isPending}
+          onClick={() => {
+            setState((s) => ({ ...s, comment: varianceNote.trim() }));
+            setVarianceOpen(false);
+            doSave(varianceNote.trim());
+          }}
+        >
+          Save &amp; Lock
+        </Button>
+      </ResponsiveDialogFooter>
+    </ResponsiveDialog>
+    </>
   );
 }
