@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useMonthlyReport, type ReportCategory, type ReportGroup } from "@/hooks/use-fin-monthly-report";
 import { useCasino } from "@/lib/casino-context";
 import { useAuth } from "@/lib/auth-context";
-import { useUpsertFinBudgetCell, useUpsertFinCategory, useFinCategories } from "@/hooks/use-fin";
+import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories } from "@/hooks/use-fin";
 import { useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
 import { InlineTextCell } from "@/components/finances/InlineTextCell";
