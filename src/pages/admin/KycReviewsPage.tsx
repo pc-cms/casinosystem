@@ -592,6 +592,11 @@ const KycReviewsPage = () => {
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialog>
+      <QuickGrantDialog
+        open={!!grantTarget}
+        onOpenChange={(o) => { if (!o) setGrantTarget(null); }}
+        player={grantTarget}
+      />
     </PageShell>
   );
 };
