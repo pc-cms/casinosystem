@@ -17,120 +17,12 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Casino System" />
-    <script>
-      // Per-subdomain branding for browser tab + manifest + apple-touch-icon.
-      // CRITICAL: iOS/Android pin the manifest at install time. We MUST set the
-      // <link rel="manifest"> to a real static URL BEFORE any service worker
-      // registration so that the installer reads the correct branded manifest.
-      (function () {
-        try {
-          var host = (window.location.hostname || "").toLowerCase();
-          var label = host.split(".")[0];
+    <!-- Per-subdomain branding (title, manifest, favicon, theme-color).
+         Must run BEFORE any service worker registration so iOS/Android pin
+         the correct manifest at install time. Single source of truth lives
+         in public/branding.js — see src/lib/branding.ts for typed access. -->
+    <script src="/branding.js"></script>
 
-          // Landing (root marketing site) — strip all PWA/icon tags; keep only SEO meta.
-          var isLanding = host === "casinosystem.app" || host === "www.casinosystem.app";
-          if (isLanding) {
-            var sels = [
-              'link[rel="icon"]',
-              'link[rel="apple-touch-icon"]',
-              'link[rel="manifest"]',
-              'meta[name="theme-color"]',
-              'meta[name="apple-mobile-web-app-capable"]',
-              'meta[name="mobile-web-app-capable"]',
-              'meta[name="apple-mobile-web-app-status-bar-style"]',
-              'meta[name="apple-mobile-web-app-title"]'
-            ];
-            for (var i = 0; i < sels.length; i++) {
-              var nodes = document.head.querySelectorAll(sels[i]);
-              for (var j = 0; j < nodes.length; j++) nodes[j].parentNode.removeChild(nodes[j]);
-            }
-            return;
-          }
-
-          // On-prem subdomains alias to canonical casino branding.
-          var ALIAS = { mwz: "mwanza", aru: "arusha", dod: "dodoma", mbi: "mbeya" };
-          var canonical = ALIAS[label] || label;
-          var isOnPrem = ALIAS.hasOwnProperty(label);
-
-          var BRANCHES = {
-            arusha:  { name: "Premier Arusha",  manifest: "/manifest-arusha.json"  },
-            mwanza:  { name: "Premier Mwanza",  manifest: "/manifest-mwanza.json"  },
-            dodoma:  { name: "Premier Dodoma",  manifest: "/manifest-dodoma.json"  },
-            mbeya:   { name: "Premier Mbeya",   manifest: "/manifest-mbeya.json"   },
-            premier: { name: "Premier HQ",      manifest: "/manifest-premier.json" },
-            club:    { name: "Premier Club",    manifest: "/manifest-club.json", themeColor: "#A0000D", favicon: "/favicon-club.png", appleTouchIcon: "/apple-touch-icon-club.png" },
-          };
-          // On-prem variants get their own pinnable manifest so installed PWA stays distinct.
-          var ONPREM_MANIFEST = { mwz: "/manifest-mwz.json", aru: "/manifest-aru.json", dod: "/manifest-dod.json", mbi: "/manifest-mbi.json" };
-
-          var branch = BRANCHES[canonical] || null;
-
-
-          if (branch) {
-            var displayName = isOnPrem ? (branch.name + " (Local)") : branch.name;
-
-            // Pick branded icons (apple-touch-icon must be a real square PNG with solid background;
-            // iOS overlays transparent icons on black, which we want to avoid).
-            var faviconHref = branch.favicon || "/favicon.png";
-            var appleHref   = branch.appleTouchIcon || branch.favicon || "/apple-touch-icon.png";
-            if (canonical === "arusha") { faviconHref = "/arusha-logo.png"; appleHref = "/arusha-logo.png"; }
-
-            // CRITICAL for iOS "Add to Home Screen":
-            // iOS reads <title>, <meta name="apple-mobile-web-app-title"> and
-            // <link rel="apple-touch-icon"> from the parsed HTML and frequently
-            // IGNORES attribute mutations via setAttribute. To make branding
-            // stick we REMOVE the static tags and APPEND fresh nodes.
-            function replaceTag(selector, build) {
-              var old = document.head.querySelector(selector);
-              if (old) old.parentNode.removeChild(old);
-              var fresh = build();
-              document.head.appendChild(fresh);
-              return fresh;
-            }
-
-            replaceTag('title', function () {
-              var t = document.createElement('title'); t.textContent = displayName; return t;
-            });
-            replaceTag('meta[name="apple-mobile-web-app-title"]', function () {
-              var m = document.createElement('meta');
-              m.setAttribute('name', 'apple-mobile-web-app-title');
-              m.setAttribute('content', displayName);
-              return m;
-            });
-            replaceTag('link[rel="apple-touch-icon"]', function () {
-              var l = document.createElement('link');
-              l.setAttribute('rel', 'apple-touch-icon');
-              l.setAttribute('sizes', '180x180');
-              l.setAttribute('href', appleHref);
-              return l;
-            });
-            replaceTag('link[rel="icon"]', function () {
-              var l = document.createElement('link');
-              l.setAttribute('rel', 'icon');
-              l.setAttribute('type', 'image/png');
-              l.setAttribute('href', faviconHref);
-              return l;
-            });
-
-            var link = document.getElementById("app-manifest");
-            if (link) link.setAttribute("href", isOnPrem ? ONPREM_MANIFEST[label] : branch.manifest);
-
-            if (branch.themeColor) {
-              var tc = document.querySelector('meta[name="theme-color"]');
-              if (tc) tc.setAttribute("content", branch.themeColor);
-            }
-            if (canonical === "club") {
-              var desc = document.querySelector('meta[name="description"]');
-              if (desc) desc.setAttribute("content", "Premier Club — premium gaming rewards, wallet & exclusive perks in Tanzania.");
-              var ogt = document.querySelector('meta[property="og:title"]');
-              if (ogt) ogt.setAttribute("content", "Premier Club");
-              var ogd = document.querySelector('meta[property="og:description"]');
-              if (ogd) ogd.setAttribute("content", "Premium gaming rewards, wallet & exclusive perks in Tanzania.");
-            }
-          }
-        } catch (e) { /* noop */ }
-      })();
-    </script>
 
     <meta property="og:title" content="Custom Casino System for Land-Based Casinos | CMS">
     <meta property="og:description" content="Custom enterprise CMS for cage, pit, finance, player tracking, HR, bar POS, client club app, warehouse and surveillance.">
