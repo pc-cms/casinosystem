@@ -298,6 +298,7 @@ export default function ClubRegister() {
           )}
         </div>
       </main>
+      <ClubFooter />
     </div>
   );
 }

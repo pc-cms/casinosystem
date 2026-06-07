@@ -109,6 +109,7 @@ export default function ClubLogin() {
           </p>
         </div>
       </main>
+      <ClubFooter />
     </div>
   );
 }
