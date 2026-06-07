@@ -96,11 +96,35 @@ export default function ClubWallet() {
       {/* ===== Profile header ===== */}
       <Panel className="p-5 flex items-center gap-4">
         <div
-          className="w-14 h-14 rounded-full flex items-center justify-center font-faberge text-xl shrink-0"
+          className="relative w-14 h-14 rounded-full flex items-center justify-center font-faberge text-xl shrink-0 overflow-hidden"
           style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
         >
-          {(player.first_name?.[0] ?? "?").toUpperCase()}
-          {(player.last_name?.[0] ?? "").toUpperCase()}
+          {player.photo_url ? (
+            <img src={player.photo_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <>
+              {(player.first_name?.[0] ?? "?").toUpperCase()}
+              {(player.last_name?.[0] ?? "").toUpperCase()}
+            </>
+          )}
+          {(() => {
+            const cat: string = (player as any).category || "normal";
+            if (cat === "normal") return null;
+            const letter = cat[0].toUpperCase(); // D / P / G
+            return (
+              <span
+                title={cat[0].toUpperCase() + cat.slice(1)}
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center font-faberge text-[10px]"
+                style={{
+                  backgroundColor: "#0a0a0a",
+                  color: GOLD,
+                  borderColor: GOLD,
+                }}
+              >
+                {letter}
+              </span>
+            );
+          })()}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-faberge text-lg leading-tight truncate" style={{ color: GOLD }}>
@@ -123,6 +147,7 @@ export default function ClubWallet() {
           {isVerified ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
         </span>
       </Panel>
+
 
       {/* ===== Verification CTA ===== */}
       {!isVerified && (
