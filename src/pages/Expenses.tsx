@@ -787,3 +787,31 @@ const DraftRowView = ({
     </tr>
   );
 };
+
+// ──────────────────────────────────────────────────────────
+// Manager-only Finance Plan picker (override)
+// ──────────────────────────────────────────────────────────
+const FinCategoryPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const { data: finCats = [] } = useFinCategories();
+  const grouped = (finCats || []).reduce((acc: Record<string, any[]>, c: any) => {
+    if (!c.is_active) return acc;
+    (acc[c.group_name] ||= []).push(c);
+    return acc;
+  }, {});
+  return (
+    <Select value={value || "__auto"} onValueChange={(v) => onChange(v === "__auto" ? "" : v)}>
+      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Auto" /></SelectTrigger>
+      <SelectContent className="max-h-[400px]">
+        <SelectItem value="__auto">Auto (from category)</SelectItem>
+        {Object.entries(grouped).map(([group, list]) => (
+          <div key={group}>
+            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/50">{group}</div>
+            {(list as any[]).map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </div>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
