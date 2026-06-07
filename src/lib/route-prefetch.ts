@@ -52,8 +52,7 @@ const routeLoaders: Loader[] = [
   
   () => import("@/pages/PlayerStatistics"),
   () => import("@/pages/Cashless"),
-  () => import("@/pages/BusinessDays"),
-  () => import("@/pages/Pitbook"),
+  () => import("@/pages/Incidents"),
   () => import("@/pages/Incidents"),
   () => import("@/pages/cage/CloseShiftPage"),
   () => import("@/pages/cage/RegisterPlayerPage"),
