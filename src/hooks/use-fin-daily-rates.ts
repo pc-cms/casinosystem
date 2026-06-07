@@ -5,7 +5,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCasino } from "@/lib/casino-context";
+import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
+import { FOREIGN_CURRENCIES } from "@/lib/currency";
 import { toast } from "sonner";
+
 
 export type FinDailyRate = {
   id: string;
