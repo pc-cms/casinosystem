@@ -12,10 +12,16 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMonthlyReport, type ReportCategory, type ReportGroup } from "@/hooks/use-fin-monthly-report";
 import { useCasino } from "@/lib/casino-context";
+import { useAuth } from "@/lib/auth-context";
+import { useUpsertFinBudgetCell, useUpsertFinCategory, useFinCategories } from "@/hooks/use-fin";
+import { useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
+import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
+import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { cn } from "@/lib/utils";
+
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
