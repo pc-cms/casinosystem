@@ -321,6 +321,16 @@ const KycReviewsPage = () => {
           </TabsTrigger>
         </TabsList>
 
+        {selectedCount > 0 && (
+          <div className="sticky top-2 z-10 flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10 p-2 backdrop-blur">
+            <span className="text-sm font-medium">{selectedCount} selected</span>
+            <Button size="sm" onClick={() => setBulkOpen(true)}>
+              <Gift className="size-3.5" /> Grant to selected
+            </Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
+          </div>
+        )}
+
         {/* ============ TAB 1: QUEUE ============ */}
         <TabsContent value="queue">
           <PageSection title={`Pending club submissions (${queue.length})`} bodyClassName="p-0">
