@@ -433,7 +433,7 @@ const Landing = () => {
             <a href="#demo" className="hover:text-foreground transition-colors">Contact</a>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2026 Amaell Group LLC. All rights reserved.
+            ©2026 Amaell Group LLC. All rights reserved.
           </p>
         </div>
       </footer>
