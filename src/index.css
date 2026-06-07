@@ -28,6 +28,19 @@
 }
 
 @layer base {
+  /* Global: hide native number-input spinners everywhere. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+
+@layer base {
   :root {
     /* Density tokens — overridden by [data-density="..."] on <html>. */
     --density-row: 2.5rem;
