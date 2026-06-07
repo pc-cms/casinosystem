@@ -45,6 +45,17 @@ export default function FinancesMonthlyReportPage() {
   const [usdRate, setUsdRate] = useState(2500);
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  const { roles } = useAuth();
+  const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
+  const isNetwork = scope === "network";
+  // Inline edit only when editing a single casino + a single month (not YTD).
+  const editMode = canEdit && !isNetwork && !ytd;
+
+  const upsertBudget = useUpsertFinBudgetCell();
+  const upsertCategory = useUpsertFinCategory();
+  const moveExpense = useUpdateExpenseFinCategory();
+  const { data: allCats } = useFinCategories();
+
   const { data, isLoading } = useMonthlyReport({ year, month, ytd, scope: scope || activeCasinoId || "" });
 
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
