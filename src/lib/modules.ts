@@ -62,13 +62,29 @@ export type ModuleKey =
   | "marketing_campaigns"
   | "crm_players"
   | "kyc_reviews"
+  | "promo_codes"
+  | "promo_grants"
+  | "lotteries"
+  | "shop_catalog"
+  | "shop_orders"
+  | "am_budget"
+  | "am_performance"
+  | "fm_topups"
+  | "report_promo_issuance"
+  | "report_promo_redemptions"
+  | "report_promo_expiry"
+  | "report_promo_codes"
+  | "report_cashback"
+  | "report_lottery_sales"
+  | "report_am_budget"
   | "admin";
 
 export interface ModuleDef {
   key: ModuleKey;
   label: string;
-  group: "Operations" | "Players" | "Finance" | "Reports" | "System";
+  group: "Operations" | "Players" | "Finance" | "Reports" | "Club" | "System";
 }
+
 
 export const MODULES: ModuleDef[] = [
   // Overview
