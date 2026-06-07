@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { ShieldCheck, Check, X, RotateCcw, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ShieldCheck, Check, X, RotateCcw, ExternalLink, Gift } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -13,6 +14,27 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "sonner";
 import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
+import QuickGrantDialog from "@/components/admin/QuickGrantDialog";
+
+type GrantTarget = { id: string; full_name: string; casino_id: string | null; casino_name?: string | null };
+const fmtAmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+
+const PlayerLink = ({ id, name }: { id: string; name: string }) => (
+  <div className="flex items-center gap-1.5">
+    <Link to={`/players/${id}`} className="font-medium hover:underline text-primary">
+      {name}
+    </Link>
+    <button
+      type="button"
+      onClick={(e) => { e.preventDefault(); window.open(`/players/${id}`, "_blank"); }}
+      className="text-muted-foreground hover:text-foreground"
+      title="Open in new tab"
+    >
+      <ExternalLink className="size-3" />
+    </button>
+  </div>
+);
+
 
 const KycReviewsPage = () => {
   const qc = useQueryClient();
@@ -23,6 +45,8 @@ const KycReviewsPage = () => {
   const [trust, setTrust] = useState<{ player_id: string; name: string } | null>(null);
   const [trustReason, setTrustReason] = useState("");
   const [search, setSearch] = useState("");
+  const [grantTarget, setGrantTarget] = useState<GrantTarget | null>(null);
+
 
   // ============= Queries =============
   // Tab 1: club app pending queue
@@ -71,6 +95,31 @@ const KycReviewsPage = () => {
       return data as any[];
     },
   });
+
+  // Promo balance per player (sum of active grants' remaining) for Trusted + Reception tabs
+  const balanceIds = useMemo(
+    () => [...new Set([...receptionVerified, ...trustedPlayers].map((p: any) => p.id))],
+    [receptionVerified, trustedPlayers]
+  );
+  const { data: balanceMap = {} } = useQuery({
+    queryKey: ["player_promo_balance", balanceIds],
+    enabled: balanceIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("promo_grants")
+        .select("player_id, remaining")
+        .in("player_id", balanceIds)
+        .eq("status", "active")
+        .gt("remaining", 0);
+      if (error) throw error;
+      const m: Record<string, number> = {};
+      for (const r of (data as any[]) ?? []) {
+        m[r.player_id] = (m[r.player_id] ?? 0) + Number(r.remaining ?? 0);
+      }
+      return m;
+    },
+  });
+
 
   // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
   const { data: notVerified = [], isLoading: nvLoading } = useQuery({
@@ -229,7 +278,9 @@ const KycReviewsPage = () => {
                   {!queueLoading && queue.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No pending reviews</td></tr>}
                   {queue.map((r) => (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2 font-medium">{r.players?.full_name ?? "—"}</td>
+                      <td className="p-2">
+                        {r.players ? <PlayerLink id={r.player_id} name={r.players.full_name ?? "—"} /> : "—"}
+                      </td>
                       <td className="p-2 text-xs">{r.players?.phone ?? "—"}</td>
                       <td className="p-2"><Badge variant="outline" className="text-xs">{r.source}</Badge></td>
                       <td className="p-2 text-xs text-muted-foreground">
@@ -246,6 +297,7 @@ const KycReviewsPage = () => {
                       </td>
                     </tr>
                   ))}
+
                 </tbody>
               </table>
             </DataTable>
@@ -274,33 +326,48 @@ const KycReviewsPage = () => {
                     <th className="text-left p-2">Phone</th>
                     <th className="text-left p-2">ID Number</th>
                     <th className="text-left p-2">Casino</th>
+                    <th className="text-right p-2">Balance</th>
                     <th className="text-left p-2">Verified At</th>
                     <th className="text-right p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rvLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-                  {!rvLoading && rvFiltered.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No reception verifications</td></tr>}
-                  {rvFiltered.map((p) => (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
-                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
-                      <td className="p-2 text-xs font-mono">{p.id_number ?? "—"}</td>
-                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
-                      <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
-                      <td className="p-2 text-right">
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}`, source: "reception" })}
-                        >
-                          <RotateCcw className="size-3.5" /> Revoke
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {rvLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!rvLoading && rvFiltered.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No reception verifications</td></tr>}
+                  {rvFiltered.map((p) => {
+                    const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
+                    const bal = balanceMap[p.id] ?? 0;
+                    return (
+                      <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2"><PlayerLink id={p.id} name={fullName} /></td>
+                        <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                        <td className="p-2 text-xs font-mono">{p.id_number ?? "—"}</td>
+                        <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                        <td className={`p-2 text-xs text-right font-mono ${bal > 0 ? "" : "text-muted-foreground"}`}>{bal > 0 ? fmtAmt(bal) : "·"}</td>
+                        <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
+                        <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mr-2"
+                            onClick={() => setGrantTarget({ id: p.id, full_name: fullName, casino_id: p.casino_id, casino_name: p.casinos?.name })}
+                          >
+                            <Gift className="size-3.5" /> Grant
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setRevoke({ player_id: p.id, name: fullName, source: "reception" })}
+                          >
+                            <RotateCcw className="size-3.5" /> Revoke
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+
             </DataTable>
           </PageSection>
         </TabsContent>
@@ -326,32 +393,47 @@ const KycReviewsPage = () => {
                     <th className="text-left p-2">Player</th>
                     <th className="text-left p-2">Phone</th>
                     <th className="text-left p-2">Casino</th>
+                    <th className="text-right p-2">Balance</th>
                     <th className="text-left p-2">Trusted At</th>
                     <th className="text-right p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {trustedLoading && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
-                  {trustedFiltered.map((p) => (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
-                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
-                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
-                      <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
-                      <td className="p-2 text-right">
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}`, source: "am_trusted" })}
-                        >
-                          <RotateCcw className="size-3.5" /> Revoke
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {trustedLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
+                  {trustedFiltered.map((p) => {
+                    const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
+                    const bal = balanceMap[p.id] ?? 0;
+                    return (
+                      <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2"><PlayerLink id={p.id} name={fullName} /></td>
+                        <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                        <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                        <td className={`p-2 text-xs text-right font-mono ${bal > 0 ? "" : "text-muted-foreground"}`}>{bal > 0 ? fmtAmt(bal) : "·"}</td>
+                        <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
+                        <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mr-2"
+                            onClick={() => setGrantTarget({ id: p.id, full_name: fullName, casino_id: p.casino_id, casino_name: p.casinos?.name })}
+                          >
+                            <Gift className="size-3.5" /> Grant
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setRevoke({ player_id: p.id, name: fullName, source: "am_trusted" })}
+                          >
+                            <RotateCcw className="size-3.5" /> Revoke
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+
             </DataTable>
           </PageSection>
         </TabsContent>
@@ -387,41 +469,45 @@ const KycReviewsPage = () => {
                 <tbody>
                   {nvLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
                   {!nvLoading && nvFiltered.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">All players verified</td></tr>}
-                  {nvFiltered.map((p) => (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2">
-                        {p.has_pending_kyc ? (
-                          <Badge variant="destructive" className="text-[10px]">Pending review</Badge>
-                        ) : p.verification_status === "rejected" ? (
-                          <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">Rejected</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px]">Unverified</Badge>
-                        )}
-                      </td>
-                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
-                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
-                      <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
-                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
-                      <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
-                      <td className="p-2 text-right whitespace-nowrap">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mr-2"
-                          onClick={() => setTrust({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}` })}
-                        >
-                          <ShieldCheck className="size-3.5" /> Mark Trusted
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => window.open(`/players/${p.id}`, "_blank")}
-                        >
-                          <ExternalLink className="size-3.5" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {nvFiltered.map((p) => {
+                    const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
+                    return (
+                      <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2">
+                          {p.has_pending_kyc ? (
+                            <Badge variant="destructive" className="text-[10px]">Pending review</Badge>
+                          ) : p.verification_status === "rejected" ? (
+                            <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">Rejected</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">Unverified</Badge>
+                          )}
+                        </td>
+                        <td className="p-2"><PlayerLink id={p.id} name={fullName} /></td>
+                        <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                        <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
+                        <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                        <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
+                        <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mr-2"
+                            onClick={() => setGrantTarget({ id: p.id, full_name: fullName, casino_id: p.casino_id, casino_name: p.casinos?.name })}
+                          >
+                            <Gift className="size-3.5" /> Grant
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setTrust({ player_id: p.id, name: fullName })}
+                          >
+                            <ShieldCheck className="size-3.5" /> Mark Trusted
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
                 </tbody>
               </table>
             </DataTable>
@@ -506,6 +592,11 @@ const KycReviewsPage = () => {
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialog>
+      <QuickGrantDialog
+        open={!!grantTarget}
+        onOpenChange={(o) => { if (!o) setGrantTarget(null); }}
+        player={grantTarget}
+      />
     </PageShell>
   );
 };

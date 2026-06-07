@@ -1,85 +1,49 @@
-## Goal
-Do **not** delete any routes. Hide the AM-only entries (6 promo/cashback/lottery reports + AM Budget, AM Performance, FM Top-ups, Promo Codes, Promo Grants, Lotteries, Shop Catalog, Shop Orders, KYC) and the new `Monthly Expenses` (`/finances/expenses`) from Manager Taras by routing them through the Permission Matrix instead of hard-coded role lists.
+## Цель
+Сделать страницу KYC Reviews не только списком, но и быстрой рабочей панелью AM: один клик — в профиль игрока, второй — выдать промо без ухода со страницы.
 
-Right now most of those items have no entry in `route-module-map.ts`, so `AppSidebar` falls through to the legacy `item.roles` whitelist (which includes `manager`) and the items show up for Taras. The matrix has zero rows for any `Club` module beyond `kyc_reviews`, so the user correctly observed that there is no Club block to toggle.
+## 1. Переход в профиль игрока
+Во всех 4-х табах (Queue / Verified by Reception / Trusted (AM) / Not Verified) ФИО игрока становится кликабельной ссылкой → `/players/:id` (используем уже существующий `PlayerProfile`).
+- Имя — `<Link>` со стилем `hover:underline text-primary`
+- Доп. иконка `ExternalLink` (она уже импортирована) рядом — открывает профиль в новой вкладке (для AM, чтобы не терять список).
 
-## Changes
+## 2. Быстрая выдача промо прямо из строки
+Новая кнопка **Grant** (иконка `Gift`) в колонке Actions у каждого игрока во всех табах.
+Открывает компактный `ResponsiveDialog` "Quick Grant" — без поиска игрока, игрок уже выбран:
 
-### 1. `src/lib/modules.ts` — extend the catalog
-Add a new `"Club"` value to `ModuleDef.group` and `MODULE_GROUPS`, and add these module keys (they already exist as ad-hoc strings — promote them to first-class entries so the matrix renders them):
+Поля (минимум, всё подставлено по умолчанию из настроек казино):
+- **Amount** — число (default из `promo_grants_settings` для этого казино, либо последнее использованное AM-ом)
+- **Source** — `manual` (по умолчанию) / `cashback` / `verification_bonus` / `birthday`
+- **Funding pool** — `am_budget` / `house_fund` (default: `am_budget`)
+- **Expiry** — пресеты-чипсы: `7 дней`, `30 дней`, `End of month`, `No expiry` (под капотом — те же параметры `am_issue_grant`)
+- **Notes** — короткое поле (необязательно)
 
-Club / Promo admin
-- `promo_codes` — Promo Codes
-- `promo_grants` — Promo Grants
-- `lotteries` — Lotteries
-- `shop_catalog` — Shop Catalog
-- `shop_orders` — Shop Orders
-- `am_budget` — My AM Budget
-- `am_performance` — AM Performance
-- `fm_topups` — FM Top-ups
-- (`kyc_reviews` already exists — move into the Club group)
+Кнопка **Issue** → вызывает существующий RPC `am_issue_grant` (тот же, что используется на `PromoGrantsPage`). После успеха — toast + dialog закрывается, страница не перезагружается.
 
-Club / Promo reports
-- `report_promo_issuance` — Report · Issuance
-- `report_promo_redemptions` — Report · Redemptions
-- `report_promo_expiry` — Report · Expiry
-- `report_promo_codes` — Report · Codes
-- `report_cashback` — Report · Cashback
-- `report_lottery_sales` — Report · Lottery Sales
-- `report_am_budget` — Report · AM Budget
+Доступ к кнопке: `account_manager` и `super_admin` (та же роль, что выдаёт промо на `PromoGrantsPage`).
 
-### 2. `src/lib/route-module-map.ts` — map the report routes
-Add:
-```
-/reports/promo-issuance    → report_promo_issuance
-/reports/promo-redemptions → report_promo_redemptions
-/reports/promo-expiry      → report_promo_expiry
-/reports/promo-codes       → report_promo_codes
-/reports/cashback          → report_cashback
-/reports/lottery-sales     → report_lottery_sales
-/reports/am-budget         → report_am_budget
-/admin/fm-topups           → fm_topups   (override the current 'admin' fallback)
-```
+## 3. Дополнительные улучшения (предлагаю, утверди что включаем)
 
-### 3. Database migration — seed `role_module_defaults`
-`super_admin` is bypassed in code, so no rows needed. `manager` gets **nothing** for these keys (Taras stops seeing them). Hide new `/finances/expenses` for `manager` too by removing the existing `manager → finance_payments` default row.
+a) **Wallet balance в строке** — добавить колонку «Balance» (sum `promo_grants.remaining` где `status=active`) во вкладках Trusted (AM) и Verified by Reception. AM сразу видит, есть ли смысл доначислять.
 
-```
--- ACCOUNT MANAGER: full Club + report access (view+write for admin, view for reports)
-account_manager: promo_codes, promo_grants, lotteries, shop_catalog, shop_orders,
-                 am_budget, am_performance, kyc_reviews   (view+write)
-                 report_promo_issuance, report_promo_redemptions, report_promo_expiry,
-                 report_promo_codes, report_cashback, report_lottery_sales,
-                 report_am_budget                        (view only)
+b) **Last visit / Last grant** — мини-колонка «Last activity» (последний визит из `casino_visits` или дата последнего гранта). Помогает понять, кто «спит».
 
--- FINANCE MANAGER: oversight on Club + Top-ups; all reports
-finance_manager: promo_codes, promo_grants, lotteries, shop_catalog, shop_orders,
-                 kyc_reviews, fm_topups, report_am_budget   (view+write)
-                 am_budget, am_performance,
-                 report_promo_issuance, report_promo_redemptions, report_promo_expiry,
-                 report_promo_codes, report_cashback, report_lottery_sales  (view)
+c) **Bulk grant** — чекбоксы в строках + кнопка «Grant to selected» (одна сумма всем выбранным). Удобно для дня рождения / праздничных акций.
 
--- MANAGER: explicit DELETE of finance_payments default
-DELETE FROM role_module_defaults
- WHERE role = 'manager' AND module_key = 'finance_payments';
-```
+d) **История грантов игрока** — кнопка-иконка `History` рядом с Grant, открывает drawer со списком последних 20 `promo_grants` + `promo_redemptions` этого игрока. AM видит, не «жирно» ли он уже давал.
 
-No new tables, no RLS changes — only `role_module_defaults` upserts and one delete. Auto version-bump applies.
+e) **Inline note** — у Trusted-игрока показывать причину доверия (`kyc_reviews.notes` последней `am_trusted`-записи) тонким текстом под именем.
 
-### 4. (No code changes required) sidebar gating
-`AppSidebar` already calls `moduleKeyForRoute()` → `allowedModules.has(mk)`. Once steps 1–3 land:
-- Manager Taras: matrix has no rows for the Club/AM/report keys → items hidden.
-- `/finances/expenses` hidden for manager (legacy `/expenses` keeps the `expenses` module which manager still has).
-- Account Manager: sees the full Club block as before.
-- Super-admin: unchanged (bypass).
-- The Permission Matrix UI (`PermissionMatrix.tsx` / `RoleDefaultsEditor.tsx`) automatically renders the new `Club` group from `MODULES`, so the user can toggle per-role / per-user.
+f) **Фильтры в Trusted (AM)** — по казино и по AM-у (кто доверил). При сети из 5-и казино — поможет.
 
-## Out of scope
-- Routes, page files, and `item.roles` in `NAV_ITEMS` stay as-is (deep-links and AM users keep working).
-- No backend/RPC/RLS changes beyond the seed migration.
-- No UI design changes.
+g) **Экспорт CSV** для табов Verified by Reception и Trusted (AM) — отчётность.
 
-## Verification
-1. Log in as Manager Taras → sidebar no longer shows `Monthly Expenses`, `Report · Issuance/Redemptions/Expiry/Codes/Cashback/Lottery Sales`, `Promo Codes/Grants`, `Lotteries`, `Shop Catalog/Orders`, `KYC`, `AM Budget/Performance`, `FM Top-ups`.
-2. Log in as Account Manager → all Club items still visible.
-3. Open `Admin → Users → Permissions` → new `Club` group appears with all keys; per-role and per-user toggles work.
+## Технические детали
+
+- Изменяемый файл: `src/pages/admin/KycReviewsPage.tsx`
+- Новый компонент: `src/components/admin/QuickGrantDialog.tsx` (переиспользует логику `PromoGrantsPage` issue-мутации)
+- Хук `useCasino().activeCasinoId` для casino_id (или брать `p.casino_id` игрока — у AM сетевой доступ)
+- Никаких миграций БД не требуется — все RPC уже есть (`am_issue_grant`)
+- Для пп. (a) и (b) — один доп. select для balance/last_visit агрегатом по списку игроков; делаем lazy (только при открытии таба)
+
+## Вопрос
+Из списка a–g — что включаем сразу, что отложим? Минимально я бы рекомендовал **a + d + f** (balance в колонке, история грантов, фильтры) — это даёт AM полную картину при выдаче. Bulk grant (c) и экспорт (g) — следующим шагом.
