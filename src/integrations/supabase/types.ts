@@ -3355,6 +3355,63 @@ export type Database = {
           },
         ]
       }
+      fin_incomes: {
+        Row: {
+          amount: number
+          casino_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          fin_category_id: string
+          id: string
+          month: number
+          notes: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          amount?: number
+          casino_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fin_category_id: string
+          id?: string
+          month: number
+          notes?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          casino_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fin_category_id?: string
+          id?: string
+          month?: number
+          notes?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_incomes_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_incomes_fin_category_id_fkey"
+            columns: ["fin_category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_money_change: {
         Row: {
           business_date: string
