@@ -16,8 +16,8 @@ export default function OtherIncomesTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [currency, setCurrency] = useState<"TZS" | "USD">("TZS");
-  const { profile } = useAuth() as any;
-  const canEdit = profile?.role === "super_admin" || profile?.role === "finance_manager";
+  const { roles } = useAuth();
+  const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
 
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
