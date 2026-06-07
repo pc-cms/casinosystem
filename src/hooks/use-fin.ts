@@ -390,6 +390,27 @@ export const useShiftsTablesResultForDate = (businessDate?: string) => {
   });
 };
 
+/* Auto-pull slots system result from cage_slots_shifts for given business date. */
+export const useSlotsAutoForDate = (businessDate?: string) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["slots-auto-for-date", activeCasinoId, businessDate],
+    queryFn: async () => {
+      if (!activeCasinoId || !businessDate) return 0;
+      const { data } = await supabase
+        .from("cage_slots_shifts")
+        .select("system_shift_result")
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", businessDate);
+      return (data || []).reduce(
+        (s: number, r: any) => s + Number(r.system_shift_result || 0),
+        0,
+      );
+    },
+    enabled: !!activeCasinoId && !!businessDate,
+  });
+};
+
 /* =====================  MONEY CHANGE  ===================== */
 export const useFinMoneyChange = (opts?: { from?: string; to?: string }) => {
   const { activeCasinoId, isSummaryMode } = useCasino();

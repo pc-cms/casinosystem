@@ -1,0 +1,223 @@
+import { useMemo, useState } from "react";
+import { ClipboardPen, Lock, Unlock, Check } from "lucide-react";
+import { PageShell, PageSection } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  useDayClosingList,
+  useUpsertDayClosing,
+  useLockDayClosing,
+  useShiftsTablesResultForDate,
+  useSlotsAutoForDate,
+} from "@/hooks/use-fin";
+import { formatNumberSpaces } from "@/lib/currency";
+import { fmtDate } from "@/lib/format-date";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+const DAYS = 30;
+
+function buildDates(n: number): string[] {
+  const out: string[] = [];
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  for (let i = 0; i < n; i++) {
+    const dd = new Date(d);
+    dd.setUTCDate(d.getUTCDate() - i);
+    out.push(dd.toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+type RowState = { tables: string; slots: string; comment: string };
+
+export default function DayClosingsTab() {
+  const dates = useMemo(() => buildDates(DAYS), []);
+  const { data: list = [] } = useDayClosingList();
+  const { isManager } = useAuth() as any;
+
+  const byDate = useMemo(() => {
+    const m = new Map<string, any>();
+    (list as any[]).forEach((r) => m.set(r.business_date, r));
+    return m;
+  }, [list]);
+
+  return (
+    <PageShell>
+      <PageHeader
+        icon={ClipboardPen}
+        title="Day Closings"
+        subtitle="Manual entry per business day · auto values shown in grey"
+      >
+        <FinanceCasinoSwitcher allowNetwork={false} />
+      </PageHeader>
+
+      <PageSection bodyClassName="p-0 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="text-left px-3 py-2 w-32">Date</th>
+              <th className="text-right px-3 py-2 w-48">Tables</th>
+              <th className="text-right px-3 py-2 w-48">Slots</th>
+              <th className="text-left px-3 py-2">Comment</th>
+              <th className="text-right px-3 py-2 w-32"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {dates.map((date) => (
+              <DayRow
+                key={date}
+                date={date}
+                existing={byDate.get(date)}
+                managerOverride={!!isManager}
+              />
+            ))}
+          </tbody>
+        </table>
+      </PageSection>
+    </PageShell>
+  );
+}
+
+function DayRow({
+  date,
+  existing,
+  managerOverride,
+}: {
+  date: string;
+  existing: any;
+  managerOverride: boolean;
+}) {
+  const { data: tablesAuto = 0 } = useShiftsTablesResultForDate(date);
+  const { data: slotsAuto = 0 } = useSlotsAutoForDate(date);
+  const upsert = useUpsertDayClosing();
+  const lock = useLockDayClosing();
+
+  const locked = !!existing?.locked_at;
+  const [unlocked, setUnlocked] = useState(false);
+  const editable = !locked || (managerOverride && unlocked);
+
+  const [state, setState] = useState<RowState>(() => ({
+    tables: existing ? String(existing.tables_result ?? "") : "",
+    slots: existing ? String(existing.slots_result ?? "") : "",
+    comment: existing?.notes ?? "",
+  }));
+
+  const tablesNum = state.tables === "" ? tablesAuto : Number(state.tables);
+  const slotsNum = state.slots === "" ? slotsAuto : Number(state.slots);
+
+  const onOk = async () => {
+    try {
+      await upsert.mutateAsync({
+        id: existing?.id,
+        business_date: date,
+        tables_result: tablesNum,
+        slots_result: slotsNum,
+        notes: state.comment || null,
+      });
+      // After upsert, the row gains an id via list refresh; lock in a follow-up
+      // tick to avoid race: rely on existing.id when present, else skip lock.
+      if (existing?.id) {
+        const dT = Math.abs(tablesNum - tablesAuto);
+        const dS = Math.abs(slotsNum - slotsAuto);
+        const needsNote = dT > 1 || dS > 1;
+        if (needsNote && (state.comment || "").trim().length < 3) {
+          toast.error("Variance vs auto — comment (min 3 chars) required to lock");
+          return;
+        }
+        await lock.mutateAsync({
+          id: existing.id,
+          varianceNote: needsNote ? state.comment.trim() : null,
+        });
+      } else {
+        toast.success("Saved — press OK again to lock");
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  return (
+    <tr className={cn("border-t border-border", locked && !unlocked && "bg-muted/30")}>
+      <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{fmtDate(date)}</td>
+
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          disabled={!editable}
+          placeholder={formatNumberSpaces(tablesAuto)}
+          value={state.tables}
+          onChange={(e) => setState((s) => ({ ...s, tables: e.target.value }))}
+          className="text-right font-mono h-8"
+        />
+        <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
+          auto {formatNumberSpaces(tablesAuto)}
+        </div>
+      </td>
+
+      <td className="px-3 py-2 text-right">
+        <Input
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          disabled={!editable}
+          placeholder={formatNumberSpaces(slotsAuto)}
+          value={state.slots}
+          onChange={(e) => setState((s) => ({ ...s, slots: e.target.value }))}
+          className="text-right font-mono h-8"
+        />
+        <div className="text-[10px] text-muted-foreground mt-0.5 text-right pr-1">
+          auto {formatNumberSpaces(slotsAuto)}
+        </div>
+      </td>
+
+      <td className="px-3 py-2">
+        <Input
+          disabled={!editable}
+          value={state.comment}
+          placeholder="Optional"
+          onChange={(e) => setState((s) => ({ ...s, comment: e.target.value }))}
+          className="h-8 text-xs"
+        />
+      </td>
+
+      <td className="px-3 py-2 text-right">
+        {locked && !unlocked && (
+          <div className="flex items-center justify-end gap-1">
+            <span className="text-[10px] text-muted-foreground">
+              Locked {existing?.locked_at ? fmtDate(existing.locked_at) : ""}
+            </span>
+            {managerOverride && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0"
+                onClick={() => setUnlocked(true)}
+                title="Manager unlock"
+              >
+                <Unlock className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
+        {editable && (
+          <Button
+            size="sm"
+            variant="default"
+            className="h-8"
+            onClick={onOk}
+            disabled={upsert.isPending || lock.isPending}
+          >
+            {existing?.id ? <Lock className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+            <span className="ml-1">OK</span>
+          </Button>
+        )}
+      </td>
+    </tr>
+  );
+}
