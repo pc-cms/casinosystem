@@ -745,6 +745,17 @@ const KycReviewsPage = () => {
         onOpenChange={(o) => { if (!o) setGrantTarget(null); }}
         player={grantTarget}
       />
+      <BulkGrantDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        players={Object.values(selected)}
+        onDone={clearSelection}
+      />
+      <PlayerGrantsHistoryDrawer
+        open={!!historyTarget}
+        onOpenChange={(o) => { if (!o) setHistoryTarget(null); }}
+        player={historyTarget}
+      />
     </PageShell>
   );
 };
