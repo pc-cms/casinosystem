@@ -96,6 +96,31 @@ const KycReviewsPage = () => {
     },
   });
 
+  // Promo balance per player (sum of active grants' remaining) for Trusted + Reception tabs
+  const balanceIds = useMemo(
+    () => [...new Set([...receptionVerified, ...trustedPlayers].map((p: any) => p.id))],
+    [receptionVerified, trustedPlayers]
+  );
+  const { data: balanceMap = {} } = useQuery({
+    queryKey: ["player_promo_balance", balanceIds],
+    enabled: balanceIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("promo_grants")
+        .select("player_id, remaining")
+        .in("player_id", balanceIds)
+        .eq("status", "active")
+        .gt("remaining", 0);
+      if (error) throw error;
+      const m: Record<string, number> = {};
+      for (const r of (data as any[]) ?? []) {
+        m[r.player_id] = (m[r.player_id] ?? 0) + Number(r.remaining ?? 0);
+      }
+      return m;
+    },
+  });
+
+
   // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
   const { data: notVerified = [], isLoading: nvLoading } = useQuery({
     queryKey: ["players", "not_verified"],
