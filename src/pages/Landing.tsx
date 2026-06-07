@@ -432,9 +432,10 @@ const Landing = () => {
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
             <a href="#demo" className="hover:text-foreground transition-colors">Contact</a>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-12 text-[10px] font-sans text-primary">
             ©2026 Amaell Group LLC. All rights reserved.
           </p>
+
         </div>
       </footer>
     </div>
