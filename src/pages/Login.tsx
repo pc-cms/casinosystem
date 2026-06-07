@@ -143,6 +143,13 @@ const Login = () => {
             </form>
 
             {error && <p className="mt-3 text-xs text-destructive text-center">{error}</p>}
+
+            <p
+              className="mt-4 text-center text-[10px] tracking-[0.3em] uppercase"
+              style={isBranded ? { color: GOLD, opacity: 0.7 } : undefined}
+            >
+              {isBranded ? "18+ · Play Responsibly" : <span className="text-muted-foreground">18+ · Play Responsibly</span>}
+            </p>
           </div>
 
           <div className="mt-6 text-center space-y-0.5">
@@ -150,13 +157,13 @@ const Login = () => {
               className={isBranded ? "font-faberge text-xs uppercase tracking-[0.3em]" : "text-xs font-mono uppercase tracking-widest text-muted-foreground"}
               style={isBranded ? { color: GOLD, opacity: 0.85 } : undefined}
             >
-              Casino Management System
+              {isBranded ? "Premier Casino · Tanzania" : "Casino Management System"}
             </p>
             <p
               className={isBranded ? "font-faberge text-[10px] tracking-[0.3em]" : "text-[10px] font-mono text-muted-foreground"}
               style={isBranded ? { color: GOLD, opacity: 0.6 } : undefined}
             >
-              © 2026
+              © 2025
             </p>
           </div>
         </div>
