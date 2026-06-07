@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { ShieldCheck, Check, X, RotateCcw, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ShieldCheck, Check, X, RotateCcw, ExternalLink, Gift } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -13,6 +14,27 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "sonner";
 import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
+import QuickGrantDialog from "@/components/admin/QuickGrantDialog";
+
+type GrantTarget = { id: string; full_name: string; casino_id: string | null; casino_name?: string | null };
+const fmtAmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+
+const PlayerLink = ({ id, name }: { id: string; name: string }) => (
+  <div className="flex items-center gap-1.5">
+    <Link to={`/players/${id}`} className="font-medium hover:underline text-primary">
+      {name}
+    </Link>
+    <button
+      type="button"
+      onClick={(e) => { e.preventDefault(); window.open(`/players/${id}`, "_blank"); }}
+      className="text-muted-foreground hover:text-foreground"
+      title="Open in new tab"
+    >
+      <ExternalLink className="size-3" />
+    </button>
+  </div>
+);
+
 
 const KycReviewsPage = () => {
   const qc = useQueryClient();
