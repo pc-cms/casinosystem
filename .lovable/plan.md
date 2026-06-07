@@ -1,49 +1,46 @@
 ## Цель
-Сделать страницу KYC Reviews не только списком, но и быстрой рабочей панелью AM: один клик — в профиль игрока, второй — выдать промо без ухода со страницы.
+Расширить `src/pages/admin/KycReviewsPage.tsx` четырьмя улучшениями (a–d) поверх уже сделанных ссылок в профиль и кнопки Quick Grant.
 
-## 1. Переход в профиль игрока
-Во всех 4-х табах (Queue / Verified by Reception / Trusted (AM) / Not Verified) ФИО игрока становится кликабельной ссылкой → `/players/:id` (используем уже существующий `PlayerProfile`).
-- Имя — `<Link>` со стилем `hover:underline text-primary`
-- Доп. иконка `ExternalLink` (она уже импортирована) рядом — открывает профиль в новой вкладке (для AM, чтобы не терять список).
+## A. Wallet balance в строке
+- Добавить колонку **Balance** в табах `Verified by Reception` и `Trusted (AM)`.
+- Источник: уже существующий `balanceMap` (sum `promo_grants.remaining` где `status='active'` по списку игроков на странице).
+- Формат: `1 250 000` (пробел-разделитель), нулевые значения — placeholder `·`.
+- Сортируемая колонка (DataTable sort by balance desc по умолчанию для Trusted).
 
-## 2. Быстрая выдача промо прямо из строки
-Новая кнопка **Grant** (иконка `Gift`) в колонке Actions у каждого игрока во всех табах.
-Открывает компактный `ResponsiveDialog` "Quick Grant" — без поиска игрока, игрок уже выбран:
+## B. Last activity
+- Новая колонка **Last activity** в табах `Verified by Reception`, `Trusted (AM)`, `Not Verified`.
+- Источник: `useLastVisitsByPlayers(playerIds)` (хук уже есть) + max(`promo_grants.created_at`) по тому же списку.
+- Значение = max(last_visit, last_grant). Формат через `fmtDate` (DD/MM/YYYY). Пусто → `·`.
+- Подсветка «спит»: если > 30 дней — `text-muted-foreground`, > 90 дней — `text-amber-500`.
 
-Поля (минимум, всё подставлено по умолчанию из настроек казино):
-- **Amount** — число (default из `promo_grants_settings` для этого казино, либо последнее использованное AM-ом)
-- **Source** — `manual` (по умолчанию) / `cashback` / `verification_bonus` / `birthday`
-- **Funding pool** — `am_budget` / `house_fund` (default: `am_budget`)
-- **Expiry** — пресеты-чипсы: `7 дней`, `30 дней`, `End of month`, `No expiry` (под капотом — те же параметры `am_issue_grant`)
-- **Notes** — короткое поле (необязательно)
+## C. Bulk grant
+- Колонка чекбоксов (первая) во всех 4 табах, с чекбоксом в шапке «select all visible».
+- Состояние выбора локальное per-tab (`Set<player_id>`).
+- Над таблицей появляется sticky-бар при `selected.size > 0`:
+  - `N selected` · кнопка **Grant to selected** · кнопка **Clear**.
+- Кнопка открывает `BulkGrantDialog` (новый компонент, копия `QuickGrantDialog` с теми же полями, но без `player` — показывает список выбранных как бэйджи).
+- Логика: последовательный вызов `am_issue_grant` по каждому игроку (Promise.allSettled), прогресс-бар, итоговый toast `X granted, Y failed`.
+- Доступ: `account_manager` / `super_admin`.
 
-Кнопка **Issue** → вызывает существующий RPC `am_issue_grant` (тот же, что используется на `PromoGrantsPage`). После успеха — toast + dialog закрывается, страница не перезагружается.
-
-Доступ к кнопке: `account_manager` и `super_admin` (та же роль, что выдаёт промо на `PromoGrantsPage`).
-
-## 3. Дополнительные улучшения (предлагаю, утверди что включаем)
-
-a) **Wallet balance в строке** — добавить колонку «Balance» (sum `promo_grants.remaining` где `status=active`) во вкладках Trusted (AM) и Verified by Reception. AM сразу видит, есть ли смысл доначислять.
-
-b) **Last visit / Last grant** — мини-колонка «Last activity» (последний визит из `casino_visits` или дата последнего гранта). Помогает понять, кто «спит».
-
-c) **Bulk grant** — чекбоксы в строках + кнопка «Grant to selected» (одна сумма всем выбранным). Удобно для дня рождения / праздничных акций.
-
-d) **История грантов игрока** — кнопка-иконка `History` рядом с Grant, открывает drawer со списком последних 20 `promo_grants` + `promo_redemptions` этого игрока. AM видит, не «жирно» ли он уже давал.
-
-e) **Inline note** — у Trusted-игрока показывать причину доверия (`kyc_reviews.notes` последней `am_trusted`-записи) тонким текстом под именем.
-
-f) **Фильтры в Trusted (AM)** — по казино и по AM-у (кто доверил). При сети из 5-и казино — поможет.
-
-g) **Экспорт CSV** для табов Verified by Reception и Trusted (AM) — отчётность.
+## D. История грантов игрока
+- Иконка-кнопка **History** (`History` из lucide) рядом с Grant во всех табах.
+- Открывает `PlayerGrantsHistoryDrawer` (новый компонент, mobile-friendly через `ResponsiveDialog size="lg"`).
+- Содержимое — две секции (последние 20 каждая, сорт по дате desc):
+  1. **Grants** — из `promo_grants`: дата, сумма, source, funding_pool, expiry, remaining, статус, notes.
+  2. **Redemptions** — из `promo_redemptions`: дата, сумма, кассир, casino, ссылка/ref.
+- Сверху мини-сводка: `Total granted`, `Total redeemed`, `Active balance`, `Grants count (30d)`.
+- Кнопка `Open full promo page` → ссылка на `/admin/promo-grants?player=<id>`.
 
 ## Технические детали
+- Файлы:
+  - `src/pages/admin/KycReviewsPage.tsx` — колонки, чекбоксы, sticky-бар, кнопки History/Grant.
+  - `src/components/admin/BulkGrantDialog.tsx` — новый.
+  - `src/components/admin/PlayerGrantsHistoryDrawer.tsx` — новый.
+- Новые запросы (react-query, lazy per-tab):
+  - `last-grant-by-players` — `promo_grants.select(player_id, max(created_at))` группировкой на клиенте.
+  - `player-grants-history` — по `player_id`, лимит 20 на таблицу, enabled только при открытии drawer.
+- Никаких миграций / новых RPC — используем `am_issue_grant`, существующие таблицы `promo_grants`, `promo_redemptions`, `casino_visits`.
+- Стили: только семантические токены (`text-muted-foreground`, `text-amber-500` через tailwind config), форматирование чисел `1 250 000` (space-separator).
 
-- Изменяемый файл: `src/pages/admin/KycReviewsPage.tsx`
-- Новый компонент: `src/components/admin/QuickGrantDialog.tsx` (переиспользует логику `PromoGrantsPage` issue-мутации)
-- Хук `useCasino().activeCasinoId` для casino_id (или брать `p.casino_id` игрока — у AM сетевой доступ)
-- Никаких миграций БД не требуется — все RPC уже есть (`am_issue_grant`)
-- Для пп. (a) и (b) — один доп. select для balance/last_visit агрегатом по списку игроков; делаем lazy (только при открытии таба)
-
-## Вопрос
-Из списка a–g — что включаем сразу, что отложим? Минимально я бы рекомендовал **a + d + f** (balance в колонке, история грантов, фильтры) — это даёт AM полную картину при выдаче. Bulk grant (c) и экспорт (g) — следующим шагом.
+## Что НЕ входит
+- Фильтры по casino/AM (пункт f), inline notes (e), CSV export (g) — отложены.
