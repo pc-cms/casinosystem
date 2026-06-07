@@ -3205,6 +3205,50 @@ export type Database = {
           },
         ]
       }
+      fin_daily_rates: {
+        Row: {
+          business_date: string
+          casino_id: string
+          created_at: string
+          currency: string
+          id: string
+          rate_to_tzs: number
+          set_at: string
+          set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          casino_id: string
+          created_at?: string
+          currency: string
+          id?: string
+          rate_to_tzs: number
+          set_at?: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          casino_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          rate_to_tzs?: number
+          set_at?: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_daily_rates_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_day_closing: {
         Row: {
           business_date: string
