@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { YearSelect } from "@/components/ui/year-select";
 
 import { Button } from "@/components/ui/button";
-import { useFinBudget, useFinCategories, useUpsertFinBudget, useSetAnnualBudget } from "@/hooks/use-fin";
+import { useFinBudget, useFinCategories, useUpsertFinBudget } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -20,7 +20,7 @@ export default function FinancesBudgetPage() {
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
   const upsert = useUpsertFinBudget();
-  const setAnnual = useSetAnnualBudget();
+  
 
   const grid = useMemo(() => {
     const map: Record<string, Record<number, number>> = {};
@@ -54,7 +54,7 @@ export default function FinancesBudgetPage() {
                 {MONTHS.map((m) => (
                   <th key={m} className="text-right w-[68px]">{m}</th>
                 ))}
-                <th className="text-right w-[100px] sticky right-0 z-30 bg-muted/40 border-l border-border">Annual</th>
+                <th className="text-right w-[110px] sticky right-0 z-30 bg-muted/40 border-l border-border" title="Sum of 12 months — edit per-month cells">Plan Year (auto)</th>
               </tr>
             </thead>
             <tbody>
@@ -86,15 +86,12 @@ export default function FinancesBudgetPage() {
                       );
                     })}
                     <td className="text-right pr-2 sticky right-0 z-10 bg-card border-l border-border">
-                      <button
-                        className="font-mono tabular-nums underline-offset-2 hover:underline"
-                        onClick={() => {
-                          const newAnnual = Number(prompt(`Set annual for ${c.name} (${currency}). Current: ${formatNumberSpaces(annual)}`, String(annual)));
-                          if (!isNaN(newAnnual)) setAnnual.mutate({ year, category_id: c.id, currency, annual: newAnnual });
-                        }}
+                      <span
+                        className="font-mono tabular-nums text-muted-foreground"
+                        title="Auto = sum of 12 months. Edit months on the left."
                       >
                         {annual ? formatNumberSpaces(annual) : <span className="text-muted-foreground/60">·</span>}
-                      </button>
+                      </span>
                     </td>
                   </tr>
                 );
