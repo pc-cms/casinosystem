@@ -248,7 +248,7 @@ export default function FinancesMonthlyReportPage() {
             upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
           }
           onRenameCategory={(catId, newName) =>
-            upsertCategory.mutate({ id: catId, name: newName })
+            renameCategory.mutate({ id: catId, name: newName })
           }
           onMoveExpense={(id, newCatId) =>
             moveExpense.mutate({ id, fin_category_id: newCatId })
