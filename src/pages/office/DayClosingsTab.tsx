@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ClipboardPen, Lock, Unlock, Check, AlertTriangle } from "lucide-react";
+import { ClipboardPen, Lock, Unlock, Check, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
@@ -20,16 +20,18 @@ import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const DAYS = 30;
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-function buildDates(n: number): string[] {
+function buildMonthDates(year: number, month: number): string[] {
+  // month is 1-12; returns descending list of YYYY-MM-DD for that month, capped to today.
   const out: string[] = [];
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  for (let i = 0; i < n; i++) {
-    const dd = new Date(d);
-    dd.setUTCDate(d.getUTCDate() - i);
-    out.push(dd.toISOString().slice(0, 10));
+  const last = new Date(year, month, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let d = last; d >= 1; d--) {
+    const dt = new Date(year, month - 1, d);
+    if (dt > today) continue;
+    const iso = `${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    out.push(iso);
   }
   return out;
 }
@@ -37,7 +39,10 @@ function buildDates(n: number): string[] {
 type RowState = { tables: string; slots: string; comment: string };
 
 export default function DayClosingsTab() {
-  const dates = useMemo(() => buildDates(DAYS), []);
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const dates = useMemo(() => buildMonthDates(year, month), [year, month]);
   const { data: list = [] } = useDayClosingList();
   const { isManager } = useAuth() as any;
 
@@ -47,6 +52,12 @@ export default function DayClosingsTab() {
     return m;
   }, [list]);
 
+  const shiftMonth = (delta: number) => {
+    const d = new Date(year, month - 1 + delta, 1);
+    setYear(d.getFullYear());
+    setMonth(d.getMonth() + 1);
+  };
+
   return (
     <PageShell>
       <PageHeader
@@ -55,6 +66,23 @@ export default function DayClosingsTab() {
         subtitle="Manual entry per business day · auto values shown in grey"
       >
         <FinanceCasinoSwitcher allowNetwork={false} />
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Input
+            type="month"
+            value={`${year}-${String(month).padStart(2,"0")}`}
+            onChange={(e) => {
+              const [y, m] = e.target.value.split("-").map(Number);
+              if (y && m) { setYear(y); setMonth(m); }
+            }}
+            className="h-8 w-[150px]"
+          />
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       </PageHeader>
 
       <PageSection bodyClassName="p-0 overflow-hidden">

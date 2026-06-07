@@ -24,11 +24,10 @@ import {
 const todayBD = () => new Date().toISOString().slice(0, 10);
 const pad = (n: number) => String(n).padStart(2, "0");
 
-type Period = "day" | "month" | "ytd" | "all" | "custom";
+type Period = "month" | "ytd" | "all" | "custom";
 
 function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
   const d = new Date(anchor + "T00:00:00");
-  if (period === "day") return { from: anchor, to: anchor };
   if (period === "month") {
     const from = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
     const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
@@ -50,6 +49,13 @@ export default function FinancesExpensesPage() {
   const [customFrom, setCustomFrom] = useState<string>(todayBD());
   const [customTo, setCustomTo] = useState<string>(todayBD());
   const range = period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
+
+  const shiftMonth = (delta: number) => {
+    const d = new Date(anchor + "T00:00:00");
+    d.setDate(1);
+    d.setMonth(d.getMonth() + delta);
+    setAnchor(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`);
+  };
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -149,7 +155,7 @@ export default function FinancesExpensesPage() {
           }
           presets={
             <div className="flex items-center gap-1">
-              {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
+              {(["month", "ytd", "all", "custom"] as Period[]).map((p) => (
                 <Button
                   key={p}
                   size="sm"
@@ -164,16 +170,21 @@ export default function FinancesExpensesPage() {
           }
           filters={
             <>
-              {period === "day" && (
-                <Input type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} className="h-8 w-[150px]" />
-              )}
               {period === "month" && (
-                <Input
-                  type="month"
-                  value={anchor.slice(0, 7)}
-                  onChange={(e) => setAnchor(e.target.value + "-01")}
-                  className="h-8 w-[150px]"
-                />
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)}>
+                    <ArrowDown className="w-3.5 h-3.5 rotate-90" />
+                  </Button>
+                  <Input
+                    type="month"
+                    value={anchor.slice(0, 7)}
+                    onChange={(e) => setAnchor(e.target.value + "-01")}
+                    className="h-8 w-[150px]"
+                  />
+                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)}>
+                    <ArrowUp className="w-3.5 h-3.5 rotate-90" />
+                  </Button>
+                </div>
               )}
               {period === "custom" && (
                 <>
