@@ -45,6 +45,8 @@ const KycReviewsPage = () => {
   const [trust, setTrust] = useState<{ player_id: string; name: string } | null>(null);
   const [trustReason, setTrustReason] = useState("");
   const [search, setSearch] = useState("");
+  const [grantTarget, setGrantTarget] = useState<GrantTarget | null>(null);
+
 
   // ============= Queries =============
   // Tab 1: club app pending queue
