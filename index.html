@@ -27,6 +27,26 @@
           var host = (window.location.hostname || "").toLowerCase();
           var label = host.split(".")[0];
 
+          // Landing (root marketing site) — strip all PWA/icon tags; keep only SEO meta.
+          var isLanding = host === "casinosystem.app" || host === "www.casinosystem.app";
+          if (isLanding) {
+            var sels = [
+              'link[rel="icon"]',
+              'link[rel="apple-touch-icon"]',
+              'link[rel="manifest"]',
+              'meta[name="theme-color"]',
+              'meta[name="apple-mobile-web-app-capable"]',
+              'meta[name="mobile-web-app-capable"]',
+              'meta[name="apple-mobile-web-app-status-bar-style"]',
+              'meta[name="apple-mobile-web-app-title"]'
+            ];
+            for (var i = 0; i < sels.length; i++) {
+              var nodes = document.head.querySelectorAll(sels[i]);
+              for (var j = 0; j < nodes.length; j++) nodes[j].parentNode.removeChild(nodes[j]);
+            }
+            return;
+          }
+
           // On-prem subdomains alias to canonical casino branding.
           var ALIAS = { mwz: "mwanza", aru: "arusha", dod: "dodoma", mbi: "mbeya" };
           var canonical = ALIAS[label] || label;
@@ -44,6 +64,7 @@
           var ONPREM_MANIFEST = { mwz: "/manifest-mwz.json", aru: "/manifest-aru.json", dod: "/manifest-dod.json", mbi: "/manifest-mbi.json" };
 
           var branch = BRANCHES[canonical] || null;
+
 
           if (branch) {
             var displayName = isOnPrem ? (branch.name + " (Local)") : branch.name;
