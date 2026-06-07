@@ -365,11 +365,13 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
   );
 };
 
-const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
+const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onMoveExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean; showUsd: boolean; colCount: number;
-}) => {
+} & EditCallbacks) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
   const remUsd = c.plan_month_usd - c.actual_usd;
+  // Filter active non-income expense categories for the Move-to dropdown.
+  const moveTargets = allCategories.filter(x => x.is_active && !x.is_income && x.id !== c.id);
   return (
     <>
       <tr
@@ -382,14 +384,41 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
         <td className="sticky left-0 z-10 bg-card">
           <div className="flex items-center gap-1 min-w-0">
             {expanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
-            <span className="truncate" title={c.name}>{c.name}</span>
+            <div className="flex-1 min-w-0">
+              <InlineTextCell
+                value={c.name}
+                disabled={!editMode}
+                onCommit={(v) => onRenameCategory(c.id, v)}
+              />
+            </div>
             {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
           </div>
         </td>
-        <td className="text-right font-mono tabular-nums">{fmt(c.plan_year_tzs)}</td>
-        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.plan_year_usd)}</td>}
-        <td className="text-right font-mono tabular-nums">{fmt(c.plan_month_tzs)}</td>
-        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.plan_month_usd)}</td>}
+        <td className="text-right">
+          <InlineNumberCell value={c.plan_year_tzs} disabled onCommit={() => {}} />
+        </td>
+        {showUsd && (
+          <td className="text-right text-muted-foreground">
+            <InlineNumberCell value={c.plan_year_usd} disabled onCommit={() => {}} className="text-muted-foreground" />
+          </td>
+        )}
+        <td className="text-right">
+          <InlineNumberCell
+            value={c.plan_month_tzs}
+            disabled={!editMode}
+            onCommit={(v) => onPlanCommit(c.id, "TZS", v)}
+          />
+        </td>
+        {showUsd && (
+          <td className="text-right text-muted-foreground">
+            <InlineNumberCell
+              value={c.plan_month_usd}
+              disabled={!editMode}
+              onCommit={(v) => onPlanCommit(c.id, "USD", v)}
+              className="text-muted-foreground"
+            />
+          </td>
+        )}
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
         {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>}
         <td className="text-right font-mono tabular-nums">{c.plan_month_tzs ? pct(c.actual_tzs / c.plan_month_tzs) : "—"}</td>
@@ -397,6 +426,7 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
         {showUsd && <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(remUsd))}>{fmt(remUsd)}</td>}
         <td className="text-right font-mono tabular-nums pr-3">{c.plan_month_tzs ? pct(remTzs / c.plan_month_tzs) : "—"}</td>
       </tr>
+
       {expanded && (
         <tr className="bg-muted/10">
           <td colSpan={colCount} className="px-3 py-2">
