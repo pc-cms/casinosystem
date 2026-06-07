@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+
 import { Coins, Play, ChevronRight, ChevronLeft, CreditCard, Settings2, History } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -35,15 +37,24 @@ const OpenSlotsShiftScreen = () => {
   const [ratesPrefilled, setRatesPrefilled] = useState(false);
   const [showRates, setShowRates] = useState(false);
 
-  // Slots cage uses the SAME FX rates as Live Game cage — prefill from last closed live shift.
+  const { data: officeRates } = useFinDailyRatesForDate();
+  const officeRatesLocked = !!officeRates && Object.keys(officeRates).length > 0;
+
+  // Prefer Office-set rates per business date over the last Live Game shift.
   useEffect(() => {
+    if (officeRates && Object.keys(officeRates).length > 0) {
+      setRates(r => ({ ...r, ...officeRates }));
+      setRatesPrefilled(true);
+      return;
+    }
     if (ratesPrefilled) return;
     const prev = (lastShift?.exchange_rates || {}) as Record<string, number>;
     if (prev && Object.keys(prev).length > 0) {
       setRates(r => ({ ...r, ...prev }));
       setRatesPrefilled(true);
     }
-  }, [lastShift, ratesPrefilled]);
+  }, [lastShift, ratesPrefilled, officeRates]);
+
 
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
@@ -215,12 +226,27 @@ const OpenSlotsShiftScreen = () => {
       <Dialog open={showRates} onOpenChange={setShowRates}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Exchange Rates</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground mb-3">Set how many TZS per 1 unit of foreign currency. Pre-filled from the last Live Game cage shift.</p>
+          {officeRatesLocked ? (
+            <p className="text-xs text-muted-foreground mb-3">
+              Set in <Link to="/office?tab=rates" className="text-primary underline">Office → Rates</Link> for today's business date. Read-only here.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mb-3">
+              No Office rates for today. Fallback values (per 1 unit of foreign currency).{" "}
+              <Link to="/office?tab=rates" className="text-primary underline">Open Rates</Link>
+            </p>
+          )}
           <div className="space-y-3">
             {FOREIGN_CURRENCIES.map(c => (
               <div key={c} className="flex items-center gap-3">
                 <span className="text-sm font-mono font-bold text-card-foreground w-10">{c}</span>
-                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" className="flex-1" />
+                <NumberInput
+                  value={rates[c] || ""}
+                  onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))}
+                  placeholder="0"
+                  className="flex-1"
+                  disabled={officeRatesLocked}
+                />
                 <span className="text-xs text-muted-foreground font-mono">TZS</span>
               </div>
             ))}
@@ -230,6 +256,7 @@ const OpenSlotsShiftScreen = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </PageShell>
   );
 };

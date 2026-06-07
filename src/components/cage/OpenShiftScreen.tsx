@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
+import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+import { Link } from "react-router-dom";
+
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
@@ -32,15 +35,24 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const { data: lastShift } = useLastClosedShift();
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [ratesPrefilled, setRatesPrefilled] = useState(false);
+  const { data: officeRates } = useFinDailyRatesForDate();
+  const officeRatesLocked = !!officeRates && Object.keys(officeRates).length > 0;
 
+  // Prefer Office-set rates (per business date) over the last closed shift.
   useEffect(() => {
+    if (officeRates && Object.keys(officeRates).length > 0) {
+      setRates(r => ({ ...r, ...officeRates }));
+      setRatesPrefilled(true);
+      return;
+    }
     if (ratesPrefilled) return;
     const prev = (lastShift?.exchange_rates || {}) as Record<string, number>;
     if (prev && Object.keys(prev).length > 0) {
       setRates(r => ({ ...r, ...prev }));
       setRatesPrefilled(true);
     }
-  }, [lastShift, ratesPrefilled]);
+  }, [lastShift, ratesPrefilled, officeRates]);
+
 
   // Carry over closing chips from the last closed shift so the cashier sees
   // the chips actually counted at close instead of zeros.
@@ -348,12 +360,27 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
       <Dialog open={showRates} onOpenChange={setShowRates}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Exchange Rates</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground mb-3">Set how many TZS per 1 unit of foreign currency</p>
+          {officeRatesLocked ? (
+            <p className="text-xs text-muted-foreground mb-3">
+              Set in <Link to="/office?tab=rates" className="text-primary underline">Office → Rates</Link> for today's business date. Read-only here.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mb-3">
+              No Office rates for today. Enter fallback values (per 1 unit of foreign currency).{" "}
+              <Link to="/office?tab=rates" className="text-primary underline">Open Rates</Link>
+            </p>
+          )}
           <div className="space-y-3">
             {FOREIGN_CURRENCIES.map(c => (
               <div key={c} className="flex items-center gap-3">
                 <span className="text-sm font-mono font-bold text-card-foreground w-10">{c}</span>
-                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" className="flex-1" />
+                <NumberInput
+                  value={rates[c] || ""}
+                  onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))}
+                  placeholder="0"
+                  className="flex-1"
+                  disabled={officeRatesLocked}
+                />
                 <span className="text-xs text-muted-foreground font-mono">TZS</span>
               </div>
             ))}
@@ -363,6 +390,7 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       <ManagerOverrideDialog
         open={showManagerAccess}
