@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Check, X, RotateCcw, ExternalLink, Gift } from "lucide-react";
+import { ShieldCheck, Check, X, RotateCcw, ExternalLink, Gift, History } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -10,14 +10,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "sonner";
-import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
+import { fmtDateTime, fmtDateOnly, fmtDate } from "@/lib/format-date";
 import QuickGrantDialog from "@/components/admin/QuickGrantDialog";
+import BulkGrantDialog, { type BulkGrantTarget } from "@/components/admin/BulkGrantDialog";
+import PlayerGrantsHistoryDrawer from "@/components/admin/PlayerGrantsHistoryDrawer";
 
 type GrantTarget = { id: string; full_name: string; casino_id: string | null; casino_name?: string | null };
 const fmtAmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+
+const formatLastActivity = (iso: string | null): { text: string; cls: string } => {
+  if (!iso) return { text: "·", cls: "text-muted-foreground" };
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  let cls = "";
+  if (days > 90) cls = "text-amber-500";
+  else if (days > 30) cls = "text-muted-foreground";
+  return { text: fmtDate(iso), cls };
+};
 
 const PlayerLink = ({ id, name }: { id: string; name: string }) => (
   <div className="flex items-center gap-1.5">
@@ -46,9 +58,26 @@ const KycReviewsPage = () => {
   const [trustReason, setTrustReason] = useState("");
   const [search, setSearch] = useState("");
   const [grantTarget, setGrantTarget] = useState<GrantTarget | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<{ id: string; full_name: string } | null>(null);
+  const [selected, setSelected] = useState<Record<string, BulkGrantTarget>>({});
+  const [bulkOpen, setBulkOpen] = useState(false);
 
-
-  // ============= Queries =============
+  const toggleSelect = (p: BulkGrantTarget) =>
+    setSelected((s) => {
+      const next = { ...s };
+      if (next[p.id]) delete next[p.id];
+      else next[p.id] = p;
+      return next;
+    });
+  const toggleSelectAll = (list: BulkGrantTarget[], checked: boolean) =>
+    setSelected((s) => {
+      const next = { ...s };
+      if (checked) for (const p of list) next[p.id] = p;
+      else for (const p of list) delete next[p.id];
+      return next;
+    });
+  const clearSelection = () => setSelected({});
+  const selectedCount = Object.keys(selected).length;
   // Tab 1: club app pending queue
   const { data: queue = [], isLoading: queueLoading } = useQuery({
     queryKey: ["kyc_reviews", "queue"],
@@ -120,7 +149,6 @@ const KycReviewsPage = () => {
     },
   });
 
-
   // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
   const { data: notVerified = [], isLoading: nvLoading } = useQuery({
     queryKey: ["players", "not_verified"],
@@ -145,6 +173,41 @@ const KycReviewsPage = () => {
       return (players ?? []).map((p) => ({ ...p, has_pending_kyc: pendingMap.has(p.id) }));
     },
   });
+
+  // Last activity = max(last visit, last grant) per player
+  const activityIds = useMemo(
+    () => [...new Set([...receptionVerified, ...trustedPlayers, ...notVerified].map((p: any) => p.id))],
+    [receptionVerified, trustedPlayers, notVerified]
+  );
+  const { data: lastActivityMap = {} } = useQuery({
+    queryKey: ["player_last_activity", activityIds],
+    enabled: activityIds.length > 0,
+    queryFn: async () => {
+      const m: Record<string, string> = {};
+      const merge = (pid: string, ts: string | null) => {
+        if (!ts) return;
+        if (!m[pid] || new Date(ts) > new Date(m[pid])) m[pid] = ts;
+      };
+      const [{ data: visits }, { data: grants }] = await Promise.all([
+        supabase
+          .from("casino_visits")
+          .select("player_id, checked_in_at, checked_out_at")
+          .in("player_id", activityIds)
+          .order("checked_in_at", { ascending: false })
+          .limit(1000),
+        supabase
+          .from("promo_grants")
+          .select("player_id, created_at")
+          .in("player_id", activityIds)
+          .order("created_at", { ascending: false })
+          .limit(1000),
+      ]);
+      for (const v of (visits as any[]) ?? []) merge(v.player_id, v.checked_out_at || v.checked_in_at);
+      for (const g of (grants as any[]) ?? []) merge(g.player_id, g.created_at);
+      return m;
+    },
+  });
+
 
   // ============= Mutations =============
   const decide = useMutation({
@@ -258,6 +321,16 @@ const KycReviewsPage = () => {
           </TabsTrigger>
         </TabsList>
 
+        {selectedCount > 0 && (
+          <div className="sticky top-2 z-10 flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10 p-2 backdrop-blur">
+            <span className="text-sm font-medium">{selectedCount} selected</span>
+            <Button size="sm" onClick={() => setBulkOpen(true)}>
+              <Gift className="size-3.5" /> Grant to selected
+            </Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
+          </div>
+        )}
+
         {/* ============ TAB 1: QUEUE ============ */}
         <TabsContent value="queue">
           <PageSection title={`Pending club submissions (${queue.length})`} bodyClassName="p-0">
@@ -322,30 +395,55 @@ const KycReviewsPage = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="w-8 p-2">
+                      <Checkbox
+                        checked={rvFiltered.length > 0 && rvFiltered.every((p: any) => selected[p.id])}
+                        onCheckedChange={(c) => toggleSelectAll(
+                          rvFiltered.map((p: any) => ({ id: p.id, full_name: p.full_name ?? `${p.first_name} ${p.last_name}`, casino_id: p.casino_id })),
+                          !!c,
+                        )}
+                      />
+                    </th>
                     <th className="text-left p-2">Player</th>
                     <th className="text-left p-2">Phone</th>
                     <th className="text-left p-2">ID Number</th>
                     <th className="text-left p-2">Casino</th>
                     <th className="text-right p-2">Balance</th>
+                    <th className="text-left p-2">Last activity</th>
                     <th className="text-left p-2">Verified At</th>
                     <th className="text-right p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rvLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-                  {!rvLoading && rvFiltered.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No reception verifications</td></tr>}
+                  {rvLoading && <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!rvLoading && rvFiltered.length === 0 && <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">No reception verifications</td></tr>}
                   {rvFiltered.map((p) => {
                     const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
                     const bal = balanceMap[p.id] ?? 0;
+                    const act = formatLastActivity(lastActivityMap[p.id] ?? null);
+                    const target: BulkGrantTarget = { id: p.id, full_name: fullName, casino_id: p.casino_id };
                     return (
                       <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2">
+                          <Checkbox checked={!!selected[p.id]} onCheckedChange={() => toggleSelect(target)} />
+                        </td>
                         <td className="p-2"><PlayerLink id={p.id} name={fullName} /></td>
                         <td className="p-2 text-xs">{p.phone ?? "—"}</td>
                         <td className="p-2 text-xs font-mono">{p.id_number ?? "—"}</td>
                         <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
                         <td className={`p-2 text-xs text-right font-mono ${bal > 0 ? "" : "text-muted-foreground"}`}>{bal > 0 ? fmtAmt(bal) : "·"}</td>
+                        <td className={`p-2 text-xs ${act.cls}`}>{act.text}</td>
                         <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
                         <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mr-1"
+                            title="Promo history"
+                            onClick={() => setHistoryTarget({ id: p.id, full_name: fullName })}
+                          >
+                            <History className="size-3.5" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -390,28 +488,53 @@ const KycReviewsPage = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="w-8 p-2">
+                      <Checkbox
+                        checked={trustedFiltered.length > 0 && trustedFiltered.every((p: any) => selected[p.id])}
+                        onCheckedChange={(c) => toggleSelectAll(
+                          trustedFiltered.map((p: any) => ({ id: p.id, full_name: p.full_name ?? `${p.first_name} ${p.last_name}`, casino_id: p.casino_id })),
+                          !!c,
+                        )}
+                      />
+                    </th>
                     <th className="text-left p-2">Player</th>
                     <th className="text-left p-2">Phone</th>
                     <th className="text-left p-2">Casino</th>
                     <th className="text-right p-2">Balance</th>
+                    <th className="text-left p-2">Last activity</th>
                     <th className="text-left p-2">Trusted At</th>
                     <th className="text-right p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {trustedLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
+                  {trustedLoading && <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={8} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
                   {trustedFiltered.map((p) => {
                     const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
                     const bal = balanceMap[p.id] ?? 0;
+                    const act = formatLastActivity(lastActivityMap[p.id] ?? null);
+                    const target: BulkGrantTarget = { id: p.id, full_name: fullName, casino_id: p.casino_id };
                     return (
                       <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2">
+                          <Checkbox checked={!!selected[p.id]} onCheckedChange={() => toggleSelect(target)} />
+                        </td>
                         <td className="p-2"><PlayerLink id={p.id} name={fullName} /></td>
                         <td className="p-2 text-xs">{p.phone ?? "—"}</td>
                         <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
                         <td className={`p-2 text-xs text-right font-mono ${bal > 0 ? "" : "text-muted-foreground"}`}>{bal > 0 ? fmtAmt(bal) : "·"}</td>
+                        <td className={`p-2 text-xs ${act.cls}`}>{act.text}</td>
                         <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
                         <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mr-1"
+                            title="Promo history"
+                            onClick={() => setHistoryTarget({ id: p.id, full_name: fullName })}
+                          >
+                            <History className="size-3.5" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -457,22 +580,37 @@ const KycReviewsPage = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="w-8 p-2">
+                      <Checkbox
+                        checked={nvFiltered.length > 0 && nvFiltered.every((p: any) => selected[p.id])}
+                        onCheckedChange={(c) => toggleSelectAll(
+                          nvFiltered.map((p: any) => ({ id: p.id, full_name: p.full_name ?? `${p.first_name} ${p.last_name}`, casino_id: p.casino_id })),
+                          !!c,
+                        )}
+                      />
+                    </th>
                     <th className="text-left p-2">Status</th>
                     <th className="text-left p-2">Player</th>
                     <th className="text-left p-2">Phone</th>
                     <th className="text-left p-2">DOB</th>
                     <th className="text-left p-2">Casino</th>
+                    <th className="text-left p-2">Last activity</th>
                     <th className="text-left p-2">Created</th>
                     <th className="text-right p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {nvLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-                  {!nvLoading && nvFiltered.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">All players verified</td></tr>}
+                  {nvLoading && <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!nvLoading && nvFiltered.length === 0 && <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">All players verified</td></tr>}
                   {nvFiltered.map((p) => {
                     const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
+                    const act = formatLastActivity(lastActivityMap[p.id] ?? null);
+                    const target: BulkGrantTarget = { id: p.id, full_name: fullName, casino_id: p.casino_id };
                     return (
                       <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2">
+                          <Checkbox checked={!!selected[p.id]} onCheckedChange={() => toggleSelect(target)} />
+                        </td>
                         <td className="p-2">
                           {p.has_pending_kyc ? (
                             <Badge variant="destructive" className="text-[10px]">Pending review</Badge>
@@ -486,8 +624,18 @@ const KycReviewsPage = () => {
                         <td className="p-2 text-xs">{p.phone ?? "—"}</td>
                         <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
                         <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                        <td className={`p-2 text-xs ${act.cls}`}>{act.text}</td>
                         <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
                         <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mr-1"
+                            title="Promo history"
+                            onClick={() => setHistoryTarget({ id: p.id, full_name: fullName })}
+                          >
+                            <History className="size-3.5" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -596,6 +744,17 @@ const KycReviewsPage = () => {
         open={!!grantTarget}
         onOpenChange={(o) => { if (!o) setGrantTarget(null); }}
         player={grantTarget}
+      />
+      <BulkGrantDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        players={Object.values(selected)}
+        onDone={clearSelection}
+      />
+      <PlayerGrantsHistoryDrawer
+        open={!!historyTarget}
+        onOpenChange={(o) => { if (!o) setHistoryTarget(null); }}
+        player={historyTarget}
       />
     </PageShell>
   );
