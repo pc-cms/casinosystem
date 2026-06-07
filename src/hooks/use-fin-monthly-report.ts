@@ -113,18 +113,22 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const incomeCatIds = new Set((cats.data || []).filter((c: any) => c.is_income && !/^(Tables Income|Slots Income)$/.test(c.name)).map((c: any) => c.id));
       const other = (expenses.data || []).filter((e: any) => incomeCatIds.has(e.fin_category_id)).reduce((s, e: any) => s + Number(e.amount_tzs || 0), 0);
 
-      // Index budgets per (cat, currency); sum across months if YTD
+      // Plan Year = sum of all 12 months per category.
+      // Plan Month = sum of selected month(s): single month, or 1..month for YTD.
       const planMap = new Map<string, { tzs: number; usd: number }>();
       const planYearMap = new Map<string, { tzs: number; usd: number }>();
+      const startMonth = ytd ? 1 : month;
+      const endMonth = month;
       (budgets.data || []).forEach((b: any) => {
         const key = b.category_id;
         const py = planYearMap.get(key) || { tzs: 0, usd: 0 };
         const pm = planMap.get(key) || { tzs: 0, usd: 0 };
         const isUsd = b.currency === "USD";
-        const annual = Number(b.planned_amount || 0) * 12;
-        const monthly = Number(b.planned_amount || 0) * monthsCount;
-        py[isUsd ? "usd" : "tzs"] += annual;
-        pm[isUsd ? "usd" : "tzs"] += monthly;
+        const amt = Number(b.planned_amount || 0);
+        py[isUsd ? "usd" : "tzs"] += amt;
+        if (b.month >= startMonth && b.month <= endMonth) {
+          pm[isUsd ? "usd" : "tzs"] += amt;
+        }
         planYearMap.set(key, py);
         planMap.set(key, pm);
       });
