@@ -22,17 +22,12 @@ export default function ClubFooter() {
           Responsible Gaming
         </Link>
       </nav>
-      <div className="pt-4 space-y-1">
-        <p className="font-faberge text-[10px] tracking-[0.4em] uppercase" style={{ color: GOLD_DEEP }}>
-          18+ · PLAY RESPONSIBLY
-        </p>
-        <p className="font-faberge text-[10px] tracking-[0.4em] uppercase" style={{ color: GOLD_DEEP }}>
-          PREMIER CASINO · TANZANIA
-        </p>
-        <p className="font-faberge text-[10px] tracking-[0.4em] uppercase" style={{ color: GOLD_DEEP }}>
-          © 2025
-        </p>
-      </div>
+      <p
+        className="font-faberge text-[10px] tracking-[0.4em] uppercase pt-2"
+        style={{ color: GOLD_DEEP }}
+      >
+        Premier Casino · Tanzania · © 2025
+      </p>
     </footer>
   );
 }
