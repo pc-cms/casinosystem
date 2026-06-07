@@ -39,6 +39,27 @@ export const useUpsertFinCategory = () => {
   });
 };
 
+/** Rename an existing category by id (partial update — safe vs upsert). */
+export const useRenameFinCategory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; name: string }) => {
+      const { error } = await supabase
+        .from("fin_categories")
+        .update({ name: input.name })
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-categories"] });
+      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      toast.success("Category renamed");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+
 /** Inline-edit a single fin_budget cell (year+month+category+currency). */
 export const useUpsertFinBudgetCell = () => {
   const qc = useQueryClient();
