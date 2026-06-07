@@ -159,11 +159,6 @@ const Login = () => {
             >
               {isBranded ? "Premier Casino · Tanzania" : "Casino Management System"}
             </p>
-            {!isBranded && (
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                by Amaell Group LLC
-              </p>
-            )}
             <p
               className={isBranded ? "font-faberge text-[10px] tracking-[0.3em]" : "text-[10px] font-mono text-muted-foreground"}
               style={isBranded ? { color: GOLD, opacity: 0.6 } : undefined}
