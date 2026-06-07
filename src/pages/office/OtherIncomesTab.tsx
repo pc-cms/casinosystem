@@ -125,7 +125,7 @@ export default function OtherIncomesTab() {
               </tbody>
             </table>
             <div className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border">
-              Grey = plan · Green = actual. {canEdit ? "Click plan to edit." : "Read-only for your role."}
+              Grey = plan · Green = actual. {canEdit ? "Click cells to edit." : "Read-only for your role."}
             </div>
           </div>
         )}
