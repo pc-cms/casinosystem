@@ -469,41 +469,45 @@ const KycReviewsPage = () => {
                 <tbody>
                   {nvLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
                   {!nvLoading && nvFiltered.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">All players verified</td></tr>}
-                  {nvFiltered.map((p) => (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2">
-                        {p.has_pending_kyc ? (
-                          <Badge variant="destructive" className="text-[10px]">Pending review</Badge>
-                        ) : p.verification_status === "rejected" ? (
-                          <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">Rejected</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px]">Unverified</Badge>
-                        )}
-                      </td>
-                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
-                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
-                      <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
-                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
-                      <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
-                      <td className="p-2 text-right whitespace-nowrap">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mr-2"
-                          onClick={() => setTrust({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}` })}
-                        >
-                          <ShieldCheck className="size-3.5" /> Mark Trusted
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => window.open(`/players/${p.id}`, "_blank")}
-                        >
-                          <ExternalLink className="size-3.5" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {nvFiltered.map((p) => {
+                    const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
+                    return (
+                      <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2">
+                          {p.has_pending_kyc ? (
+                            <Badge variant="destructive" className="text-[10px]">Pending review</Badge>
+                          ) : p.verification_status === "rejected" ? (
+                            <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">Rejected</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">Unverified</Badge>
+                          )}
+                        </td>
+                        <td className="p-2"><PlayerLink id={p.id} name={fullName} /></td>
+                        <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                        <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
+                        <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                        <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
+                        <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mr-2"
+                            onClick={() => setGrantTarget({ id: p.id, full_name: fullName, casino_id: p.casino_id, casino_name: p.casinos?.name })}
+                          >
+                            <Gift className="size-3.5" /> Grant
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setTrust({ player_id: p.id, name: fullName })}
+                          >
+                            <ShieldCheck className="size-3.5" /> Mark Trusted
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
                 </tbody>
               </table>
             </DataTable>
