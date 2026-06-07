@@ -4,6 +4,8 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { YearSelect } from "@/components/ui/year-select";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -169,10 +171,11 @@ export default function FinancesMonthlyReportPage() {
         belowHeader={
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>{MONTHS.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}</SelectContent>
             </Select>
-            <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 font-mono" />
+            <YearSelect value={year} onChange={setYear} className="w-32" />
+
             <div className="flex items-center gap-2 ml-2">
               <Switch id="ytd" checked={ytd} onCheckedChange={setYtd} />
               <Label htmlFor="ytd" className="text-xs">YTD</Label>

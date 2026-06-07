@@ -11,6 +11,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { YearSelect } from "@/components/ui/year-select";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useFinExcelImports, useFinCategories } from "@/hooks/use-fin";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -176,7 +178,7 @@ export default function FinancesExcelImportPage() {
   return (
     <PageShell>
       <PageHeader icon={Upload} title="Excel Import" subtitle="Parse historical JC Expenses report → fin_budget">
-        <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 font-mono" />
+        <YearSelect value={year} onChange={setYear} />
       </PageHeader>
 
       <PageSection title="1 · Upload Excel">
