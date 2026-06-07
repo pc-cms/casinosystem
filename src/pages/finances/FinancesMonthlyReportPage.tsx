@@ -443,7 +443,8 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, edi
                       <th className="text-left w-[140px]">Wallet</th>
                       <th className="text-right w-[120px]">Amount</th>
                       <th className="text-right w-[120px]">TZS</th>
-                      {showUsd && <th className="text-right w-[100px] pr-2">USD</th>}
+                      {showUsd && <th className="text-right w-[100px]">USD</th>}
+                      {editMode && <th className="text-left w-[170px] pr-2">Move to…</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -458,14 +459,30 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, edi
                           {e.currency && e.currency !== "TZS" && <span className="ml-1 text-[10px] text-muted-foreground">{e.currency}</span>}
                         </td>
                         <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
-                        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground pr-2">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
+                        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
+                        {editMode && (
+                          <td className="pr-2" onClick={(ev) => ev.stopPropagation()}>
+                            <Select onValueChange={(v) => v && onMoveExpense(e.id, v)}>
+                              <SelectTrigger className="h-6 text-[10px] px-1.5"><SelectValue placeholder="Move…" /></SelectTrigger>
+                              <SelectContent className="max-h-[300px]">
+                                {moveTargets.map((t) => (
+                                  <SelectItem key={t.id} value={t.id} className="text-[11px]">
+                                    <span className="text-muted-foreground">{t.group_name}</span> · {t.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:h-7 [&>td]:px-2">
                       <td colSpan={isNetwork ? 5 : 4}>Total · {c.expenses.length}</td>
                       <td className="text-right font-mono tabular-nums">{formatNumberSpaces(c.actual_tzs)}</td>
-                      {showUsd && <td className="text-right font-mono tabular-nums pr-2">{formatNumberSpaces(Math.round(c.actual_tzs / (usdRate || 1)))}</td>}
+                      {showUsd && <td className="text-right font-mono tabular-nums">{formatNumberSpaces(Math.round(c.actual_tzs / (usdRate || 1)))}</td>}
+                      {editMode && <td />}
                     </tr>
+
                   </tbody>
                 </table>
               </div>
