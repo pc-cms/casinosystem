@@ -393,32 +393,47 @@ const KycReviewsPage = () => {
                     <th className="text-left p-2">Player</th>
                     <th className="text-left p-2">Phone</th>
                     <th className="text-left p-2">Casino</th>
+                    <th className="text-right p-2">Balance</th>
                     <th className="text-left p-2">Trusted At</th>
                     <th className="text-right p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {trustedLoading && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
-                  {trustedFiltered.map((p) => (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2 font-medium">{p.full_name ?? `${p.first_name} ${p.last_name}`}</td>
-                      <td className="p-2 text-xs">{p.phone ?? "—"}</td>
-                      <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
-                      <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
-                      <td className="p-2 text-right">
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setRevoke({ player_id: p.id, name: p.full_name ?? `${p.first_name} ${p.last_name}`, source: "am_trusted" })}
-                        >
-                          <RotateCcw className="size-3.5" /> Revoke
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {trustedLoading && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!trustedLoading && trustedFiltered.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No trusted players</td></tr>}
+                  {trustedFiltered.map((p) => {
+                    const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
+                    const bal = balanceMap[p.id] ?? 0;
+                    return (
+                      <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2"><PlayerLink id={p.id} name={fullName} /></td>
+                        <td className="p-2 text-xs">{p.phone ?? "—"}</td>
+                        <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                        <td className={`p-2 text-xs text-right font-mono ${bal > 0 ? "" : "text-muted-foreground"}`}>{bal > 0 ? fmtAmt(bal) : "·"}</td>
+                        <td className="p-2 text-xs text-muted-foreground">{p.verified_at ? fmtDateTime(p.verified_at) : "—"}</td>
+                        <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mr-2"
+                            onClick={() => setGrantTarget({ id: p.id, full_name: fullName, casino_id: p.casino_id, casino_name: p.casinos?.name })}
+                          >
+                            <Gift className="size-3.5" /> Grant
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setRevoke({ player_id: p.id, name: fullName, source: "am_trusted" })}
+                          >
+                            <RotateCcw className="size-3.5" /> Revoke
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+
             </DataTable>
           </PageSection>
         </TabsContent>
