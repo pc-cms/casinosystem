@@ -91,3 +91,35 @@ export const useFinDailyRate = (businessDate?: string, currency?: string) => {
     enabled: !!activeCasinoId && !!businessDate && !!currency,
   });
 };
+
+/**
+ * Resolve foreign-currency rates for a given business date (defaults to today's
+ * effective business date). Returns a Record<currency, number> — currencies
+ * without an Office-set rate are simply absent from the map.
+ */
+export const useFinDailyRatesForDate = (businessDate?: string) => {
+  const { activeCasinoId } = useCasino();
+  const { data: today } = useEffectiveBusinessDate();
+  const date = businessDate ?? today;
+  return useQuery({
+    queryKey: ["fin-daily-rates-for-date", activeCasinoId, date],
+    queryFn: async () => {
+      if (!activeCasinoId || !date) return {} as Record<string, number>;
+      const { data, error } = await supabase
+        .from("fin_daily_rates")
+        .select("currency, rate_to_tzs")
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", date)
+        .in("currency", FOREIGN_CURRENCIES);
+      if (error) throw error;
+      const out: Record<string, number> = {};
+      (data || []).forEach((r: any) => {
+        const v = Number(r.rate_to_tzs);
+        if (v > 0) out[r.currency] = v;
+      });
+      return out;
+    },
+    enabled: !!activeCasinoId && !!date,
+  });
+};
+
