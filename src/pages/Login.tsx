@@ -144,12 +144,14 @@ const Login = () => {
 
             {error && <p className="mt-3 text-xs text-destructive text-center">{error}</p>}
 
-            <p
-              className="mt-4 text-center text-[10px] tracking-[0.3em] uppercase"
-              style={isBranded ? { color: GOLD, opacity: 0.7 } : undefined}
-            >
-              {isBranded ? "18+ · Play Responsibly" : <span className="text-muted-foreground">18+ · Play Responsibly</span>}
-            </p>
+            {isBranded && (
+              <p
+                className="mt-4 text-center text-[10px] tracking-[0.3em] uppercase"
+                style={{ color: GOLD, opacity: 0.7 }}
+              >
+                18+ · Play Responsibly
+              </p>
+            )}
           </div>
 
           <div className="mt-12 text-center space-y-0.5">
