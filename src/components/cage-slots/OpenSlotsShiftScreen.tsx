@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+
 import { Coins, Play, ChevronRight, ChevronLeft, CreditCard, Settings2, History } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
