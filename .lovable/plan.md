@@ -1,62 +1,129 @@
-## Goal
 
-Replace the current dark cinematic "command-center" skin of `src/pages/Landing.tsx` with a Dreelio-inspired light premium look (sky gradient + soft clouds + huge black grotesque headings + black pill buttons + tilted product mockups + marquee logos), while keeping ALL existing business content: modules, operators, pricing tiers, supported languages, contact form, footer copyright.
+# Global Finance & Office Redesign
 
-Only the landing route is affected. Nothing inside the app (cashier, pit, finance, admin) changes. No backend, DB, or auth changes — pure presentation.
+## 1. Kill number-input spinners everywhere
 
-## Visual direction (locked)
+Browser up/down arrows on `<input type="number">` are noise. We hide them globally.
 
-- **Palette (light)**: background gradient `#dbeafe → #eff6ff → #fef3e8` (sky blue fading to warm cream at the bottom of each section). Surfaces white `#ffffff` with 1px `#e5e7eb` borders. Text near-black `#0a0a0a`, secondary `#52525b`. Single accent `#0a0a0a` (Dreelio uses black, not a colored accent). Soft cloud SVGs floating behind hero and section transitions.
-- **Type**: Inter Tight via Google Fonts (heading 600–700, body 400–500). H1 7–8rem desktop, tight tracking `-0.04em`. No serif.
-- **Buttons**: fully-rounded pill (`border-radius: 999px`), solid black primary with white text, outlined ghost secondary on light backgrounds.
-- **Mockups**: real CMS screenshots displayed in tilted 3D perspective (`rotateX(12deg) rotateY(-6deg)`), soft drop shadow, no chrome.
-- **Motion**: subtle fade-up on scroll, marquee auto-scroll, hover lift on cards. Existing `StaggerContainer` motion lib reused.
+- `src/index.css`: add a global rule
+  ```css
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+  ```
+- Replace year `<input type="number">` pickers with a `Select` dropdown (current year ±5). Affects at minimum:
+  - `FinancesBudgetPage.tsx`
+  - Monthly Report year picker
+  - Monthly Tips / Weekly Bonus year inputs
+  - Any other "year" number input found by grep.
 
-## Section structure (top → bottom)
+## 2. Office: one page, tabbed shell
 
-1. **SiteHeader** — light glassy bar, Casino System wordmark, nav links (Modules · Why custom · Pricing · Contact), black pill CTA "Book a demo".
-2. **Hero** — eyebrow chip, huge H1 ("Run your land-based casino like a Tier-1 operator"), 2-line subhead, dual pill CTAs ("Book a demo" / "See modules"), then a tilted dashboard screenshot below.
-3. **OperatorsStrip** — infinite marquee with current operator wordmarks (Casino Royal Sal Cabo Verde, Napoleons Casinos & Restaurants, Rainbow Casino Birmingham, Casino de Spa, Portomaso Casino). Two-row reversed direction like Dreelio.
-4. **BuiltForLandBased** — alternating row: text left ("Pit, Cage & Reception in one operating system"), tab chips (Pit · Cage · Reception · Tables · Analytics), tilted mock right.
-5. **FinancialControl** — reverse alternating row: tilted mock left, text right ("Track every chip, every cash desk, every shift"), tab chips (Wallets · Cash Count · Budget · Monthly · Audit).
-6. **ModulesGrid** — bento grid of all existing modules from current `ModulesGrid.tsx` (Pit, Cage, Reception, Tables, Players, Finance, POS, HR, Surveillance, Promo). Mixed-size cards on white with subtle shadow.
-7. **Integrations / Languages strip** — circular logo grid (5 currencies + supported languages icons) styled like Dreelio's integration grid; copy "Speaks your language. Settles in your currency."
-8. **WhyCustom** — three quiet cards: "Built around land-based ops", "Per-casino data isolation", "On-prem or cloud, your choice".
-9. **IntegrationProcess** — 4-step timeline (Discovery → Bootstrap → Training → Go-live) styled as quiet numbered rows.
-10. **Pricing** — keep current tier content/numbers (Starter / Growth / Network), restyled as 3 white pill-cornered cards, black pill CTA inside each.
-11. **Testimonials** — 3–4 quote cards with operator title (no fake photos; use initials avatar in muted disc, since memory says no fake people). Quotes pulled from existing `OperatorsStrip` quotes if present, else short generic operator quotes.
-12. **AboutCMS** — short manifesto block restated for light theme.
-13. **ContactForm** — light card, same fields and submission wiring as current form.
-14. **SiteFooter** — light footer, copyright `©2026 Amaell Group LLC. All Rights Reserved.`.
+New route `/office` rendered as `PageShell + Tabs`. Single sidebar entry "Office". Tab order (locked):
 
-## Files touched
+```text
+Safe · Day Closings · Money Change · Wallets · Other Incomes · Rates
+```
 
-Rewrite in place (no new top-level route, no project reset):
-- `src/pages/landing/landing.css` — new light tokens, sky gradient, cloud SVG layers, pill button class, marquee keyframes, tilt mockup utility, font import.
-- `src/pages/landing/components/BackdropLayers.tsx` — replace dark glow with sky gradient + drifting cloud SVGs.
-- `src/pages/landing/components/SiteHeader.tsx` — light glass bar, black pill CTA.
-- `src/pages/landing/components/Hero.tsx` — new H1 + dual pills + tilted hero mock.
-- `src/pages/landing/components/OperatorsStrip.tsx` — convert to two-row marquee.
-- `src/pages/landing/components/BuiltForLandBased.tsx` — alternating feature row #1.
-- New `src/pages/landing/components/FinancialFeature.tsx` — alternating feature row #2.
-- `src/pages/landing/components/ModulesGrid.tsx` — restyle as light bento.
-- New `src/pages/landing/components/IntegrationsLanguages.tsx` — circle grid.
-- `src/pages/landing/components/WhyCustom.tsx`, `IntegrationProcess.tsx`, `Pricing.tsx`, `AboutCMS.tsx`, `ContactForm.tsx`, `SiteFooter.tsx` — restyle to light tokens; content unchanged.
-- New `src/pages/landing/components/Testimonials.tsx` — quote cards with initial avatars.
-- `src/pages/Landing.tsx` — add the two new sections in the order above; drop `ProductScreens.tsx` and `SolutionsGrid.tsx` (their content is absorbed into the new feature rows + modules bento).
-- 1 hero mockup image (tilted dashboard) generated and stored under `src/assets/landing/` (replaces unused old dark hero asset).
+- Each existing page (`FinancesSafePage`, `FinDayClosingPage`, `FinMoneyChangePage`, `FinWalletsPage`, new OtherIncomes, new Rates) is mounted as a tab via React Router nested routes so deep links keep working.
+- Sidebar: collapse the old "Finances/Office" entries into one "Office" link; legacy URLs redirect to the matching tab.
+- Intercasino transfers stays as a row INSIDE Money Change (already its existing home — confirm and don't duplicate).
 
-Routing, i18n provider, language switcher, and existing form submission wiring stay as is.
+## 3. Day Closings — manual table
+
+Redesigned `/office/day-closings`:
+
+- One row per business date, columns:
+  `Date · Tables (manual) · Slots (manual) · Comment · OK`
+- Below each manual input, in muted grey text, the auto-computed value (`shifts.tables_result` sum for the day; `cage_slots_shifts.system_shift_result` sum). The auto value pre-fills the input on first open; user may overwrite. Trailing grey hint shows the original auto number so deviation is visible.
+- "OK" button locks the row (writes to `fin_day_closing` with `closed_at`/`closed_by`); locked rows render read-only with a small unlock affordance for Finance Director.
+- Comment is free text, stored on the same row.
+- Manager Access required to edit a locked row (uses existing override).
+
+## 4. Monthly Expenses — reuse Expenses look
+
+Throw out the current standalone Monthly Expenses layout. Build on top of the regular Expenses page:
+
+- Same header chrome (filters, search, totals row) as `/expenses`.
+- Default filter = current month; month-switcher in header.
+- Category dropdown in the create/edit row exposes the FULL new `fin_categories` tree (main + sub), not the old `expense_categories`.
+- Existing rows show category as `Main → Sub` chip; an inline dropdown lets Finance reassign category in place (writes `fin_category_id`, audit log entry).
+
+## 5. Budget — single tab with Plan / Actual / Difference
+
+Rebuild `/office/budget` as one grid; drop separate "Budget vs Actual" page.
+
+Per category row, per month, render THREE sub-columns:
+```text
+| Plan | Actual (grey, auto) | Δ |
+```
+- `Plan`: editable, manual.
+- `Actual`: auto from `expenses` aggregated per (casino, category, month, currency), rendered in muted grey, read-only.
+- `Δ`: `Actual − Plan`, colored `cms-amount-positive` / `cms-amount-negative`.
+- Currency: NO conversion. For categories that have entries in BOTH TZS and USD, render TWO stacked rows per month (TZS row + USD row). For single-currency categories, one row. The category meta now stores `currencies: ['TZS'] | ['USD'] | ['TZS','USD']` derived from existing budget rows.
+- Month-close lock: each month has a "Close month" button (Finance Director) → writes `fin_budget_lock` (new table, `casino_id, year, month, locked_at, locked_by`). Locked cells become non-editable.
+- Year selector = dropdown (per §1).
+
+(Sub-tabs Prediction / Actual / Difference rejected — collapsed into one grid per user's "одна вкладка" instruction; the three sub-columns ARE the three views.)
+
+## 6. Rates — per-casino daily FX
+
+New tab `/office/rates`, new table `fin_daily_rates`:
+```text
+casino_id · business_date · currency · rate_to_tzs · set_at · set_by
+PK (casino_id, business_date, currency)
+```
+- Office Rates tab: grid of dates × currencies (USD, EUR, GBP, KES). Editable from Office only.
+- On Cage shift open: Rates input is REMOVED. Cage reads today's row from `fin_daily_rates` (per-casino). If missing, cashier gets a blocking banner "Office must set today's rates" — no fallback to manual entry.
+- All expense / cashless / transfer writes resolve rate via `fin_daily_rates(casino_id, business_date, currency)` — different days legitimately have different rates.
+- Backfill migration: seed `fin_daily_rates` from the most recent `cage_slots_exchange_rates` per casino so nothing breaks on day-1.
+
+## 7. Monthly Report rebuild
+
+Page `/finances/monthly-report` becomes a fully inline editor.
+
+- Header sizing fix: `Month` cell == `Year` cell width (both use the same `w-32` Select). Year cell currently wider — equalize.
+- Single flat table (no split per group). Columns:
+  ```text
+  Main category | Sub category | Plan Year | Plan Month | Actual | Δ | (expand)
+  ```
+  - `Main`/`Sub` are inline-editable: rename in place, drag to reparent, "+" to add new sub. Writes through `fin_categories`.
+  - `Plan Year` / `Plan Month` pulled from `fin_budget` (read-only here; edit in Budget tab).
+  - `Actual` aggregated from `expenses` for the selected month.
+  - Δ colored.
+  - Two currency columns per metric (TZS, USD) — no conversion.
+- Inline category reassign on expense rows: when a row is expanded, each expense gets a small "Move to…" dropdown that writes `fin_category_id` (same as §4).
+- Expanded expense row shows: `Date · Description · Wallet · Amount TZS · Amount USD · Cash Desk · Move-to`.  
+  Rename current ambiguous `amount` header to `Amount TZS` / `Amount USD` (two columns; USD only filled if entry was USD).
+- Larger numeric font on totals: bump `text-[11px]` → `text-sm tabular-nums font-mono`.
+
+## 8. Out of scope (explicit)
+
+- Don't touch Cage shift business logic beyond removing the manual Rates field and switching the read source to `fin_daily_rates`.
+- Don't touch player / pit / POS modules.
+- Don't touch landing page or design system tokens.
 
 ## Technical notes
 
-- Font added via `<link>` in `landing.css` `@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap')`; scoped to `.landing-root` so it does not leak into the app shell (memory rule: app keeps its current density tokens).
-- All colors are landing-local CSS variables under `.landing-root`; tailwind semantic tokens in the rest of the app are untouched.
-- Reuses existing motion utils (`StaggerContainer`) — no new motion library.
-- Build expected to pass; no TS API surface changes.
+- **New tables**
+  - `fin_daily_rates (casino_id, business_date, currency, rate_to_tzs, set_at, set_by)` + GRANTs + RLS (read: authenticated same casino; write: finance_director, super_admin).
+  - `fin_budget_lock (casino_id, year, month, locked_at, locked_by)` + GRANTs + RLS.
+- **Altered**
+  - `fin_day_closing`: add `tables_manual bigint`, `slots_manual bigint`, `comment text`, `closed_at`, `closed_by`.
+  - `expenses`: no schema change; we already have `fin_category_id`. Add audit row on inline reassign (already covered by `fin_audit_log`).
+- **New routes / pages**
+  - `src/pages/office/OfficePage.tsx` (tab shell)
+  - `src/pages/office/RatesTab.tsx`
+  - `src/pages/office/OtherIncomesTab.tsx` (extracted from current finance page)
+  - Refactor `FinDayClosingPage`, `FinancesBudgetPage`, `FinancesMonthlyReportPage` to new specs.
+- **Hooks**
+  - `use-fin-daily-rates.ts` (CRUD)
+  - `use-fin-budget-lock.ts`
+  - Update `use-fin.ts` to expose Plan/Actual/Δ shape.
+- **Sidebar / routing**
+  - Collapse Office links to one entry; legacy `/finances/*` URLs redirect to the corresponding `/office/<tab>` path.
+- **Version bump**: patch `package.json` (backend changes present).
 
-## Out of scope
+## Open questions deferred to build time
 
-- App theme, dark mode toggle, density tokens, sidebar, auth screens.
-- Memory rule update — the previously stored "dark cinematic" preference will be superseded by this turn; memory file will be updated to reflect the new locked direction after the build is approved.
-- No new copy invented for operators/pricing/modules — content stays as it is today.
+None blocking — answers already locked from the clarifying questions.
