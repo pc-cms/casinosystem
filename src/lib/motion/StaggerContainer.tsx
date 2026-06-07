@@ -5,10 +5,12 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 interface StaggerContainerProps {
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   stagger?: number;
   delayChildren?: number;
   amount?: number;
   once?: boolean;
+  as?: keyof JSX.IntrinsicElements;
 }
 
 export function StaggerContainer({
