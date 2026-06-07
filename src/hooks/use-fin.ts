@@ -39,6 +39,42 @@ export const useUpsertFinCategory = () => {
   });
 };
 
+/** Inline-edit a single fin_budget cell (year+month+category+currency). */
+export const useUpsertFinBudgetCell = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (input: {
+      year: number;
+      month: number; // 1..12
+      category_id: string;
+      currency: "TZS" | "USD";
+      planned_amount: number;
+    }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await supabase.from("fin_budget").upsert(
+        {
+          casino_id: activeCasinoId,
+          year: input.year,
+          month: input.month,
+          category_id: input.category_id,
+          currency: input.currency,
+          planned_amount: input.planned_amount,
+        },
+        { onConflict: "casino_id,year,month,category_id,currency" },
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-monthly-report"] });
+      qc.invalidateQueries({ queryKey: ["fin-budget"] });
+      toast.success("Plan updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+
 /* =====================  WALLETS (per casino)  ===================== */
 export const useFinWallets = () => {
   const { activeCasinoId, isSummaryMode } = useCasino();
