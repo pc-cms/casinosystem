@@ -2306,6 +2306,48 @@ export type Database = {
         }
         Relationships: []
       }
+      consultation_requests: {
+        Row: {
+          company: string | null
+          contact: string
+          created_at: string
+          email_error: string | null
+          email_sent: boolean
+          id: string
+          language: string
+          message: string
+          name: string
+          source_url: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          company?: string | null
+          contact: string
+          created_at?: string
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          language?: string
+          message: string
+          name: string
+          source_url?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          company?: string | null
+          contact?: string
+          created_at?: string
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          language?: string
+          message?: string
+          name?: string
+          source_url?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       cron_run_log: {
         Row: {
           created_at: string
