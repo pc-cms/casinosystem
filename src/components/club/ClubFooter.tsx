@@ -26,7 +26,7 @@ export default function ClubFooter() {
         className="font-faberge text-[10px] tracking-[0.4em] uppercase pt-2"
         style={{ color: GOLD_DEEP }}
       >
-        Premier Casino · Tanzania · © 2025
+        ©2025 Premier Casino. All rights reserved.
       </p>
     </footer>
   );
