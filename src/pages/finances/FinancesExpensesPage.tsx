@@ -24,10 +24,11 @@ import {
 const todayBD = () => new Date().toISOString().slice(0, 10);
 const pad = (n: number) => String(n).padStart(2, "0");
 
-type Period = "month" | "ytd" | "all" | "custom";
+type Period = "day" | "month" | "ytd" | "all" | "custom";
 
 function computeRange(period: Period, anchor: string): { from?: string; to?: string } {
   const d = new Date(anchor + "T00:00:00");
+  if (period === "day") return { from: anchor, to: anchor };
   if (period === "month") {
     const from = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
     const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
@@ -55,6 +56,14 @@ export default function FinancesExpensesPage() {
     d.setDate(1);
     d.setMonth(d.getMonth() + delta);
     setAnchor(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`);
+  };
+
+  const resetFilters = () => {
+    setSearch("");
+    setCategoryFilter("all");
+    setWalletFilter("all");
+    setPeriod("month");
+    setAnchor(todayBD());
   };
 
   const [search, setSearch] = useState("");
