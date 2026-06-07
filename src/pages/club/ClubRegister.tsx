@@ -295,6 +295,7 @@ export default function ClubRegister() {
                 Sign in
               </Link>
             </p>
+          )}
         </div>
       </main>
       <ClubFooter />
