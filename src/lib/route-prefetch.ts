@@ -53,7 +53,6 @@ const routeLoaders: Loader[] = [
   () => import("@/pages/PlayerStatistics"),
   () => import("@/pages/Cashless"),
   () => import("@/pages/Incidents"),
-  () => import("@/pages/Incidents"),
   () => import("@/pages/cage/CloseShiftPage"),
   () => import("@/pages/cage/RegisterPlayerPage"),
   () => import("@/pages/cage/EditOpeningChipsPage"),
