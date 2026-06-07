@@ -278,7 +278,9 @@ const KycReviewsPage = () => {
                   {!queueLoading && queue.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No pending reviews</td></tr>}
                   {queue.map((r) => (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="p-2 font-medium">{r.players?.full_name ?? "—"}</td>
+                      <td className="p-2">
+                        {r.players ? <PlayerLink id={r.player_id} name={r.players.full_name ?? "—"} /> : "—"}
+                      </td>
                       <td className="p-2 text-xs">{r.players?.phone ?? "—"}</td>
                       <td className="p-2"><Badge variant="outline" className="text-xs">{r.source}</Badge></td>
                       <td className="p-2 text-xs text-muted-foreground">
@@ -295,6 +297,7 @@ const KycReviewsPage = () => {
                       </td>
                     </tr>
                   ))}
+
                 </tbody>
               </table>
             </DataTable>
