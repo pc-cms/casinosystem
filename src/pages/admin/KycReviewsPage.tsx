@@ -149,6 +149,31 @@ const KycReviewsPage = () => {
     },
   });
 
+  // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
+  const { data: notVerified = [], isLoading: nvLoading } = useQuery({
+    queryKey: ["players", "not_verified"],
+    queryFn: async () => {
+      const { data: players, error } = await supabase
+        .from("players")
+        .select("id, full_name, first_name, last_name, phone, birth_date, verification_status, created_at, casino_id, casinos(name)")
+        .in("verification_status", ["unverified", "rejected"])
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      const ids = (players ?? []).map((p) => p.id);
+      let pendingMap = new Set<string>();
+      if (ids.length) {
+        const { data: revs } = await supabase
+          .from("kyc_reviews")
+          .select("player_id, source")
+          .in("player_id", ids)
+          .eq("status", "pending");
+        pendingMap = new Set((revs ?? []).map((r: any) => r.player_id));
+      }
+      return (players ?? []).map((p) => ({ ...p, has_pending_kyc: pendingMap.has(p.id) }));
+    },
+  });
+
   // Last activity = max(last visit, last grant) per player
   const activityIds = useMemo(
     () => [...new Set([...receptionVerified, ...trustedPlayers, ...notVerified].map((p: any) => p.id))],
@@ -183,33 +208,6 @@ const KycReviewsPage = () => {
     },
   });
 
-
-
-
-  // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
-  const { data: notVerified = [], isLoading: nvLoading } = useQuery({
-    queryKey: ["players", "not_verified"],
-    queryFn: async () => {
-      const { data: players, error } = await supabase
-        .from("players")
-        .select("id, full_name, first_name, last_name, phone, birth_date, verification_status, created_at, casino_id, casinos(name)")
-        .in("verification_status", ["unverified", "rejected"])
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      const ids = (players ?? []).map((p) => p.id);
-      let pendingMap = new Set<string>();
-      if (ids.length) {
-        const { data: revs } = await supabase
-          .from("kyc_reviews")
-          .select("player_id, source")
-          .in("player_id", ids)
-          .eq("status", "pending");
-        pendingMap = new Set((revs ?? []).map((r: any) => r.player_id));
-      }
-      return (players ?? []).map((p) => ({ ...p, has_pending_kyc: pendingMap.has(p.id) }));
-    },
-  });
 
   // ============= Mutations =============
   const decide = useMutation({
