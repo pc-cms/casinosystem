@@ -1,0 +1,90 @@
+/**
+ * Per-casino daily FX rates (TZS base). Office-owned.
+ * Cage should read today's rate from here on shift open (Phase next).
+ */
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCasino } from "@/lib/casino-context";
+import { toast } from "sonner";
+
+export type FinDailyRate = {
+  id: string;
+  casino_id: string;
+  business_date: string;
+  currency: string;
+  rate_to_tzs: number;
+  set_by: string | null;
+  set_at: string;
+};
+
+/** All rates for the active casino across [from..to]. */
+export const useFinDailyRates = (from: string, to: string) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["fin-daily-rates", activeCasinoId, from, to],
+    queryFn: async () => {
+      if (!activeCasinoId) return [] as FinDailyRate[];
+      const { data, error } = await supabase
+        .from("fin_daily_rates")
+        .select("*")
+        .eq("casino_id", activeCasinoId)
+        .gte("business_date", from)
+        .lte("business_date", to)
+        .order("business_date", { ascending: false });
+      if (error) throw error;
+      return (data || []) as FinDailyRate[];
+    },
+    enabled: !!activeCasinoId,
+  });
+};
+
+export const useUpsertFinDailyRate = () => {
+  const qc = useQueryClient();
+  const { activeCasinoId } = useCasino();
+  return useMutation({
+    mutationFn: async (input: {
+      business_date: string;
+      currency: string;
+      rate_to_tzs: number;
+    }) => {
+      if (!activeCasinoId) throw new Error("No casino");
+      const { error } = await supabase.from("fin_daily_rates").upsert(
+        {
+          casino_id: activeCasinoId,
+          business_date: input.business_date,
+          currency: input.currency,
+          rate_to_tzs: input.rate_to_tzs,
+          set_at: new Date().toISOString(),
+        },
+        { onConflict: "casino_id,business_date,currency" },
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fin-daily-rates"] });
+      qc.invalidateQueries({ queryKey: ["fin-daily-rate-today"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+};
+
+/** Resolve a single (date, currency) → rate. Returns null if missing. */
+export const useFinDailyRate = (businessDate?: string, currency?: string) => {
+  const { activeCasinoId } = useCasino();
+  return useQuery({
+    queryKey: ["fin-daily-rate-today", activeCasinoId, businessDate, currency],
+    queryFn: async () => {
+      if (!activeCasinoId || !businessDate || !currency) return null;
+      if (currency === "TZS") return 1;
+      const { data } = await supabase
+        .from("fin_daily_rates")
+        .select("rate_to_tzs")
+        .eq("casino_id", activeCasinoId)
+        .eq("business_date", businessDate)
+        .eq("currency", currency)
+        .maybeSingle();
+      return data ? Number(data.rate_to_tzs) : null;
+    },
+    enabled: !!activeCasinoId && !!businessDate && !!currency,
+  });
+};
