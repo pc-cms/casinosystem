@@ -297,8 +297,8 @@ export default function ClubRegister() {
             </p>
           )}
         </div>
-        <ClubFooter />
       </main>
+      <ClubFooter />
     </div>
   );
 }
