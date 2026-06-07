@@ -34,12 +34,31 @@ const Panel = ({ children, className = "" }: { children: React.ReactNode; classN
 );
 
 export default function ClubWallet() {
+  const qc = useQueryClient();
   const [showQr, setShowQr] = useState(false);
+  const [code, setCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ["club-wallet"],
     queryFn: () => clubApi.wallet(),
     refetchInterval: showQr ? 30_000 : 60_000,
   });
+
+  const redeem = async () => {
+    const clean = code.trim();
+    if (!clean) return;
+    setRedeeming(true);
+    try {
+      const res = await clubApi.redeemCode(clean);
+      toast.success(`+${formatNumberSpaces(res.amount)} credits added`);
+      setCode("");
+      qc.invalidateQueries({ queryKey: ["club-wallet"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not redeem code");
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   const grants = data?.grants ?? [];
   const redemptions = data?.redemptions ?? [];
