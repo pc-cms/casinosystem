@@ -161,7 +161,7 @@ const Login = () => {
             </p>
             {!isBranded && (
               <p className="text-[10px] font-mono text-muted-foreground">
-                © 2026 Amaell Group LLC. All rights reserved.
+                ©2026 Amaell Group LLC. All rights reserved.
               </p>
             )}
           </div>
