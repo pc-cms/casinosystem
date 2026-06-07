@@ -144,29 +144,14 @@ const Login = () => {
 
             {error && <p className="mt-3 text-xs text-destructive text-center">{error}</p>}
 
-            {isBranded && (
-              <p
-                className="mt-4 text-center text-[10px] tracking-[0.3em] uppercase"
-                style={{ color: GOLD, opacity: 0.7 }}
-              >
-                18+ · Play Responsibly
-              </p>
-            )}
           </div>
 
-          <div className="mt-12 text-center space-y-0.5">
-            <p
-              className={isBranded ? "font-faberge text-[10px] tracking-[0.3em]" : "text-xs font-mono uppercase tracking-widest text-muted-foreground"}
-              style={isBranded ? { color: GOLD, opacity: 0.85 } : undefined}
-            >
-              {isBranded ? "©2025 Premier Casino. All rights reserved." : "Casino Management System"}
+          <div className="mt-12 text-center">
+            <p className="text-[10px] font-sans text-primary">
+              ©2026 Amaell Group LLC. All rights reserved.
             </p>
-            {!isBranded && (
-              <p className="text-[10px] font-sans text-primary">
-                ©2026 Amaell Group LLC. All rights reserved.
-              </p>
-            )}
           </div>
+
         </div>
       </div>
     </div>
