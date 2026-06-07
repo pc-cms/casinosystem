@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useOpenShift, useLastClosedShift } from "@/hooks/use-shift";
+import { useFinDailyRatesForDate } from "@/hooks/use-fin-daily-rates";
+import { Link } from "react-router-dom";
+
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
