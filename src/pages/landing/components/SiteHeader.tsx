@@ -4,9 +4,7 @@ import { LangSwitcher } from "./LangSwitcher";
 import { Menu, X } from "lucide-react";
 
 const links = [
-  { id: "home", key: "home" as const },
   { id: "modules", key: "modules" as const },
-  { id: "solutions", key: "solutions" as const },
   { id: "partners", key: "partners" as const },
   { id: "about", key: "about" as const },
   { id: "contact", key: "contacts" as const },
@@ -24,7 +22,7 @@ export function SiteHeader() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "16px 24px",
+          padding: "14px 24px",
           gap: 16,
         }}
       >
@@ -36,29 +34,28 @@ export function SiteHeader() {
             gap: 10,
             textDecoration: "none",
             color: "var(--l-text)",
-            fontWeight: 800,
-            letterSpacing: "-0.02em",
-            fontSize: 18,
+            fontWeight: 700,
+            letterSpacing: "-0.03em",
+            fontSize: 19,
           }}
         >
           <span
             aria-hidden
             style={{
               display: "inline-block",
-              width: 24,
-              height: 24,
-              borderRadius: 6,
-              background:
-                "linear-gradient(135deg, var(--l-gold) 0%, #8a6e30 100%)",
+              width: 26,
+              height: 26,
+              borderRadius: 8,
+              background: "#0a0a0a",
             }}
           />
-          CMS
+          Casino System
         </a>
 
         <nav
           aria-label="Primary"
           className="l-nav-desktop"
-          style={{ display: "flex", gap: 28, alignItems: "center" }}
+          style={{ display: "flex", gap: 32, alignItems: "center" }}
         >
           {links.map((l) => (
             <a
@@ -67,8 +64,9 @@ export function SiteHeader() {
               style={{
                 color: "var(--l-text-muted)",
                 textDecoration: "none",
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: 500,
+                letterSpacing: "-0.01em",
               }}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.color = "var(--l-text)")
@@ -101,8 +99,8 @@ export function SiteHeader() {
             background: "transparent",
             border: "1px solid var(--l-border-strong)",
             color: "var(--l-text)",
-            borderRadius: 8,
-            padding: 8,
+            borderRadius: 999,
+            padding: 10,
             cursor: "pointer",
           }}
         >
@@ -119,6 +117,7 @@ export function SiteHeader() {
             display: "flex",
             flexDirection: "column",
             gap: 14,
+            background: "rgba(255,255,255,0.95)",
           }}
         >
           {links.map((l) => (
@@ -131,7 +130,7 @@ export function SiteHeader() {
                 textDecoration: "none",
                 fontSize: 16,
                 fontWeight: 500,
-                padding: "8px 0",
+                padding: "10px 0",
                 borderBottom: "1px solid var(--l-border)",
               }}
             >
