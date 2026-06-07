@@ -54,18 +54,27 @@ export function Hero() {
 
         <SectionReveal y={40} delay={0.2}>
           <div
-            className="l-tilt"
-            style={{ marginTop: 80, maxWidth: 1180, marginInline: "auto" }}
+            style={{
+              marginTop: 64,
+              maxWidth: 1180,
+              marginInline: "auto",
+              borderRadius: 22,
+              overflow: "hidden",
+              boxShadow:
+                "0 60px 120px -40px rgba(15,23,42,0.35), 0 20px 40px -20px rgba(15,23,42,0.18)",
+              border: "1px solid rgba(10,10,10,0.08)",
+              background: "#ffffff",
+            }}
           >
-            <div className="l-tilt__inner">
-              <img
-                src={heroMock}
-                alt="Casino System dashboard interface"
-                loading="eager"
-              />
-            </div>
+            <img
+              src={heroMock}
+              alt="Casino System dashboard interface"
+              loading="eager"
+              style={{ display: "block", width: "100%", height: "auto" }}
+            />
           </div>
         </SectionReveal>
+
       </div>
     </section>
   );
