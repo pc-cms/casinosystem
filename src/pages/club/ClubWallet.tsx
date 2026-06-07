@@ -170,6 +170,46 @@ export default function ClubWallet() {
         </p>
       </div>
 
+      {/* ===== Promo code redemption ===== */}
+      <Panel className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Ticket className="w-3.5 h-3.5" style={{ color: GOLD }} />
+          <p className="font-faberge text-[10px] tracking-[0.4em] uppercase" style={{ color: GOLD_DEEP }}>
+            Promo code
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !redeeming) redeem();
+            }}
+            placeholder="ENTER CODE"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            className="flex-1 h-11 rounded-md border px-3 font-mono tracking-[0.2em] uppercase outline-none min-w-0"
+            style={{
+              backgroundColor: "rgba(0,0,0,0.55)",
+              borderColor: `${GOLD}55`,
+              color: GOLD,
+            }}
+          />
+          <button
+            type="button"
+            onClick={redeem}
+            disabled={redeeming || !code.trim()}
+            className="h-11 px-4 rounded-md font-faberge text-[11px] tracking-[0.3em] uppercase flex items-center justify-center gap-1.5 disabled:opacity-50"
+            style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
+          >
+            {redeeming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
+          </button>
+        </div>
+      </Panel>
+
+
+
       {/* ===== Redemption QR ===== */}
       <Panel className="p-5">
         {showQr && qrPayload ? (
