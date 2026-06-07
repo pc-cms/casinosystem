@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
-import { ClipboardPen, Lock, Unlock, Check } from "lucide-react";
+import { ClipboardPen, Lock, Unlock, Check, AlertTriangle } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   useDayClosingList,
   useUpsertDayClosing,
@@ -109,29 +111,29 @@ function DayRow({
   const tablesNum = state.tables === "" ? tablesAuto : Number(state.tables);
   const slotsNum = state.slots === "" ? slotsAuto : Number(state.slots);
 
-  const onOk = async () => {
+  const dT = Math.abs(tablesNum - tablesAuto);
+  const dS = Math.abs(slotsNum - slotsAuto);
+  const needsNote = dT > 1 || dS > 1;
+
+  const [varianceOpen, setVarianceOpen] = useState(false);
+  const [varianceNote, setVarianceNote] = useState("");
+
+  const doSave = async (noteOverride?: string) => {
+    const finalComment = noteOverride ?? state.comment;
     try {
       await upsert.mutateAsync({
         id: existing?.id,
         business_date: date,
         tables_result: tablesNum,
         slots_result: slotsNum,
-        notes: state.comment || null,
+        notes: finalComment || null,
       });
-      // After upsert, the row gains an id via list refresh; lock in a follow-up
-      // tick to avoid race: rely on existing.id when present, else skip lock.
       if (existing?.id) {
-        const dT = Math.abs(tablesNum - tablesAuto);
-        const dS = Math.abs(slotsNum - slotsAuto);
-        const needsNote = dT > 1 || dS > 1;
-        if (needsNote && (state.comment || "").trim().length < 3) {
-          toast.error("Variance vs auto — comment (min 3 chars) required to lock");
-          return;
-        }
         await lock.mutateAsync({
           id: existing.id,
-          varianceNote: needsNote ? state.comment.trim() : null,
+          varianceNote: needsNote ? (finalComment || "").trim() : null,
         });
+        toast.success("Day closed");
       } else {
         toast.success("Saved — press OK again to lock");
       }
@@ -140,8 +142,18 @@ function DayRow({
     }
   };
 
+  const onOk = () => {
+    if (needsNote && (state.comment || "").trim().length < 3) {
+      setVarianceNote(state.comment || "");
+      setVarianceOpen(true);
+      return;
+    }
+    doSave();
+  };
+
   return (
-    <tr className={cn("border-t border-border", locked && !unlocked && "bg-muted/30")}>
+    <>
+    <tr className={cn("border-t border-border", locked && !unlocked && "bg-muted/30", needsNote && editable && "bg-amber-500/5")}>
       <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{fmtDate(date)}</td>
 
       <td className="px-3 py-2 text-right">
@@ -219,5 +231,40 @@ function DayRow({
         )}
       </td>
     </tr>
+
+    <ResponsiveDialog
+      open={varianceOpen}
+      onOpenChange={setVarianceOpen}
+      size="md"
+      title={
+        <span className="flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          Variance vs auto
+        </span>
+      }
+      description={`Tables Δ ${formatNumberSpaces(dT)} · Slots Δ ${formatNumberSpaces(dS)}. Please explain why entered values differ from cage actuals.`}
+    >
+      <Textarea
+        value={varianceNote}
+        onChange={(e) => setVarianceNote(e.target.value)}
+        placeholder="Reason (min 3 characters)…"
+        rows={3}
+        autoFocus
+      />
+      <ResponsiveDialogFooter>
+        <Button variant="outline" onClick={() => setVarianceOpen(false)}>Cancel</Button>
+        <Button
+          disabled={varianceNote.trim().length < 3 || upsert.isPending || lock.isPending}
+          onClick={() => {
+            setState((s) => ({ ...s, comment: varianceNote.trim() }));
+            setVarianceOpen(false);
+            doSave(varianceNote.trim());
+          }}
+        >
+          Save &amp; Lock
+        </Button>
+      </ResponsiveDialogFooter>
+    </ResponsiveDialog>
+    </>
   );
 }
