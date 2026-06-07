@@ -3,6 +3,8 @@ import { BarChart3, AlertTriangle, X, Download } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
+import { YearSelect } from "@/components/ui/year-select";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -114,7 +116,7 @@ export default function FinancesBudgetVsActualPage() {
               {overrunCount} overrun{overrunCount === 1 ? "" : "s"}
             </Badge>
           )}
-          <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 font-mono" />
+          <YearSelect value={year} onChange={setYear} />
           <Button size="sm" variant="outline" onClick={exportXlsx}>
             <Download className="w-3.5 h-3.5 mr-1" />XLSX
           </Button>

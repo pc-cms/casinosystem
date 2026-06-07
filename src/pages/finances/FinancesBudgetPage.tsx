@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { YearSelect } from "@/components/ui/year-select";
+
 import { Button } from "@/components/ui/button";
 import { useFinBudget, useFinCategories, useUpsertFinBudget, useSetAnnualBudget } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
@@ -37,7 +39,7 @@ export default function FinancesBudgetPage() {
     <PageShell>
       <PageHeader icon={Target} title="Budget" subtitle="Per-casino · per-category · per-month">
         <FinanceCasinoSwitcher allowNetwork={false} />
-        <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24 font-mono" />
+        <YearSelect value={year} onChange={setYear} />
         <Select value={currency} onValueChange={setCurrency}>
           <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="TZS">TZS</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>

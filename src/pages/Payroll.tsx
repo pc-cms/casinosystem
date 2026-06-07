@@ -7,6 +7,8 @@ import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { YearSelect } from "@/components/ui/year-select";
+
 import { useAuth } from "@/lib/auth-context";
 import { usePayrollPeriods, useCreatePayrollPeriod, useDuplicatePayrollPeriod, type PayrollPeriod } from "@/hooks/use-payroll";
 import { fmtDateTime } from "@/lib/format-date";
@@ -97,9 +99,10 @@ const Payroll = () => {
           <DialogHeader><DialogTitle>New Payroll Period</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3 py-2">
             <label className="space-y-1 text-xs"><span className="text-muted-foreground">Year</span>
-              <Input type="number" value={year} onChange={e => setYear(Number(e.target.value))} /></label>
+              <YearSelect value={year} onChange={setYear} className="w-full" /></label>
             <label className="space-y-1 text-xs"><span className="text-muted-foreground">Month</span>
               <Input type="number" min={1} max={12} value={month} onChange={e => setMonth(Number(e.target.value))} /></label>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
@@ -113,9 +116,10 @@ const Payroll = () => {
           <DialogHeader><DialogTitle>Duplicate to New Month</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3 py-2">
             <label className="space-y-1 text-xs"><span className="text-muted-foreground">Year</span>
-              <Input type="number" value={year} onChange={e => setYear(Number(e.target.value))} /></label>
+              <YearSelect value={year} onChange={setYear} className="w-full" /></label>
             <label className="space-y-1 text-xs"><span className="text-muted-foreground">Month</span>
               <Input type="number" min={1} max={12} value={month} onChange={e => setMonth(Number(e.target.value))} /></label>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDupSource(null)}>Cancel</Button>
