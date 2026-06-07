@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
-import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { Receipt, Plus, Trash2, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { FilterBar } from "@/components/layout/FilterBar";
 import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,91 +141,137 @@ export default function FinancesExpensesPage() {
 
   return (
     <PageShell>
-      <PageHeader icon={Receipt} title="Monthly Expenses" subtitle="Per-casino expense ledger">
+      <PageHeader
+        icon={Receipt}
+        title="Monthly Expenses"
+        subtitle={`Per-casino expense ledger · ${visible.length} of ${rows.length} records`}
+        date
+      >
         <FinanceCasinoSwitcher />
         <label className="text-xs flex items-center gap-1.5">
           <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
         </label>
         {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
       </PageHeader>
-      <PageSection card={false}>
-        <FilterBar
-          search={
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search description / category"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-7 h-8 w-[240px]"
-              />
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Total TZS</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">{formatNumberSpaces(totalTzs)}</p>
+        </div>
+        <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Records</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">{visible.length}</p>
+        </div>
+        <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Categories</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">
+            {new Set(visible.map((r: any) => r.fin_category_id).filter(Boolean)).size}
+          </p>
+        </div>
+        <div className="cms-panel p-3">
+          <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Wallets</p>
+          <p className="font-mono text-lg font-bold text-card-foreground">
+            {new Set(visible.map((r: any) => r.wallet_id).filter(Boolean)).size}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="cms-panel p-3 mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
+          <div className="ml-auto flex items-center gap-1 flex-wrap">
+            {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
+              <Button
+                key={p}
+                size="sm"
+                variant={period === p ? "default" : "outline"}
+                className="h-7 px-2 text-xs capitalize"
+                onClick={() => setPeriod(p)}
+              >
+                {p === "ytd" ? "YTD" : p}
+              </Button>
+            ))}
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
+              Reset
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          {period === "day" && (
+            <div className="md:col-span-2 flex items-end gap-1">
+              <div className="flex-1">
+                <label className="text-[10px] uppercase text-muted-foreground">Date</label>
+                <Input type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} className="h-8 text-xs" />
+              </div>
             </div>
-          }
-          presets={
-            <div className="flex items-center gap-1">
-              {(["month", "ytd", "all", "custom"] as Period[]).map((p) => (
-                <Button
-                  key={p}
-                  size="sm"
-                  variant={period === p ? "default" : "outline"}
-                  className="h-7 px-2 text-xs capitalize"
-                  onClick={() => setPeriod(p)}
-                >
-                  {p === "ytd" ? "YTD" : p}
-                </Button>
-              ))}
+          )}
+          {period === "month" && (
+            <div className="md:col-span-2 flex items-end gap-1">
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)} title="Previous month">‹</Button>
+              <div className="flex-1">
+                <label className="text-[10px] uppercase text-muted-foreground">Month</label>
+                <Input
+                  type="month"
+                  value={anchor.slice(0, 7)}
+                  onChange={(e) => setAnchor(e.target.value + "-01")}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)} title="Next month">›</Button>
             </div>
-          }
-          filters={
+          )}
+          {period === "custom" && (
             <>
-              {period === "month" && (
-                <div className="flex items-center gap-1">
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)}>
-                    <ArrowDown className="w-3.5 h-3.5 rotate-90" />
-                  </Button>
-                  <Input
-                    type="month"
-                    value={anchor.slice(0, 7)}
-                    onChange={(e) => setAnchor(e.target.value + "-01")}
-                    className="h-8 w-[150px]"
-                  />
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)}>
-                    <ArrowUp className="w-3.5 h-3.5 rotate-90" />
-                  </Button>
-                </div>
-              )}
-              {period === "custom" && (
-                <>
-                  <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 w-[150px]" />
-                  <span className="text-xs text-muted-foreground">→</span>
-                  <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-[150px]" />
-                </>
-              )}
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-8 w-[200px]"><SelectValue placeholder="Category" /></SelectTrigger>
-                <SelectContent className="max-h-80">
-                  <SelectItem value="all">All categories</SelectItem>
-                  {categories.filter((c: any) => !c.is_income).map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>{c.group_name} · {c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={walletFilter} onValueChange={setWalletFilter}>
-                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Wallet" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All wallets</SelectItem>
-                  {wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div>
+                <label className="text-[10px] uppercase text-muted-foreground">From</label>
+                <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 text-xs" />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase text-muted-foreground">To</label>
+                <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 text-xs" />
+              </div>
             </>
-          }
-          right={
-            <div className="text-xs text-muted-foreground">
-              <span className="mr-2">{visible.length} rows</span>
-              <span className="font-mono tabular-nums text-foreground">{formatNumberSpaces(totalTzs)} TZS</span>
-            </div>
-          }
-        />
+          )}
+          {(period === "ytd" || period === "all") && <div className="md:col-span-2" />}
+          <div>
+            <label className="text-[10px] uppercase text-muted-foreground">Category</label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-80">
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.filter((c: any) => !c.is_income).map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.group_name} · {c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase text-muted-foreground">Wallet</label>
+            <Select value={walletFilter} onValueChange={setWalletFilter}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All wallets</SelectItem>
+                {wallets.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase text-muted-foreground">Search</label>
+            <Input
+              placeholder="Description or category…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+      </div>
+
+      <PageSection card={false}>
         <FinTable>
           <FinTHead>
             <tr>
