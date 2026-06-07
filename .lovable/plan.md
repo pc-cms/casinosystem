@@ -1,160 +1,47 @@
+## Goal
+Add premium motion infrastructure to the existing project without touching routes, styling, or deployment. Deliver reusable animation primitives ready for the upcoming landing redesign.
 
-# Casinosystem.app — Premium B2B Landing Redesign
+## Packages
+Install (runtime deps):
+- `motion` (Motion for React, successor to framer-motion)
+- `gsap`
+- `@gsap/react` (peer of `react`, provides `useGSAP` hook)
 
-Refactors the existing `src/pages/Landing.tsx` (root-domain catch-all route — preserved). No new framework. No template replacement. Authenticated app, subdomains, club app, POS — all untouched.
+Skip `three` / `@react-three/fiber` / `@react-three/drei` per instruction.
 
-## 1. Information architecture
+`package.json` updates automatically via `bun add`. Version bump not required (no backend change).
 
-Single-page landing with anchored sections, structured so each section is a standalone component that can later be promoted to a route.
+## Reduced-motion strategy
+Single shared hook `src/lib/motion/usePrefersReducedMotion.ts` that wraps `window.matchMedia('(prefers-reduced-motion: reduce)')` with a subscription. Every component below early-returns to a static render when it returns `true` — no opacity/transform animations, no GSAP timelines.
 
-```
-/  (Landing)
-├─ <SiteHeader />          logo · Home · Modules · Solutions · Partners · About · Contacts · [EN/ES/RU] · [Request Consultation]
-├─ <Hero />
-├─ <BuiltForLandBased />
-├─ <ModulesGrid />         9 modules
-├─ <WhyCustom />
-├─ <IntegrationProcess />  6 steps
-├─ <ProductScreens />      featured + supporting frames
-├─ <OperatorsStrip />      6 operator lockups
-├─ <Pricing />             from $5,000 / from $340
-├─ <SolutionsGrid />       6 cards
-├─ <AboutCMS />
-├─ <ContactForm />
-└─ <SiteFooter />          ©2026 Amaell Group LLC.
+GSAP is registered once in `src/lib/motion/gsap.ts`:
+```ts
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
+export { gsap, ScrollTrigger };
 ```
 
-Routes file: only `/` keeps catch-all `<Landing />`. Header anchors use `#modules`, `#solutions`, etc. — easy to lift into real routes later.
+## Components (all under `src/lib/motion/`)
 
-## 2. Design system (scoped to landing only — does not touch the operational CMS theme)
+1. **`SectionReveal.tsx`** — wraps children in a Motion `<m.div>` that fades + translates up on viewport enter (`whileInView`, `viewport={{ once: true, amount: 0.2 }}`). Props: `as`, `delay`, `y` (default 24), `className`. Static `<div>` when reduced-motion.
 
-New CSS scope `.landing-root` in `src/pages/landing/landing.css` (imported only by Landing) defines its own tokens — keeps app `index.css` untouched.
+2. **`StaggerContainer.tsx`** — Motion parent with `variants` that stagger children by `staggerChildren` (default 0.08s). Exports companion `StaggerItem` with matching child variants (fade + 16px y). Reduced-motion: plain wrapper.
 
-Tokens:
-- `--bg`: `#0B0D10` (graphite-black)
-- `--surface`: `#11141A`
-- `--surface-2`: `#171B22`
-- `--border`: `rgba(255,255,255,0.08)`
-- `--text`: `#E7EAEE`
-- `--text-muted`: `#9AA2AD`
-- `--accent-gold`: `#C9A24C` (muted)
-- `--accent-teal`: `#3FB8A6` (emerald/teal)
-- Font: **Inter** loaded from Google Fonts (preconnect) — applied only inside `.landing-root`.
-- Light dashboard frames: white card with `--border` + soft shadow on dark bg.
+3. **`AnimatedCard.tsx`** — Motion card with idle float (subtle), hover lift (`whileHover={{ y: -4, scale: 1.01 }}`), tap press, and entrance fade. Props pass through `className`, `onClick`. Honors reduced-motion (renders plain `<div>` with hover via CSS class only).
 
-No purple gradients, no blobs, no neon. Subtle 1px borders, generous whitespace (sections ≥ 96px vertical), max-width 1200px.
+4. **`ParallaxScreenshot.tsx`** — Wraps an `<img>` (or arbitrary child) in a Motion element that translates Y based on scroll progress using `useScroll` + `useTransform`. Props: `src`, `alt`, `offset` (default 40px), `className`. Reduced-motion: static image, no transform.
 
-## 3. Internationalization (EN/ES/RU)
+5. **`ScrollFlow.tsx`** — GSAP-based pinned scroll sequence using `useGSAP` + `ScrollTrigger`. Accepts an array of step refs/children and orchestrates fade/translate between them as the user scrolls past the container. Props: `children` (each step rendered in its own slot), `pin` (boolean, default false), `scrub` (default 0.5). Reduced-motion: renders children stacked vertically, no ScrollTrigger created.
 
-Lightweight, dependency-free.
+Barrel export: `src/lib/motion/index.ts` re-exports all five plus the hook.
 
-- `src/pages/landing/i18n/` → `en.ts`, `es.ts`, `ru.ts` exporting a typed dictionary object with every string (hero, nav, module titles/descs, integration steps, pricing copy, form labels, footer).
-- `src/pages/landing/i18n/LandingI18nProvider.tsx`: React context with `lang` state, `setLang`, and `t(path)` helper. Default `en`. Persists to `localStorage('landing.lang')`. Sets `<html lang>` via effect.
-- `<LangSwitcher />` in header: EN / ES / RU pills.
-- Professional human-tone translations for all three (not machine-style).
+## Verification
+- Build runs automatically; confirm no TS or bundler errors.
+- No existing imports change, no route or layout edits.
+- New code is tree-shakeable; nothing imported globally yet.
 
-Scoped to landing only — does not affect the rest of the app.
-
-## 4. Content
-
-### Hero
-H1: "Custom Casino System for Land-Based Casinos"
-Sub: enterprise CMS line.
-Supporting line.
-Primary CTA → scrolls to `#contact` ("Request Consultation").
-Secondary link → `#modules` ("Explore Modules").
-Visual: composition of 1 large + 3 small light dashboard mockup frames using existing `src/assets/landing/*.jpg` (already in project). Each frame is a `<MockupFrame label="Dashboard">`, captions overlaid. Easy swap — frames driven by an array `HERO_SCREENS` at top of Hero.
-
-### Modules grid (9)
-Cage Operations · Pit & Table Management · Finance Control · Player Tracking · HR & Staff · Bar POS · Client Club App · Warehouse/Storage · Surveillance. Lucide line icons (Vault, LayoutGrid, Wallet, Users, BadgeCheck, Wine, Smartphone, Boxes, Eye). Copy verbatim from brief.
-
-### Why Custom
-8 bullet checkpoints in 2-col grid.
-
-### Integration & Implementation
-6 numbered steps with thin gold rule between.
-
-### Product screenshots
-`ProductScreens` reads from `SCREENS` array. Initially uses existing landing JPGs + placeholder frames labeled Dashboard / Cage / Pit / Finance / Player Tracking / Client Club App. Each item: `{ label, caption, src? }`. Missing `src` → renders a clean labeled empty frame.
-
-### Operators We Work With
-6 generated minimal monochrome lockups via `imagegen` (white/gold text + a tiny mark, transparent PNG, equal height). Saved to `src/assets/landing/operators/{slug}.png`. Strip is grayscale + 70% opacity, hover → 100%. Equal height row, wraps to 2 cols on mobile.
-Operators: Premier Casino, Casino Royal Sal Cabo Verde, Napoleons Casinos & Restaurants, Rainbow Casino Birmingham, Casino de Spa, Portomaso Casino. No city callouts. None highlighted. Replaceable later.
-
-### Pricing
-Two cards, no plan ladder. "Enterprise implementation — from $5,000". "Monthly licensing — from $340". Fine-print note. CTA: Request Consultation.
-
-### Solutions
-6 cards from brief.
-
-### About CMS
-Short prose; Amaell Group LLC mentioned only in footer.
-
-### Contact form
-Fields: Name · Company · Email or WhatsApp · Message. Zod validation, `react-hook-form`, shadcn inputs styled to landing palette.
-
-## 5. Consultation form backend (Lovable Cloud + email)
-
-### DB migration
-Table `public.consultation_requests`:
-- `id uuid pk`, `name text`, `company text`, `contact text` (email or WhatsApp), `message text`, `language text`, `source_url text`, `user_agent text`, `created_at timestamptz`.
-- GRANT INSERT to `anon` and `authenticated`; GRANT ALL to `service_role`.
-- RLS: `INSERT` allowed to anon (`true`); SELECT only to `super_admin` via `has_role(auth.uid(),'super_admin')`.
-- No update/delete policies.
-
-### Edge function `send-consultation`
-Server-side: input validation (zod), insert row with service role, then send email via **Lovable Emails** (`send-transactional-email`). New template `consultation-request` (React Email) sent to a configured recipient. Recipient address stored as runtime secret `CONSULTATION_RECIPIENT_EMAIL`.
-
-Prerequisite check: Lovable Emails domain. If not yet configured, surface the email-setup dialog at run time and skip email send until it's ready (DB row still saved → no lead lost). The plan covers both states.
-
-### Client wiring
-Form submits to `send-consultation` via `supabase.functions.invoke`. Success → toast + replaces form with "We'll be in touch" panel. Failure → toast error, row may still have landed.
-
-## 6. SEO + meta
-
-Update `index.html`:
-- `<title>`: "Custom Casino System for Land-Based Casinos | CMS"
-- description, keywords from brief.
-- Canonical = `https://casinosystem.app/`.
-- OG title/description/url.
-- Organization JSON-LD (Amaell Group LLC, sameAs left empty for now).
-- Preconnect to fonts.gstatic.com / fonts.googleapis.com.
-
-## 7. Component file layout
-
-```
-src/pages/Landing.tsx                       (replaced — composes sections)
-src/pages/landing/
-  landing.css                                (scoped tokens + Inter)
-  i18n/{en,es,ru}.ts
-  i18n/LandingI18nProvider.tsx
-  data/modules.ts solutions.ts operators.ts pricing.ts screens.ts
-  components/
-    SiteHeader.tsx  LangSwitcher.tsx  Hero.tsx
-    BuiltForLandBased.tsx  ModulesGrid.tsx  WhyCustom.tsx
-    IntegrationProcess.tsx  ProductScreens.tsx  MockupFrame.tsx
-    OperatorsStrip.tsx  Pricing.tsx  SolutionsGrid.tsx
-    AboutCMS.tsx  ContactForm.tsx  SiteFooter.tsx
-src/assets/landing/operators/*.png           (6 generated lockups)
-supabase/functions/send-consultation/index.ts
-supabase/functions/_shared/transactional-email-templates/consultation-request.tsx
-```
-
-## 8. Out of scope (explicit)
-
-- No changes to `/login`, `/pos/login`, club app, subdomain CMS routing, auth, RLS on existing tables.
-- No changes to global `index.css`/`tailwind.config.ts` tokens.
-- No real operator logo scraping; lockups are visual placeholders the user can replace any time by dropping a file into `src/assets/landing/operators/`.
-- No separate /modules /solutions /partners /about /contacts routes yet — anchors only. Lift later by importing the same section components into new route files.
-
-## 9. Order of execution (build mode)
-
-1. Migration + GRANT/RLS for `consultation_requests`.
-2. Email infra check; scaffold transactional templates if missing; add `consultation-request` template; deploy.
-3. `send-consultation` edge function; add secret `CONSULTATION_RECIPIENT_EMAIL`.
-4. Landing scaffold: scoped CSS, i18n provider, dictionaries.
-5. Section components + data files.
-6. Generate 6 operator lockup PNGs (premium quality, transparent bg, white + muted gold).
-7. Replace `src/pages/Landing.tsx` body to compose sections inside `<LandingI18nProvider>` with `.landing-root` wrapper.
-8. Update `index.html` meta + JSON-LD.
-9. Visual QA at 1440 / 1024 / 390 widths.
+## Out of scope
+- Applying the components to the landing page (next step).
+- Any visual/CSS token changes.
+- 3D / WebGL libraries.
