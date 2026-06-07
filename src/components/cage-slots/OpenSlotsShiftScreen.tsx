@@ -226,12 +226,27 @@ const OpenSlotsShiftScreen = () => {
       <Dialog open={showRates} onOpenChange={setShowRates}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Exchange Rates</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground mb-3">Set how many TZS per 1 unit of foreign currency. Pre-filled from the last Live Game cage shift.</p>
+          {officeRatesLocked ? (
+            <p className="text-xs text-muted-foreground mb-3">
+              Set in <Link to="/office?tab=rates" className="text-primary underline">Office → Rates</Link> for today's business date. Read-only here.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mb-3">
+              No Office rates for today. Fallback values (per 1 unit of foreign currency).{" "}
+              <Link to="/office?tab=rates" className="text-primary underline">Open Rates</Link>
+            </p>
+          )}
           <div className="space-y-3">
             {FOREIGN_CURRENCIES.map(c => (
               <div key={c} className="flex items-center gap-3">
                 <span className="text-sm font-mono font-bold text-card-foreground w-10">{c}</span>
-                <NumberInput value={rates[c] || ""} onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))} placeholder="0" className="flex-1" />
+                <NumberInput
+                  value={rates[c] || ""}
+                  onChange={v => setRates(r => ({ ...r, [c]: Number(v) || 0 }))}
+                  placeholder="0"
+                  className="flex-1"
+                  disabled={officeRatesLocked}
+                />
                 <span className="text-xs text-muted-foreground font-mono">TZS</span>
               </div>
             ))}
@@ -241,6 +256,7 @@ const OpenSlotsShiftScreen = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </PageShell>
   );
 };
