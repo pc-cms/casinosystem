@@ -580,22 +580,37 @@ const KycReviewsPage = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-xs uppercase">
+                    <th className="w-8 p-2">
+                      <Checkbox
+                        checked={nvFiltered.length > 0 && nvFiltered.every((p: any) => selected[p.id])}
+                        onCheckedChange={(c) => toggleSelectAll(
+                          nvFiltered.map((p: any) => ({ id: p.id, full_name: p.full_name ?? `${p.first_name} ${p.last_name}`, casino_id: p.casino_id })),
+                          !!c,
+                        )}
+                      />
+                    </th>
                     <th className="text-left p-2">Status</th>
                     <th className="text-left p-2">Player</th>
                     <th className="text-left p-2">Phone</th>
                     <th className="text-left p-2">DOB</th>
                     <th className="text-left p-2">Casino</th>
+                    <th className="text-left p-2">Last activity</th>
                     <th className="text-left p-2">Created</th>
                     <th className="text-right p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {nvLoading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-                  {!nvLoading && nvFiltered.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">All players verified</td></tr>}
+                  {nvLoading && <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
+                  {!nvLoading && nvFiltered.length === 0 && <tr><td colSpan={9} className="p-4 text-center text-muted-foreground">All players verified</td></tr>}
                   {nvFiltered.map((p) => {
                     const fullName = p.full_name ?? `${p.first_name} ${p.last_name}`;
+                    const act = formatLastActivity(lastActivityMap[p.id] ?? null);
+                    const target: BulkGrantTarget = { id: p.id, full_name: fullName, casino_id: p.casino_id };
                     return (
                       <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2">
+                          <Checkbox checked={!!selected[p.id]} onCheckedChange={() => toggleSelect(target)} />
+                        </td>
                         <td className="p-2">
                           {p.has_pending_kyc ? (
                             <Badge variant="destructive" className="text-[10px]">Pending review</Badge>
@@ -609,8 +624,18 @@ const KycReviewsPage = () => {
                         <td className="p-2 text-xs">{p.phone ?? "—"}</td>
                         <td className="p-2 text-xs">{p.birth_date ? fmtDateOnly(p.birth_date) : "—"}</td>
                         <td className="p-2 text-xs">{p.casinos?.name ?? "—"}</td>
+                        <td className={`p-2 text-xs ${act.cls}`}>{act.text}</td>
                         <td className="p-2 text-xs text-muted-foreground">{fmtDateTime(p.created_at)}</td>
                         <td className="p-2 text-right whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mr-1"
+                            title="Promo history"
+                            onClick={() => setHistoryTarget({ id: p.id, full_name: fullName })}
+                          >
+                            <History className="size-3.5" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
