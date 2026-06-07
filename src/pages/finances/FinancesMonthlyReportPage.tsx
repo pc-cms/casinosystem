@@ -52,7 +52,7 @@ export default function FinancesMonthlyReportPage() {
   const editMode = canEdit && !isNetwork && !ytd;
 
   const upsertBudget = useUpsertFinBudgetCell();
-  const upsertCategory = useUpsertFinCategory();
+  const renameCategory = useRenameFinCategory();
   const moveExpense = useUpdateExpenseFinCategory();
   const { data: allCats } = useFinCategories();
 
