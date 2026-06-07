@@ -291,14 +291,25 @@ const Kpi = ({ label, v, signed }: { label: string; v: number; signed?: boolean 
   </div>
 );
 
-const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd }: {
+type EditCallbacks = {
+  editMode: boolean;
+  year: number;
+  month: number;
+  allCategories: { id: string; name: string; group_name: string | null; group_code: string | null; is_active: boolean; is_income: boolean }[];
+  onPlanCommit: (catId: string, currency: "TZS" | "USD", amount: number) => void;
+  onRenameCategory: (catId: string, newName: string) => void;
+  onMoveExpense: (expenseId: string, newCatId: string) => void;
+};
+
+const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
   usdRate: number;
   isNetwork: boolean;
   showUsd: boolean;
-}) => {
+} & EditCallbacks) => {
+
   const colCount = 6 + (showUsd ? 4 : 0); // Category + 5 metrics + optional 4 USD
   return (
     <PageSection title={group.name} card={false}>
