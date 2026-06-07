@@ -6,7 +6,8 @@ import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import { YearSelect } from "@/components/ui/year-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
-import { useFinCategories, useFinBudget, useFinExpenses, useUpsertFinBudgetCell } from "@/hooks/use-fin";
+import { useFinCategories, useFinBudget, useUpsertFinBudgetCell } from "@/hooks/use-fin";
+import { useFinIncomes, useUpsertFinIncome } from "@/hooks/use-fin-incomes";
 import { formatNumberSpaces } from "@/lib/currency";
 import { useAuth } from "@/lib/auth-context";
 
@@ -21,8 +22,9 @@ export default function OtherIncomesTab() {
 
   const { data: categories = [] } = useFinCategories();
   const { data: budget = [] } = useFinBudget(year);
-  const { data: expenses = [] } = useFinExpenses({ from: `${year}-01-01`, to: `${year}-12-31` });
+  const { data: incomes = [] } = useFinIncomes(year);
   const upsertCell = useUpsertFinBudgetCell();
+  const upsertIncome = useUpsertFinIncome();
 
   const incomeCats = useMemo(
     () => (categories || []).filter((c: any) => c.is_income && !/^(Tables Income|Slots Income)$/.test(c.name)),
@@ -40,15 +42,13 @@ export default function OtherIncomesTab() {
 
   const actual = useMemo(() => {
     const m: Record<string, Record<number, number>> = {};
-    (expenses || []).forEach((e: any) => {
-      if (e.voided_at || !e.fin_category_id) return;
-      const mo = new Date(e.business_date).getMonth() + 1;
-      const amt = currency === "TZS" ? Number(e.amount_tzs || e.amount || 0) : Number(e.amount_usd || 0);
-      m[e.fin_category_id] = m[e.fin_category_id] || {};
-      m[e.fin_category_id][mo] = (m[e.fin_category_id][mo] || 0) + amt;
+    (incomes || []).filter((i: any) => i.currency === currency).forEach((i: any) => {
+      m[i.fin_category_id] = m[i.fin_category_id] || {};
+      m[i.fin_category_id][i.month] = Number(i.amount || 0);
     });
     return m;
-  }, [expenses, currency]);
+  }, [incomes, currency]);
+
 
   return (
     <PageShell>
