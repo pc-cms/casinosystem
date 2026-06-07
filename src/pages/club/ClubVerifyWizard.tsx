@@ -124,9 +124,18 @@ export default function ClubVerifyWizard() {
       nav("/club/profile", { replace: true });
     },
     onError: (e: any) => {
-      const msg = e?.message || "Submit failed";
+      // If a previous request already locked the profile, treat as success.
+      const msg = String(e?.message || "");
+      if (/already[_ ]submitted/i.test(msg)) {
+        toast.success("Submitted for verification");
+        qc.invalidateQueries({ queryKey: ["club-wallet"] });
+        nav("/club/profile", { replace: true });
+        return;
+      }
       console.error("club-submit-kyc failed:", e);
-      toast.error(msg, { description: e?.code ? `code: ${e.code}` : "Check your connection or try smaller photos." });
+      toast.error(msg || "Submit failed", {
+        description: e?.code ? `code: ${e.code}` : "Check your connection or try smaller photos.",
+      });
     },
   });
 
@@ -139,6 +148,7 @@ export default function ClubVerifyWizard() {
   })();
 
   const goNext = async () => {
+    if (submit.isPending) return; // guard against rapid double-tap
     if (step === 2 && idFront && !ocrResult) {
       // Kick off OCR before entering confirm step (don't block)
       runOcr(idFront);
