@@ -7,6 +7,8 @@ import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { YearSelect } from "@/components/ui/year-select";
+
 import { useAuth } from "@/lib/auth-context";
 import { usePayrollPeriods, useCreatePayrollPeriod, useDuplicatePayrollPeriod, type PayrollPeriod } from "@/hooks/use-payroll";
 import { fmtDateTime } from "@/lib/format-date";
