@@ -246,3 +246,34 @@ export const useApproveExpense = () => {
     onError: (e: any) => toast.error(e?.message || "Failed to approve"),
   });
 };
+
+/** Manager-only: re-classify an existing expense by changing its finance plan
+ *  category. Does not touch the operational `category` code, amounts, dates or
+ *  any cash-affecting field — pure analytical re-bucketing for Monthly Report.
+ *  Pass `null` to clear the override (auto-resolve will kick in if category
+ *  changes later). */
+export const useUpdateExpenseFinCategory = () => {
+  const qc = useQueryClient();
+  const { casinoId, user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: { id: string; fin_category_id: string | null }) => {
+      if (!user) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("expenses")
+        .update({ fin_category_id: input.fin_category_id })
+        .eq("id", input.id);
+      if (error) throw error;
+      await logAction(casinoId!, "expense", "EXPENSE_FIN_CATEGORY_CHANGED", {
+        expense_id: input.id,
+        fin_category_id: input.fin_category_id,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["expenses-slots"] });
+      qc.invalidateQueries({ queryKey: ["fin-monthly"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to update category"),
+  });
+};
+

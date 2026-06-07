@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Receipt, CheckCircle, Plus, X, Trash2, Filter, GlassWater, ExternalLink } from "lucide-react";
 import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
-import { useCreateSlotsExpense } from "@/hooks/use-expenses";
+import { useCreateSlotsExpense, useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
 import { useCreateOfficeExpense, useExpenseCategories } from "@/hooks/use-expense-categories";
 import { useFinCategories } from "@/hooks/use-fin";
 import { useActiveShift } from "@/hooks/use-shift";
@@ -148,6 +148,14 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const createOffice = useCreateOfficeExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
+  const updateFinCat = useUpdateExpenseFinCategory();
+  const { data: allFinCats = [] } = useFinCategories();
+  const finCatById = useMemo(() => {
+    const m: Record<string, any> = {};
+    (allFinCats || []).forEach((c: any) => { m[c.id] = c; });
+    return m;
+  }, [allFinCats]);
+  const [editingFinCatId, setEditingFinCatId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
   const isLoading = loadingExpenses;
@@ -624,10 +632,49 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>
-                          {catLabel}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[exp.category] || CAT_COLORS.other}`}>
+                            {catLabel}
+                          </span>
+                          {isManagerView && editingFinCatId === exp.id ? (
+                            <div className="min-w-[180px]">
+                              <FinCategoryPicker
+                                value={exp.fin_category_id || ""}
+                                onChange={(v) => {
+                                  updateFinCat.mutate(
+                                    { id: exp.id, fin_category_id: v || null },
+                                    { onSuccess: () => { setEditingFinCatId(null); toast.success("Category updated"); } },
+                                  );
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => isManagerView && setEditingFinCatId(exp.id)}
+                              className={`text-[10px] truncate max-w-[160px] ${
+                                exp.fin_category_id
+                                  ? "text-muted-foreground"
+                                  : "text-amber-600 dark:text-amber-400 italic"
+                              } ${isManagerView ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                              title={isManagerView ? "Click to re-classify" : undefined}
+                            >
+                              → {exp.fin_category_id ? (finCatById[exp.fin_category_id]?.name || "—") : "Unassigned"}
+                            </button>
+                          )}
+                          {isManagerView && editingFinCatId === exp.id && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingFinCatId(null)}
+                              className="text-[10px] text-muted-foreground hover:text-foreground"
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
                       </td>
+
                       <td className="px-3 py-2 text-sm">
                         {exp.player_id ? (
                           <Link
