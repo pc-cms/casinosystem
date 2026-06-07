@@ -6,6 +6,7 @@ import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense } from "@/hooks/use-expenses";
 import { useCreateOfficeExpense, useExpenseCategories } from "@/hooks/use-expense-categories";
+import { useFinCategories } from "@/hooks/use-fin";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { useExpenseAnalytics, type ExpenseStatus, type ExpenseTarget, type ExpenseSourceFilter } from "@/hooks/use-expenses-analytics";
@@ -72,6 +73,7 @@ interface DraftRow {
   target: "casino" | "player" | "";
   player_name: string;
   category: string;
+  fin_category_id: string;
   amount: string;
   description: string;
 }
@@ -82,6 +84,7 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   target: "",
   player_name: "",
   category: "",
+  fin_category_id: "",
   amount: "",
   description: "",
 });
@@ -188,11 +191,13 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
 
     try {
+      const finOverride = row.fin_category_id || undefined;
       if (row.source === "office") {
         await createOffice.mutateAsync({
           category_code: row.category,
           amount: amt,
           description: row.description,
+          fin_category_id: finOverride,
         });
       } else if (row.source === "slots") {
         if (!slotsShift?.id) return toast.error("No open Slots shift");
@@ -203,6 +208,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           description: row.description,
           player_id: null,
           player_name: row.target === "player" ? row.player_name.trim() : "",
+          fin_category_id: finOverride,
         });
       } else {
         if (!liveShift?.id) return toast.error("No open Live Game shift");
@@ -215,6 +221,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
               player_id: null,
               player_name: row.target === "player" ? row.player_name.trim() : "",
               shift_id: liveShift.id,
+              fin_category_id: finOverride,
             },
             { onSuccess: () => resolve(), onError: (e: any) => reject(e) },
           );
