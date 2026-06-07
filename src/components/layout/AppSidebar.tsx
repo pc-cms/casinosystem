@@ -83,12 +83,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/finances/dashboard", icon: Wallet, label: "Dashboard", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/office", icon: Briefcase, label: "Office", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/expenses", icon: Receipt, label: "Monthly Expenses", roles: ["manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finances/budget", icon: Target, label: "Budget", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
-  { to: "/finances/budget-vs-actual", icon: FileBarChart, label: "Budget vs Actual", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/budget", icon: Target, label: "Budget", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
   { to: "/finances/monthly-report", icon: FileBarChart, label: "Monthly Report", roles: ["super_admin", "manager", "finance_manager"], section: "FINANCE" },
-  { to: "/finances/excel-import", icon: Upload, label: "Excel Import", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
-  { to: "/finances/aliases", icon: ClipboardList, label: "Excel Aliases", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
-  { to: "/finances/audit-log", icon: ClipboardList, label: "Audit Log", roles: ["super_admin", "finance_manager"], section: "FINANCE" },
+  { to: "/finances/excel-import", icon: Upload, label: "Excel Import", roles: ["super_admin", "finance_manager"], section: "SYSTEM" },
+  { to: "/finances/aliases", icon: ClipboardList, label: "Excel Aliases", roles: ["super_admin", "finance_manager"], section: "SYSTEM" },
+  { to: "/finances/audit-log", icon: ClipboardList, label: "Finance Audit Log", roles: ["super_admin", "finance_manager"], section: "SYSTEM" },
 
   // HR — Personnel admin (legacy /dealers and /staff/employees superseded by Staff Master)
   { to: "/hr/warnings", icon: AlertTriangle, label: "Warnings", roles: ["super_admin", "hr", "manager", "finance_manager"], section: "HR" },

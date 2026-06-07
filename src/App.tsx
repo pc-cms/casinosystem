@@ -67,8 +67,7 @@ const FinancesExpensesPage = lazy(() => import("@/pages/finances/FinancesExpense
 const FinancesDayClosingPage = lazy(() => import("@/pages/finances/FinancesDayClosingPage"));
 const FinancesMoneyChangePage = lazy(() => import("@/pages/finances/FinancesMoneyChangePage"));
 const FinancesOfficeSafePage = lazy(() => import("@/pages/finances/FinancesOfficeSafePage"));
-const FinancesBudgetPage = lazy(() => import("@/pages/finances/FinancesBudgetPage"));
-const FinancesBudgetVsActualPage = lazy(() => import("@/pages/finances/FinancesBudgetVsActualPage"));
+const FinancesBudgetHubPage = lazy(() => import("@/pages/finances/FinancesBudgetHubPage"));
 const FinancesMonthlyReportPage = lazy(() => import("@/pages/finances/FinancesMonthlyReportPage"));
 const FinancesExcelImportPage = lazy(() => import("@/pages/finances/FinancesExcelImportPage"));
 const FinancesAuditLogPage = lazy(() => import("@/pages/finances/FinancesAuditLogPage"));
@@ -387,8 +386,8 @@ const ProtectedRoutes = () => {
           
           <Route path="/finances/inter-casino" element={<RoleGuard path="/finances/inter-casino"><ErrorBoundary><FinancesInterCasinoPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finance/transfers" element={<Navigate to="/finances/inter-casino" replace />} />
-          <Route path="/finances/budget" element={<RoleGuard path="/finances/budget"><ErrorBoundary><FinancesBudgetPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/finances/budget-vs-actual" element={<RoleGuard path="/finances/budget-vs-actual"><ErrorBoundary><FinancesBudgetVsActualPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/budget" element={<RoleGuard path="/finances/budget"><ErrorBoundary><FinancesBudgetHubPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/finances/budget-vs-actual" element={<Navigate to="/finances/budget?tab=actual" replace />} />
           <Route path="/finances/monthly-report" element={<RoleGuard path="/finances/monthly-report"><ErrorBoundary><FinancesMonthlyReportPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/finances/annual-analytics" element={<Navigate to="/finances/monthly-report" replace />} />
           <Route path="/finances/excel-import" element={<RoleGuard path="/finances/excel-import"><ErrorBoundary><FinancesExcelImportPage /></ErrorBoundary></RoleGuard>} />
