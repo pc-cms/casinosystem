@@ -85,7 +85,7 @@ export default function ClubLayout() {
 
       <main className="relative flex-1 overflow-y-auto p-5 pb-24 max-w-xl mx-auto w-full">
         <Outlet />
-        <ClubFooter minimal={path === "/club/wallet"} />
+        <ClubFooter minimal />
       </main>
 
       <nav

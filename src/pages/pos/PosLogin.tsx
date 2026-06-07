@@ -38,7 +38,7 @@ export default function PosLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-sm p-6">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold tracking-tight">POS</h1>
@@ -58,6 +58,9 @@ export default function PosLogin() {
           </Button>
         </form>
       </Card>
+      <p className="mt-8 text-[10px] font-sans text-primary text-center">
+        ©2026 Amaell Group LLC. All rights reserved.
+      </p>
     </div>
   );
 }
