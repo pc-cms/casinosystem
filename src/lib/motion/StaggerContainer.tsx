@@ -16,6 +16,7 @@ interface StaggerContainerProps {
 export function StaggerContainer({
   children,
   className,
+  style,
   stagger = 0.08,
   delayChildren = 0,
   amount = 0.2,
@@ -23,7 +24,7 @@ export function StaggerContainer({
 }: StaggerContainerProps) {
   const reduced = usePrefersReducedMotion();
 
-  if (reduced) return <div className={className}>{children}</div>;
+  if (reduced) return <div className={className} style={style}>{children}</div>;
 
   const variants: Variants = {
     hidden: {},
@@ -35,6 +36,7 @@ export function StaggerContainer({
   return (
     <motion.div
       className={className}
+      style={style}
       variants={variants}
       initial="hidden"
       whileInView="visible"
