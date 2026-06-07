@@ -149,6 +149,42 @@ const KycReviewsPage = () => {
     },
   });
 
+  // Last activity = max(last visit, last grant) per player
+  const activityIds = useMemo(
+    () => [...new Set([...receptionVerified, ...trustedPlayers, ...notVerified].map((p: any) => p.id))],
+    [receptionVerified, trustedPlayers, notVerified]
+  );
+  const { data: lastActivityMap = {} } = useQuery({
+    queryKey: ["player_last_activity", activityIds],
+    enabled: activityIds.length > 0,
+    queryFn: async () => {
+      const m: Record<string, string> = {};
+      const merge = (pid: string, ts: string | null) => {
+        if (!ts) return;
+        if (!m[pid] || new Date(ts) > new Date(m[pid])) m[pid] = ts;
+      };
+      const [{ data: visits }, { data: grants }] = await Promise.all([
+        supabase
+          .from("casino_visits")
+          .select("player_id, checked_in_at, checked_out_at")
+          .in("player_id", activityIds)
+          .order("checked_in_at", { ascending: false })
+          .limit(1000),
+        supabase
+          .from("promo_grants")
+          .select("player_id, created_at")
+          .in("player_id", activityIds)
+          .order("created_at", { ascending: false })
+          .limit(1000),
+      ]);
+      for (const v of (visits as any[]) ?? []) merge(v.player_id, v.checked_out_at || v.checked_in_at);
+      for (const g of (grants as any[]) ?? []) merge(g.player_id, g.created_at);
+      return m;
+    },
+  });
+
+
+
 
   // Tab 3: not verified (unverified + rejected) — priority: pending kyc first
   const { data: notVerified = [], isLoading: nvLoading } = useQuery({
