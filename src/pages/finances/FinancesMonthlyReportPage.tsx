@@ -12,10 +12,16 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMonthlyReport, type ReportCategory, type ReportGroup } from "@/hooks/use-fin-monthly-report";
 import { useCasino } from "@/lib/casino-context";
+import { useAuth } from "@/lib/auth-context";
+import { useUpsertFinBudgetCell, useRenameFinCategory, useFinCategories } from "@/hooks/use-fin";
+import { useUpdateExpenseFinCategory } from "@/hooks/use-expenses";
+import { InlineNumberCell } from "@/components/finances/InlineNumberCell";
+import { InlineTextCell } from "@/components/finances/InlineTextCell";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateOnly } from "@/lib/format-date";
 import { downloadXlsx } from "@/lib/excel-export";
 import { cn } from "@/lib/utils";
+
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -38,6 +44,17 @@ export default function FinancesMonthlyReportPage() {
   const [scope, setScope] = useState<string>(activeCasinoId || "");
   const [usdRate, setUsdRate] = useState(2500);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  const { roles } = useAuth();
+  const canEdit = roles.includes("super_admin") || roles.includes("finance_manager");
+  const isNetwork = scope === "network";
+  // Inline edit only when editing a single casino + a single month (not YTD).
+  const editMode = canEdit && !isNetwork && !ytd;
+
+  const upsertBudget = useUpsertFinBudgetCell();
+  const renameCategory = useRenameFinCategory();
+  const moveExpense = useUpdateExpenseFinCategory();
+  const { data: allCats } = useFinCategories();
 
   const { data, isLoading } = useMonthlyReport({ year, month, ytd, scope: scope || activeCasinoId || "" });
 
@@ -221,10 +238,24 @@ export default function FinancesMonthlyReportPage() {
           expandedId={expanded}
           onToggle={toggle}
           usdRate={usdRate}
-          isNetwork={scope === "network"}
+          isNetwork={isNetwork}
           showUsd={showUsd}
+          editMode={editMode}
+          year={year}
+          month={month}
+          allCategories={allCats || []}
+          onPlanCommit={(catId, currency, amount) =>
+            upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
+          }
+          onRenameCategory={(catId, newName) =>
+            renameCategory.mutate({ id: catId, name: newName })
+          }
+          onMoveExpense={(id, newCatId) =>
+            moveExpense.mutate({ id, fin_category_id: newCatId })
+          }
         />
       ))}
+
 
       {/* GRAND TOTAL */}
       {data && (
@@ -260,14 +291,25 @@ const Kpi = ({ label, v, signed }: { label: string; v: number; signed?: boolean 
   </div>
 );
 
-const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd }: {
+type EditCallbacks = {
+  editMode: boolean;
+  year: number;
+  month: number;
+  allCategories: { id: string; name: string; group_name: string | null; group_code: string | null; is_active: boolean; is_income: boolean }[];
+  onPlanCommit: (catId: string, currency: "TZS" | "USD", amount: number) => void;
+  onRenameCategory: (catId: string, newName: string) => void;
+  onMoveExpense: (expenseId: string, newCatId: string) => void;
+};
+
+const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, ...edit }: {
   group: ReportGroup;
   expandedId: string | null;
   onToggle: (id: string) => void;
   usdRate: number;
   isNetwork: boolean;
   showUsd: boolean;
-}) => {
+} & EditCallbacks) => {
+
   const colCount = 6 + (showUsd ? 4 : 0); // Category + 5 metrics + optional 4 USD
   return (
     <PageSection title={group.name} card={false}>
@@ -299,8 +341,10 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd }
                 isNetwork={isNetwork}
                 showUsd={showUsd}
                 colCount={colCount}
+                {...edit}
               />
             ))}
+
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
               <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_year_tzs)}</td>
@@ -321,11 +365,13 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd }
   );
 };
 
-const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
+const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount, editMode, year, month, allCategories, onPlanCommit, onRenameCategory, onMoveExpense }: {
   c: ReportCategory; expanded: boolean; onToggle: () => void; usdRate: number; isNetwork: boolean; showUsd: boolean; colCount: number;
-}) => {
+} & EditCallbacks) => {
   const remTzs = c.plan_month_tzs - c.actual_tzs;
   const remUsd = c.plan_month_usd - c.actual_usd;
+  // Filter active non-income expense categories for the Move-to dropdown.
+  const moveTargets = allCategories.filter(x => x.is_active && !x.is_income && x.id !== c.id);
   return (
     <>
       <tr
@@ -338,14 +384,41 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
         <td className="sticky left-0 z-10 bg-card">
           <div className="flex items-center gap-1 min-w-0">
             {expanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
-            <span className="truncate" title={c.name}>{c.name}</span>
+            <div className="flex-1 min-w-0">
+              <InlineTextCell
+                value={c.name}
+                disabled={!editMode}
+                onCommit={(v) => onRenameCategory(c.id, v)}
+              />
+            </div>
             {c.expenses.length > 0 && <span className="text-[10px] text-muted-foreground shrink-0">({c.expenses.length})</span>}
           </div>
         </td>
-        <td className="text-right font-mono tabular-nums">{fmt(c.plan_year_tzs)}</td>
-        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.plan_year_usd)}</td>}
-        <td className="text-right font-mono tabular-nums">{fmt(c.plan_month_tzs)}</td>
-        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.plan_month_usd)}</td>}
+        <td className="text-right">
+          <InlineNumberCell value={c.plan_year_tzs} disabled onCommit={() => {}} />
+        </td>
+        {showUsd && (
+          <td className="text-right text-muted-foreground">
+            <InlineNumberCell value={c.plan_year_usd} disabled onCommit={() => {}} className="text-muted-foreground" />
+          </td>
+        )}
+        <td className="text-right">
+          <InlineNumberCell
+            value={c.plan_month_tzs}
+            disabled={!editMode}
+            onCommit={(v) => onPlanCommit(c.id, "TZS", v)}
+          />
+        </td>
+        {showUsd && (
+          <td className="text-right text-muted-foreground">
+            <InlineNumberCell
+              value={c.plan_month_usd}
+              disabled={!editMode}
+              onCommit={(v) => onPlanCommit(c.id, "USD", v)}
+              className="text-muted-foreground"
+            />
+          </td>
+        )}
         <td className="text-right font-mono tabular-nums border-l border-border">{fmt(c.actual_tzs)}</td>
         {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{fmt(c.actual_usd)}</td>}
         <td className="text-right font-mono tabular-nums">{c.plan_month_tzs ? pct(c.actual_tzs / c.plan_month_tzs) : "—"}</td>
@@ -353,6 +426,7 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
         {showUsd && <td className={cn("text-right font-mono tabular-nums text-muted-foreground", cls(remUsd))}>{fmt(remUsd)}</td>}
         <td className="text-right font-mono tabular-nums pr-3">{c.plan_month_tzs ? pct(remTzs / c.plan_month_tzs) : "—"}</td>
       </tr>
+
       {expanded && (
         <tr className="bg-muted/10">
           <td colSpan={colCount} className="px-3 py-2">
@@ -369,7 +443,8 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
                       <th className="text-left w-[140px]">Wallet</th>
                       <th className="text-right w-[120px]">Amount</th>
                       <th className="text-right w-[120px]">TZS</th>
-                      {showUsd && <th className="text-right w-[100px] pr-2">USD</th>}
+                      {showUsd && <th className="text-right w-[100px]">USD</th>}
+                      {editMode && <th className="text-left w-[170px] pr-2">Move to…</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -384,14 +459,30 @@ const Row = ({ c, expanded, onToggle, usdRate, isNetwork, showUsd, colCount }: {
                           {e.currency && e.currency !== "TZS" && <span className="ml-1 text-[10px] text-muted-foreground">{e.currency}</span>}
                         </td>
                         <td className="text-right font-mono tabular-nums">{formatNumberSpaces(e.amount_tzs)}</td>
-                        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground pr-2">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
+                        {showUsd && <td className="text-right font-mono tabular-nums text-muted-foreground">{formatNumberSpaces(Math.round(e.amount_tzs / (usdRate || 1)))}</td>}
+                        {editMode && (
+                          <td className="pr-2" onClick={(ev) => ev.stopPropagation()}>
+                            <Select onValueChange={(v) => v && onMoveExpense(e.id, v)}>
+                              <SelectTrigger className="h-6 text-[10px] px-1.5"><SelectValue placeholder="Move…" /></SelectTrigger>
+                              <SelectContent className="max-h-[300px]">
+                                {moveTargets.map((t) => (
+                                  <SelectItem key={t.id} value={t.id} className="text-[11px]">
+                                    <span className="text-muted-foreground">{t.group_name}</span> · {t.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     <tr className="border-t-2 border-border bg-muted/30 font-semibold [&>td]:h-7 [&>td]:px-2">
                       <td colSpan={isNetwork ? 5 : 4}>Total · {c.expenses.length}</td>
                       <td className="text-right font-mono tabular-nums">{formatNumberSpaces(c.actual_tzs)}</td>
-                      {showUsd && <td className="text-right font-mono tabular-nums pr-2">{formatNumberSpaces(Math.round(c.actual_tzs / (usdRate || 1)))}</td>}
+                      {showUsd && <td className="text-right font-mono tabular-nums">{formatNumberSpaces(Math.round(c.actual_tzs / (usdRate || 1)))}</td>}
+                      {editMode && <td />}
                     </tr>
+
                   </tbody>
                 </table>
               </div>

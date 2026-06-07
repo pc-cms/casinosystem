@@ -1,0 +1,73 @@
+import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import { formatNumberSpaces } from "@/lib/currency";
+
+/**
+ * Click-to-edit numeric cell used in Monthly Report inline editor.
+ * Displays formatted value; on click swaps to <input>, Enter/blur commits.
+ */
+export const InlineNumberCell = ({
+  value,
+  disabled,
+  onCommit,
+  className,
+  placeholder = "—",
+}: {
+  value: number;
+  disabled?: boolean;
+  onCommit: (v: number) => void;
+  className?: string;
+  placeholder?: string;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [raw, setRaw] = useState(String(value || ""));
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setRaw(String(value || "")); }, [value]);
+  useEffect(() => { if (editing) ref.current?.focus(); }, [editing]);
+
+  if (disabled) {
+    return (
+      <span className={cn("font-mono tabular-nums", className)}>
+        {value ? formatNumberSpaces(value) : placeholder}
+      </span>
+    );
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        className={cn(
+          "font-mono tabular-nums hover:bg-primary/10 rounded px-1 -mx-1 transition-colors w-full text-right",
+          className,
+        )}
+      >
+        {value ? formatNumberSpaces(value) : <span className="text-muted-foreground/60">{placeholder}</span>}
+      </button>
+    );
+  }
+
+  const commit = () => {
+    const n = Number(raw.replace(/[\s,]/g, "")) || 0;
+    setEditing(false);
+    if (n !== value) onCommit(n);
+  };
+
+  return (
+    <input
+      ref={ref}
+      type="number"
+      value={raw}
+      onChange={(e) => setRaw(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { e.preventDefault(); commit(); }
+        if (e.key === "Escape") { setEditing(false); setRaw(String(value || "")); }
+      }}
+      onClick={(e) => e.stopPropagation()}
+      className={cn("no-spin w-full bg-background border border-primary rounded px-1 py-0 font-mono text-[11px] text-right", className)}
+    />
+  );
+};
