@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Check, X, RotateCcw, ExternalLink, Gift } from "lucide-react";
+import { ShieldCheck, Check, X, RotateCcw, ExternalLink, Gift, History } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, PageSection } from "@/components/layout/PageShell";
@@ -10,14 +10,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveDialog, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import { toast } from "sonner";
-import { fmtDateTime, fmtDateOnly } from "@/lib/format-date";
+import { fmtDateTime, fmtDateOnly, fmtDate } from "@/lib/format-date";
 import QuickGrantDialog from "@/components/admin/QuickGrantDialog";
+import BulkGrantDialog, { type BulkGrantTarget } from "@/components/admin/BulkGrantDialog";
+import PlayerGrantsHistoryDrawer from "@/components/admin/PlayerGrantsHistoryDrawer";
 
 type GrantTarget = { id: string; full_name: string; casino_id: string | null; casino_name?: string | null };
 const fmtAmt = (n: number) => (n ?? 0).toLocaleString("fr-FR").replace(/,/g, " ");
+
+const formatLastActivity = (iso: string | null): { text: string; cls: string } => {
+  if (!iso) return { text: "·", cls: "text-muted-foreground" };
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  let cls = "";
+  if (days > 90) cls = "text-amber-500";
+  else if (days > 30) cls = "text-muted-foreground";
+  return { text: fmtDate(iso), cls };
+};
 
 const PlayerLink = ({ id, name }: { id: string; name: string }) => (
   <div className="flex items-center gap-1.5">
