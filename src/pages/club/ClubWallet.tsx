@@ -91,62 +91,106 @@ export default function ClubWallet() {
   const player = data.player;
   const isVerified = player.verification_status === "verified";
 
+  const category: string = ((player as any).category || "normal").toLowerCase();
+  const TIERS: Record<string, { label: string; color: string; deep: string; glow: string; bg: string }> = {
+    diamond:  { label: "Diamond",  color: "#B8F1FF", deep: "#5FB3CC", glow: "rgba(120,220,255,0.55)", bg: "linear-gradient(135deg,#0a1a22 0%,#0a2a36 60%,#0a1a22 100%)" },
+    platinum: { label: "Platinum", color: "#E8ECF2", deep: "#9AA3B2", glow: "rgba(220,228,240,0.45)", bg: "linear-gradient(135deg,#15161a 0%,#2a2d36 60%,#15161a 100%)" },
+    gold:     { label: "Gold",     color: "#F3D27A", deep: "#A6864A", glow: "rgba(243,210,122,0.55)", bg: "linear-gradient(135deg,#1a1206 0%,#3a2810 60%,#1a1206 100%)" },
+    normal:   { label: "Member",   color: GOLD,      deep: GOLD_DEEP, glow: "rgba(232,198,136,0.25)", bg: "linear-gradient(135deg,#0a0a0a 0%,#171717 60%,#0a0a0a 100%)" },
+  };
+  const tier = TIERS[category] ?? TIERS.normal;
+  const isElite = category !== "normal";
+
   return (
     <div className="space-y-6">
       {/* ===== Profile header ===== */}
-      <Panel className="p-5 flex items-center gap-4">
-        <div
-          className="relative w-14 h-14 rounded-full flex items-center justify-center font-faberge text-xl shrink-0 overflow-hidden"
-          style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
-        >
-          {player.photo_url ? (
-            <img src={player.photo_url} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <>
-              {(player.first_name?.[0] ?? "?").toUpperCase()}
-              {(player.last_name?.[0] ?? "").toUpperCase()}
-            </>
-          )}
-          {(() => {
-            const cat: string = (player as any).category || "normal";
-            if (cat === "normal") return null;
-            const letter = cat[0].toUpperCase(); // D / P / G
-            return (
-              <span
-                title={cat[0].toUpperCase() + cat.slice(1)}
-                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center font-faberge text-[10px]"
-                style={{
-                  backgroundColor: "#0a0a0a",
-                  color: GOLD,
-                  borderColor: GOLD,
-                }}
-              >
-                {letter}
-              </span>
-            );
-          })()}
+      <div
+        className="relative rounded-2xl border overflow-hidden"
+        style={{
+          background: tier.bg,
+          borderColor: `${tier.color}55`,
+          boxShadow: isElite
+            ? `0 0 0 1px ${tier.color}22, 0 18px 40px -18px ${tier.glow}, inset 0 1px 0 ${tier.color}22`
+            : `inset 0 1px 0 ${tier.color}18`,
+        }}
+      >
+        {isElite && (
+          <>
+            <div
+              className="pointer-events-none absolute -top-20 -left-20 w-56 h-56 rounded-full opacity-40"
+              style={{ background: `radial-gradient(circle, ${tier.glow} 0%, transparent 70%)` }}
+            />
+            <div
+              className="pointer-events-none absolute -bottom-24 -right-16 w-56 h-56 rounded-full opacity-30"
+              style={{ background: `radial-gradient(circle, ${tier.glow} 0%, transparent 70%)` }}
+            />
+          </>
+        )}
+        <div className="relative p-5 flex items-center gap-4">
+          <div
+            className="relative w-16 h-16 rounded-full flex items-center justify-center font-faberge text-xl shrink-0 overflow-hidden"
+            style={{
+              backgroundColor: tier.color,
+              color: "#0a0a0a",
+              boxShadow: isElite
+                ? `0 0 0 2px #0a0a0a, 0 0 0 4px ${tier.color}, 0 0 24px ${tier.glow}`
+                : `0 0 0 2px ${tier.color}55`,
+            }}
+          >
+            {player.photo_url ? (
+              <img src={player.photo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <>
+                {(player.first_name?.[0] ?? "?").toUpperCase()}
+                {(player.last_name?.[0] ?? "").toUpperCase()}
+              </>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className="font-faberge text-lg leading-tight truncate"
+              style={{
+                color: tier.color,
+                textShadow: isElite ? `0 0 12px ${tier.glow}` : "none",
+              }}
+            >
+              {player.first_name} {player.last_name}
+            </p>
+            <p className="text-[10px] tracking-[0.25em] uppercase mt-0.5" style={{ color: tier.deep }}>
+              {player.phone}
+            </p>
+            <span
+              className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full border font-faberge text-[10px] tracking-[0.3em] uppercase"
+              style={{
+                color: tier.color,
+                borderColor: `${tier.color}66`,
+                backgroundColor: "rgba(0,0,0,0.4)",
+                boxShadow: isElite ? `0 0 14px ${tier.glow}, inset 0 0 8px ${tier.glow}` : "none",
+              }}
+            >
+              {isElite && (
+                <Sparkles
+                  className="w-3 h-3"
+                  style={{ color: tier.color, filter: `drop-shadow(0 0 4px ${tier.glow})` }}
+                />
+              )}
+              {tier.label}
+            </span>
+          </div>
+          <span
+            title={isVerified ? "Verified" : (player.verification_status || "Unverified")}
+            aria-label={isVerified ? "Verified" : (player.verification_status || "Unverified")}
+            className="shrink-0 w-8 h-8 rounded-full border flex items-center justify-center"
+            style={{
+              color: isVerified ? tier.color : "#FFB4B4",
+              borderColor: isVerified ? `${tier.color}66` : "#FFB4B466",
+              backgroundColor: "rgba(0,0,0,0.4)",
+            }}
+          >
+            {isVerified ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+          </span>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-faberge text-lg leading-tight truncate" style={{ color: GOLD }}>
-            {player.first_name} {player.last_name}
-          </p>
-          <p className="text-[10px] tracking-[0.25em] uppercase mt-0.5" style={{ color: GOLD_DEEP }}>
-            {player.phone}
-          </p>
-        </div>
-        <span
-          title={isVerified ? "Verified" : (player.verification_status || "Unverified")}
-          aria-label={isVerified ? "Verified" : (player.verification_status || "Unverified")}
-          className="shrink-0 w-8 h-8 rounded-full border flex items-center justify-center"
-          style={{
-            color: isVerified ? GOLD : "#FFB4B4",
-            borderColor: isVerified ? `${GOLD}66` : "#FFB4B466",
-            backgroundColor: "rgba(0,0,0,0.35)",
-          }}
-        >
-          {isVerified ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
-        </span>
-      </Panel>
+      </div>
 
 
       {/* ===== Verification CTA ===== */}
