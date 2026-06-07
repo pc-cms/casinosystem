@@ -15,31 +15,44 @@ interface Ctx {
 
 const LandingI18nCtx = createContext<Ctx | null>(null);
 
-const STORAGE_KEY = "landing.lang";
+const STORAGE_KEY = "landing.lang.manual";
 
+/**
+ * Default language is ALWAYS English. We never auto-detect from the browser
+ * locale. We only restore a language if the user manually picked one in a
+ * previous session (persisted under "landing.lang.manual").
+ */
 function detectInitial(): Lang {
   if (typeof window === "undefined") return "en";
-  const saved = window.localStorage.getItem(STORAGE_KEY) as Lang | null;
-  if (saved && saved in DICTS) return saved;
-  const nav = window.navigator.language?.slice(0, 2).toLowerCase();
-  if (nav === "es" || nav === "ru") return nav;
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY) as Lang | null;
+    if (saved && saved in DICTS) return saved;
+  } catch {
+    /* ignore */
+  }
   return "en";
 }
 
 export function LandingI18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(detectInitial);
 
+  // Only mirror to document.lang. We do NOT persist here — persistence
+  // happens exclusively when the user manually invokes `setLang` below.
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, lang);
-    } catch {
-      /* ignore */
-    }
     document.documentElement.lang = lang;
   }, [lang]);
 
+  const setLang = (l: Lang) => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, l);
+    } catch {
+      /* ignore */
+    }
+    setLangState(l);
+  };
+
   const value = useMemo<Ctx>(
-    () => ({ lang, setLang: setLangState, t: DICTS[lang] }),
+    () => ({ lang, setLang, t: DICTS[lang] }),
     [lang],
   );
 
