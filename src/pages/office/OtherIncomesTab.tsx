@@ -103,7 +103,12 @@ export default function OtherIncomesTab() {
                               />
                             </div>
                             <div className={`font-mono tabular-nums leading-tight ${a ? "cms-amount-positive" : "text-muted-foreground/60"}`}>
-                              {a ? formatNumberSpaces(a) : "·"}
+                              <InlineNumberCell
+                                value={a}
+                                disabled={!canEdit}
+                                onCommit={(v) => upsertIncome.mutate({ year, month: i + 1, category_id: c.id, currency, amount: v })}
+                                placeholder="·"
+                              />
                             </div>
                           </td>
                         );
