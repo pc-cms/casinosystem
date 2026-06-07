@@ -1,104 +1,149 @@
 import { useLandingI18n } from "../i18n/LandingI18nProvider";
-import { MockupFrame } from "./MockupFrame";
-import heroDashboard from "@/assets/landing/hero-dashboard.jpg";
-import featureCage from "@/assets/landing/feature-cage.jpg";
-import featureFinance from "@/assets/landing/feature-finance.jpg";
-import featureStaff from "@/assets/landing/feature-staff.jpg";
-import { ArrowRight } from "lucide-react";
+import { CommandPanel } from "./CommandPanel";
+import { SectionReveal } from "@/lib/motion";
+import {
+  Vault, LayoutGrid, Wallet, Users, BadgeCheck, Wine, Smartphone, Boxes, Eye,
+  ArrowRight,
+} from "lucide-react";
+import heroBg from "@/assets/landing/command-hero.jpg";
+
+const MODULE_NODES = [
+  { Icon: Vault, label: "CAGE" },
+  { Icon: LayoutGrid, label: "PIT" },
+  { Icon: Wallet, label: "FINANCE" },
+  { Icon: Users, label: "PLAYERS" },
+  { Icon: BadgeCheck, label: "HR" },
+  { Icon: Wine, label: "BAR POS" },
+  { Icon: Smartphone, label: "CLUB" },
+  { Icon: Boxes, label: "WAREHOUSE" },
+  { Icon: Eye, label: "SURVEILLANCE" },
+];
 
 export function Hero() {
   const { t } = useLandingI18n();
+
   return (
-    <section id="home" className="l-section" style={{ paddingTop: 72, paddingBottom: 72 }}>
+    <section
+      id="home"
+      className="l-section"
+      style={{ paddingTop: 96, paddingBottom: 96, position: "relative" }}
+    >
+      {/* Soft cinematic hero backdrop image */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `url(${heroBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.45,
+          maskImage:
+            "radial-gradient(ellipse 75% 80% at 50% 40%, #000 30%, transparent 80%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse 75% 80% at 50% 40%, #000 30%, transparent 80%)",
+          zIndex: -1,
+        }}
+      />
+
       <div className="l-container">
         <div
+          className="l-hero-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: 56,
+            gridTemplateColumns: "1.05fr 1fr",
+            gap: 64,
             alignItems: "center",
           }}
         >
-          <div className="l-fade-up" style={{ maxWidth: 880 }}>
-            <span className="l-eyebrow">{t.hero.eyebrow}</span>
+          <div className="l-fade-up">
+            <span className="l-eyebrow">
+              <span className="l-section-code">§ 01</span>
+              <span>{t.hero.eyebrow}</span>
+            </span>
             <h1>
               {t.hero.title1}
               <br />
-              <span style={{ color: "var(--l-gold)" }}>{t.hero.title2}</span>
+              <span style={{ color: "var(--l-gold-soft)" }}>{t.hero.title2}</span>
             </h1>
-            <p style={{ fontSize: "1.0625rem", marginTop: 24, maxWidth: 720 }}>
+            <p style={{ fontSize: "1.0625rem", marginTop: 28, maxWidth: 560, color: "var(--l-text)" }}>
               {t.hero.sub}
             </p>
             <p
               style={{
                 fontSize: "0.9375rem",
-                marginTop: 16,
+                marginTop: 18,
                 color: "var(--l-text-dim)",
-                maxWidth: 720,
+                maxWidth: 560,
               }}
             >
               {t.hero.support}
             </p>
-            <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 14, marginTop: 36, flexWrap: "wrap" }}>
               <a href="#contact" className="l-btn l-btn-primary">
                 {t.hero.cta} <ArrowRight size={16} />
               </a>
-              <a href="#modules" className="l-btn l-btn-link">
-                {t.hero.secondary} →
+              <a href="#modules" className="l-btn l-btn-ghost">
+                {t.hero.secondary}
               </a>
+            </div>
+
+            {/* Module node strip */}
+            <div
+              style={{
+                marginTop: 56,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+                gap: 8,
+                maxWidth: 560,
+              }}
+            >
+              {MODULE_NODES.map(({ Icon, label }, i) => (
+                <SectionReveal
+                  key={label}
+                  delay={0.05 * i}
+                  y={8}
+                  amount={0.1}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "10px 4px",
+                      border: "1px solid var(--l-border)",
+                      borderRadius: 8,
+                      background: "rgba(14,18,24,0.6)",
+                      backdropFilter: "blur(6px)",
+                    }}
+                  >
+                    <Icon size={16} strokeWidth={1.4} color="var(--l-gold)" />
+                    <span
+                      className="l-mono"
+                      style={{
+                        fontSize: 9.5,
+                        color: "var(--l-text-dim)",
+                        letterSpacing: "0.14em",
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                </SectionReveal>
+              ))}
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.6fr 1fr",
-              gridTemplateRows: "auto auto",
-              gap: 18,
-            }}
-            className="l-hero-grid"
-          >
-            <div style={{ gridRow: "1 / span 2" }}>
-              <MockupFrame
-                label={t.hero.captions.dashboard}
-                src={heroDashboard}
-                alt="Dashboard"
-                height={420}
-              />
-            </div>
-            <MockupFrame
-              label={t.hero.captions.cage}
-              src={featureCage}
-              alt="Cage"
-              height={195}
-            />
-            <MockupFrame
-              label={t.hero.captions.finance}
-              src={featureFinance}
-              alt="Finance"
-              height={195}
-            />
-          </div>
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 18,
-            marginTop: 18,
-          }}
-          className="l-hero-row"
-        >
-          <MockupFrame label={t.hero.captions.pit} height={140} />
-          <MockupFrame label={t.hero.captions.players} src={featureStaff} alt="Players" height={140} />
-          <MockupFrame label={t.hero.captions.club} height={140} />
+          <SectionReveal y={32} delay={0.2}>
+            <CommandPanel />
+          </SectionReveal>
         </div>
       </div>
+
       <style>{`
-        @media (max-width: 900px) {
-          .l-hero-grid { grid-template-columns: 1fr !important; }
-          .l-hero-grid > div:first-child { grid-row: auto !important; }
-          .l-hero-row { grid-template-columns: 1fr !important; }
+        @media (max-width: 980px) {
+          .l-hero-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
         }
       `}</style>
     </section>

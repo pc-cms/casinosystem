@@ -1,66 +1,74 @@
 import { useLandingI18n } from "../i18n/LandingI18nProvider";
+import { SectionLabel } from "./SectionLabel";
+import { StaggerContainer, StaggerItem } from "@/lib/motion";
 
 export function IntegrationProcess() {
   const { t } = useLandingI18n();
   return (
     <section id="partners" className="l-section">
       <div className="l-container">
-        <span className="l-eyebrow">{t.integration.eyebrow}</span>
+        <SectionLabel code="05" label={t.integration.eyebrow} />
         <h2 className="l-section-title">{t.integration.title}</h2>
         <p className="l-section-sub">{t.integration.sub}</p>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            gap: 0,
-            border: "1px solid var(--l-border)",
-            borderRadius: 12,
-            overflow: "hidden",
-            background: "var(--l-surface)",
-          }}
-        >
-          {t.integration.steps.map((s, i) => (
-            <div
-              key={s.title}
-              style={{
-                padding: "28px 28px 32px",
-                borderRight: "1px solid var(--l-border)",
-                borderBottom: "1px solid var(--l-border)",
-                position: "relative",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 14,
-                }}
-              >
-                <span
+        <div style={{ position: "relative" }}>
+          {/* connecting line */}
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              left: 28,
+              top: 30,
+              bottom: 30,
+              width: 1,
+              background:
+                "linear-gradient(180deg, transparent, var(--l-gold-dim) 10%, var(--l-gold-dim) 90%, transparent)",
+            }}
+            className="l-integration-spine"
+          />
+
+          <StaggerContainer as="div" style={{ display: "grid", gap: 18 }}>
+            {t.integration.steps.map((s, i) => (
+              <StaggerItem key={s.title}>
+                <div
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    background: "transparent",
-                    border: "1px solid var(--l-gold-dim)",
-                    color: "var(--l-gold)",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontVariantNumeric: "tabular-nums",
+                    display: "grid",
+                    gridTemplateColumns: "56px 1fr",
+                    gap: 24,
+                    alignItems: "flex-start",
                   }}
                 >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <h3>{s.title}</h3>
-              </div>
-              <p style={{ fontSize: 14, lineHeight: 1.55 }}>{s.desc}</p>
-            </div>
-          ))}
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 12,
+                      background: "var(--l-bg-2)",
+                      border: "1px solid var(--l-border-gold)",
+                      color: "var(--l-gold)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: "JetBrains Mono, monospace",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      position: "relative",
+                      zIndex: 1,
+                    }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <div
+                    className="l-card"
+                    style={{ padding: "22px 26px" }}
+                  >
+                    <h3 style={{ marginBottom: 8 }}>{s.title}</h3>
+                    <p style={{ fontSize: 14, lineHeight: 1.6 }}>{s.desc}</p>
+                  </div>
+                </div>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
         </div>
       </div>
     </section>

@@ -1,4 +1,6 @@
 import { useLandingI18n } from "../i18n/LandingI18nProvider";
+import { SectionLabel } from "./SectionLabel";
+import { SectionReveal } from "@/lib/motion";
 import premierLogo from "@/assets/landing/operators/premier.png";
 import royalLogo from "@/assets/landing/operators/casino-royal.png";
 import napoleonsLogo from "@/assets/landing/operators/napoleons.png";
@@ -20,34 +22,56 @@ export function OperatorsStrip() {
   return (
     <section className="l-section">
       <div className="l-container">
-        <span className="l-eyebrow">{t.operators.eyebrow}</span>
+        <SectionLabel code="07" label={t.operators.eyebrow} />
         <h2 className="l-section-title">{t.operators.title}</h2>
-        <p className="l-section-sub" style={{ maxWidth: 820 }}>{t.operators.sub}</p>
+        <p className="l-section-sub" style={{ maxWidth: 820 }}>
+          {t.operators.sub}
+        </p>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 24,
-            alignItems: "center",
-            justifyItems: "center",
-            padding: "32px 24px",
-            background: "var(--l-surface)",
-            border: "1px solid var(--l-border)",
-            borderRadius: 12,
-          }}
-        >
-          {OPERATORS.map((o) => (
-            <img
-              key={o.name}
-              src={o.src}
-              alt={o.name}
-              className="l-operator-mark"
-              loading="lazy"
-            />
-          ))}
-        </div>
+        <SectionReveal y={20}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 8,
+              padding: "36px 28px",
+              background:
+                "linear-gradient(180deg, var(--l-surface) 0%, var(--l-bg-2) 100%)",
+              border: "1px solid var(--l-border)",
+              borderRadius: 14,
+            }}
+          >
+            {OPERATORS.map((o, i) => (
+              <div
+                key={o.name}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "20px 8px",
+                  borderRight:
+                    i % 3 !== 2 ? "1px solid var(--l-border)" : undefined,
+                  borderBottom: i < 3 ? "1px solid var(--l-border)" : undefined,
+                }}
+                className="l-operator-cell"
+              >
+                <img
+                  src={o.src}
+                  alt={o.name}
+                  className="l-operator-mark"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </SectionReveal>
       </div>
+
+      <style>{`
+        @media (max-width: 720px) {
+          .l-operator-cell { border-right: none !important; border-bottom: 1px solid var(--l-border) !important; }
+        }
+      `}</style>
     </section>
   );
 }
