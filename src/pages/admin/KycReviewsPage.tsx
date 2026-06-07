@@ -58,9 +58,26 @@ const KycReviewsPage = () => {
   const [trustReason, setTrustReason] = useState("");
   const [search, setSearch] = useState("");
   const [grantTarget, setGrantTarget] = useState<GrantTarget | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<{ id: string; full_name: string } | null>(null);
+  const [selected, setSelected] = useState<Record<string, BulkGrantTarget>>({});
+  const [bulkOpen, setBulkOpen] = useState(false);
 
-
-  // ============= Queries =============
+  const toggleSelect = (p: BulkGrantTarget) =>
+    setSelected((s) => {
+      const next = { ...s };
+      if (next[p.id]) delete next[p.id];
+      else next[p.id] = p;
+      return next;
+    });
+  const toggleSelectAll = (list: BulkGrantTarget[], checked: boolean) =>
+    setSelected((s) => {
+      const next = { ...s };
+      if (checked) for (const p of list) next[p.id] = p;
+      else for (const p of list) delete next[p.id];
+      return next;
+    });
+  const clearSelection = () => setSelected({});
+  const selectedCount = Object.keys(selected).length;
   // Tab 1: club app pending queue
   const { data: queue = [], isLoading: queueLoading } = useQuery({
     queryKey: ["kyc_reviews", "queue"],
