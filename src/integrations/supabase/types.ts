@@ -2793,6 +2793,60 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_categories: {
+        Row: {
+          active: boolean
+          casino_id: string
+          code: string
+          created_at: string
+          fin_category_id: string | null
+          id: string
+          label: string
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          casino_id: string
+          code: string
+          created_at?: string
+          fin_category_id?: string | null
+          id?: string
+          label: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          casino_id?: string
+          code?: string
+          created_at?: string
+          fin_category_id?: string | null
+          id?: string
+          label?: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_casino_id_fkey"
+            columns: ["casino_id"]
+            isOneToOne: false
+            referencedRelation: "casinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_categories_fin_category_id_fkey"
+            columns: ["fin_category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number

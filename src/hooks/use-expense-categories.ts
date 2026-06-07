@@ -103,14 +103,21 @@ export const useDeleteExpenseCategory = () => {
 
 export const useCreateOfficeExpense = () => {
   const qc = useQueryClient();
+  const { casinoId } = useAuth();
   return useMutation({
-    mutationFn: async (input: { category_code: string; amount: number; description: string }) => {
+    mutationFn: async (input: { category_code: string; amount: number; description: string; fin_category_id?: string | null }) => {
+      if (!casinoId) throw new Error("No casino");
       const { data, error } = await (supabase as any).rpc("create_office_expense", {
+        p_casino_id: casinoId,
         p_category_code: input.category_code,
         p_amount: input.amount,
         p_description: input.description,
       });
       if (error) throw error;
+      // Apply optional manager override of fin_category_id
+      if (input.fin_category_id && data) {
+        await (supabase as any).from("expenses").update({ fin_category_id: input.fin_category_id }).eq("id", data);
+      }
       return data;
     },
     onSuccess: () => {

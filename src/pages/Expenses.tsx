@@ -6,6 +6,7 @@ import { CardSkeleton, TableSkeleton } from "@/components/LoadingSkeletons";
 import { useExpenses, useCreateExpense, useApproveExpense, useDeleteExpense } from "@/hooks/use-casino-data";
 import { useCreateSlotsExpense } from "@/hooks/use-expenses";
 import { useCreateOfficeExpense, useExpenseCategories } from "@/hooks/use-expense-categories";
+import { useFinCategories } from "@/hooks/use-fin";
 import { useActiveShift } from "@/hooks/use-shift";
 import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { useExpenseAnalytics, type ExpenseStatus, type ExpenseTarget, type ExpenseSourceFilter } from "@/hooks/use-expenses-analytics";
@@ -72,6 +73,7 @@ interface DraftRow {
   target: "casino" | "player" | "";
   player_name: string;
   category: string;
+  fin_category_id: string;
   amount: string;
   description: string;
 }
@@ -82,6 +84,7 @@ const newDraft = (defaultSource: SourceVal): DraftRow => ({
   target: "",
   player_name: "",
   category: "",
+  fin_category_id: "",
   amount: "",
   description: "",
 });
@@ -188,11 +191,13 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
 
     try {
+      const finOverride = row.fin_category_id || undefined;
       if (row.source === "office") {
         await createOffice.mutateAsync({
           category_code: row.category,
           amount: amt,
           description: row.description,
+          fin_category_id: finOverride,
         });
       } else if (row.source === "slots") {
         if (!slotsShift?.id) return toast.error("No open Slots shift");
@@ -203,6 +208,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
           description: row.description,
           player_id: null,
           player_name: row.target === "player" ? row.player_name.trim() : "",
+          fin_category_id: finOverride,
         });
       } else {
         if (!liveShift?.id) return toast.error("No open Live Game shift");
@@ -215,6 +221,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
               player_id: null,
               player_name: row.target === "player" ? row.player_name.trim() : "",
               shift_id: liveShift.id,
+              fin_category_id: finOverride,
             },
             { onSuccess: () => resolve(), onError: (e: any) => reject(e) },
           );
@@ -534,6 +541,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                 <th className="text-left px-3 py-2">Target</th>
                 <th className="text-left px-3 py-2">Player</th>
                 <th className="text-left px-3 py-2">Category</th>
+                {isManagerView && <th className="text-left px-3 py-2 w-[200px]">Finance Plan</th>}
                 <th className="text-right px-3 py-2">Amount (TZS)</th>
                 <th className="text-left px-3 py-2">Description</th>
                 <th className="text-center px-3 py-2 w-[140px]">Action</th>
@@ -753,6 +761,11 @@ const DraftRowView = ({
           </SelectContent>
         </Select>
       </td>
+      {isManagerView && (
+        <td className="px-2 py-1.5">
+          <FinCategoryPicker value={draft.fin_category_id} onChange={(v) => onChange({ fin_category_id: v })} />
+        </td>
+      )}
       <td className="px-2 py-1.5">
         <NumberInput placeholder="0" value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
       </td>
@@ -772,5 +785,33 @@ const DraftRowView = ({
         </div>
       </td>
     </tr>
+  );
+};
+
+// ──────────────────────────────────────────────────────────
+// Manager-only Finance Plan picker (override)
+// ──────────────────────────────────────────────────────────
+const FinCategoryPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const { data: finCats = [] } = useFinCategories();
+  const grouped = (finCats || []).reduce((acc: Record<string, any[]>, c: any) => {
+    if (!c.is_active) return acc;
+    (acc[c.group_name] ||= []).push(c);
+    return acc;
+  }, {});
+  return (
+    <Select value={value || "__auto"} onValueChange={(v) => onChange(v === "__auto" ? "" : v)}>
+      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Auto" /></SelectTrigger>
+      <SelectContent className="max-h-[400px]">
+        <SelectItem value="__auto">Auto (from category)</SelectItem>
+        {Object.entries(grouped).map(([group, list]) => (
+          <div key={group}>
+            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/50">{group}</div>
+            {(list as any[]).map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </div>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

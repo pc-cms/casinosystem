@@ -96,11 +96,13 @@ export const useCreateSlotsExpense = () => {
       description: string;
       player_id?: string | null;
       player_name?: string;
+      fin_category_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const { error } = await (supabase as any).from("expenses").insert({
         casino_id: casinoId,
         category: input.category,
+        category_code: input.category,
         amount: input.amount,
         description: input.description,
         player_id: input.player_id ?? null,
@@ -109,6 +111,7 @@ export const useCreateSlotsExpense = () => {
         cage_type: "slots",
         source: "slots",
         created_by: user.id,
+        fin_category_id: input.fin_category_id ?? null,
       });
       if (error) throw error;
       await logAction(casinoId, "expense", "CAGE_SLOTS_EXPENSE_CREATED", {
@@ -137,17 +140,20 @@ export const useCreateExpense = () => {
       player_id: string | null;
       player_name?: string;
       shift_id?: string | null;
+      fin_category_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
       const payload: SafeExpenseInsert = {
         casino_id: casinoId,
         category: input.category as any,
+        category_code: input.category,
         amount: input.amount,
         description: input.description,
         player_id: input.player_id,
         player_name: input.player_name || "",
         shift_id: input.shift_id || null,
         created_by: user.id,
+        ...(input.fin_category_id ? { fin_category_id: input.fin_category_id } : {}),
       } as any;
 
       const result = await offlineMutation({
