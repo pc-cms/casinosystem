@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: player } = await sb
       .from("players")
-      .select("id, first_name, last_name, phone, verification_status, verified_source, verified_at, birth_date, id_number, photo_url, id_document_url, casino_id, casinos(name, slug)")
+      .select("id, first_name, last_name, phone, verification_status, verified_source, verified_at, birth_date, id_number, photo_url, id_document_url, category, casino_id, casinos(name, slug)")
       .eq("phone", session.phone)
       .maybeSingle();
     if (!player) {
