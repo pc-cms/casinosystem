@@ -154,17 +154,16 @@ const Login = () => {
 
           <div className="mt-6 text-center space-y-0.5">
             <p
-              className={isBranded ? "font-faberge text-xs uppercase tracking-[0.3em]" : "text-xs font-mono uppercase tracking-widest text-muted-foreground"}
+              className={isBranded ? "font-faberge text-[10px] tracking-[0.3em]" : "text-xs font-mono uppercase tracking-widest text-muted-foreground"}
               style={isBranded ? { color: GOLD, opacity: 0.85 } : undefined}
             >
-              {isBranded ? "Premier Casino · Tanzania" : "Casino Management System"}
+              {isBranded ? "©2025 Premier Casino. All rights reserved." : "Casino Management System"}
             </p>
-            <p
-              className={isBranded ? "font-faberge text-[10px] tracking-[0.3em]" : "text-[10px] font-mono text-muted-foreground"}
-              style={isBranded ? { color: GOLD, opacity: 0.6 } : undefined}
-            >
-              {isBranded ? "© 2025" : "© 2026 Amaell Group LLC. All rights reserved."}
-            </p>
+            {!isBranded && (
+              <p className="text-[10px] font-mono text-muted-foreground">
+                © 2026 Amaell Group LLC. All rights reserved.
+              </p>
+            )}
           </div>
         </div>
       </div>
