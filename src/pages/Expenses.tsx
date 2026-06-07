@@ -541,6 +541,7 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
                 <th className="text-left px-3 py-2">Target</th>
                 <th className="text-left px-3 py-2">Player</th>
                 <th className="text-left px-3 py-2">Category</th>
+                {isManagerView && <th className="text-left px-3 py-2 w-[200px]">Finance Plan</th>}
                 <th className="text-right px-3 py-2">Amount (TZS)</th>
                 <th className="text-left px-3 py-2">Description</th>
                 <th className="text-center px-3 py-2 w-[140px]">Action</th>
@@ -760,6 +761,11 @@ const DraftRowView = ({
           </SelectContent>
         </Select>
       </td>
+      {isManagerView && (
+        <td className="px-2 py-1.5">
+          <FinCategoryPicker value={draft.fin_category_id} onChange={(v) => onChange({ fin_category_id: v })} />
+        </td>
+      )}
       <td className="px-2 py-1.5">
         <NumberInput placeholder="0" value={draft.amount} onChange={(v) => onChange({ amount: v })} className="h-8 text-xs text-right" />
       </td>
