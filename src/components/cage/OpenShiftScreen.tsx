@@ -35,15 +35,24 @@ const OpenShiftScreen = ({ tables }: { tables: Tables<"gaming_tables">[] }) => {
   const { data: lastShift } = useLastClosedShift();
   const [rates, setRates] = useState<Record<string, number>>({ ...DEFAULT_EXCHANGE_RATES });
   const [ratesPrefilled, setRatesPrefilled] = useState(false);
+  const { data: officeRates } = useFinDailyRatesForDate();
+  const officeRatesLocked = !!officeRates && Object.keys(officeRates).length > 0;
 
+  // Prefer Office-set rates (per business date) over the last closed shift.
   useEffect(() => {
+    if (officeRates && Object.keys(officeRates).length > 0) {
+      setRates(r => ({ ...r, ...officeRates }));
+      setRatesPrefilled(true);
+      return;
+    }
     if (ratesPrefilled) return;
     const prev = (lastShift?.exchange_rates || {}) as Record<string, number>;
     if (prev && Object.keys(prev).length > 0) {
       setRates(r => ({ ...r, ...prev }));
       setRatesPrefilled(true);
     }
-  }, [lastShift, ratesPrefilled]);
+  }, [lastShift, ratesPrefilled, officeRates]);
+
 
   // Carry over closing chips from the last closed shift so the cashier sees
   // the chips actually counted at close instead of zeros.
