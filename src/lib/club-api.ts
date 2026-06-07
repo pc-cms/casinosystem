@@ -62,6 +62,8 @@ export const clubApi = {
     ocr?: Record<string, unknown>;
   }) => callFn<{ ok: boolean }>("club-submit-kyc", input, true),
   cancelKyc: () => callFn<{ ok: boolean }>("club-cancel-kyc", {}, true),
+  redeemCode: (code: string) =>
+    callFn<{ ok: boolean; grant_id: string; amount: number; expires: string | null }>("club-redeem-code", { code }, true),
   placeShopOrder: (item_id: string, qty: number, casino_id: string) =>
     callFn<{ ok: boolean; order_id: string; total: number }>("club-shop-order", { item_id, qty, casino_id }, true),
   buyTicket: (lottery_id: string, qty: number, casino_id: string) =>

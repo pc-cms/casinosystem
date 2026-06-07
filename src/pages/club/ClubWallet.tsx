@@ -1,11 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { clubApi } from "@/lib/club-api";
 import { formatNumberSpaces } from "@/lib/currency";
 import { fmtDateTime } from "@/lib/format-date";
-import { Sparkles, QrCode, ShieldCheck, ShieldAlert, ArrowRight } from "lucide-react";
+import { Sparkles, QrCode, ShieldCheck, ShieldAlert, ArrowRight, Ticket, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const GOLD = "#E8C688";
 const GOLD_DEEP = "#A68E61";
@@ -33,12 +34,31 @@ const Panel = ({ children, className = "" }: { children: React.ReactNode; classN
 );
 
 export default function ClubWallet() {
+  const qc = useQueryClient();
   const [showQr, setShowQr] = useState(false);
+  const [code, setCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ["club-wallet"],
     queryFn: () => clubApi.wallet(),
     refetchInterval: showQr ? 30_000 : 60_000,
   });
+
+  const redeem = async () => {
+    const clean = code.trim();
+    if (!clean) return;
+    setRedeeming(true);
+    try {
+      const res = await clubApi.redeemCode(clean);
+      toast.success(`+${formatNumberSpaces(res.amount)} credits added`);
+      setCode("");
+      qc.invalidateQueries({ queryKey: ["club-wallet"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not redeem code");
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   const grants = data?.grants ?? [];
   const redemptions = data?.redemptions ?? [];
@@ -149,6 +169,46 @@ export default function ClubWallet() {
           credits
         </p>
       </div>
+
+      {/* ===== Promo code redemption ===== */}
+      <Panel className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Ticket className="w-3.5 h-3.5" style={{ color: GOLD }} />
+          <p className="font-faberge text-[10px] tracking-[0.4em] uppercase" style={{ color: GOLD_DEEP }}>
+            Promo code
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !redeeming) redeem();
+            }}
+            placeholder="ENTER CODE"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            className="flex-1 h-11 rounded-md border px-3 font-mono tracking-[0.2em] uppercase outline-none min-w-0"
+            style={{
+              backgroundColor: "rgba(0,0,0,0.55)",
+              borderColor: `${GOLD}55`,
+              color: GOLD,
+            }}
+          />
+          <button
+            type="button"
+            onClick={redeem}
+            disabled={redeeming || !code.trim()}
+            className="h-11 px-4 rounded-md font-faberge text-[11px] tracking-[0.3em] uppercase flex items-center justify-center gap-1.5 disabled:opacity-50"
+            style={{ backgroundColor: GOLD, color: "#0a0a0a" }}
+          >
+            {redeeming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
+          </button>
+        </div>
+      </Panel>
+
+
 
       {/* ===== Redemption QR ===== */}
       <Panel className="p-5">

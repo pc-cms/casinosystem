@@ -8641,6 +8641,10 @@ export type Database = {
         }
         Returns: Json
       }
+      club_redeem_promo_code: {
+        Args: { p_code: string; p_player_id: string }
+        Returns: Json
+      }
       club_self_register: {
         Args: {
           _casino_slug: string
