@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { clubApi, setClubSession } from "@/lib/club-api";
 import ClubBackdrop from "@/components/club/ClubBackdrop";
+import ClubFooter from "@/components/club/ClubFooter";
 import ClubCard from "@/components/club/ClubCard";
 import PhoneInput, { buildE164 } from "@/components/club/PhoneInput";
 
@@ -108,6 +109,7 @@ export default function ClubLogin() {
           </p>
         </div>
       </main>
+      <ClubFooter />
     </div>
   );
 }
