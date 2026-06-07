@@ -148,6 +148,14 @@ const Expenses = ({ embedded = false }: ExpensesProps = {}) => {
   const createOffice = useCreateOfficeExpense();
   const approve = useApproveExpense();
   const del = useDeleteExpense();
+  const updateFinCat = useUpdateExpenseFinCategory();
+  const { data: allFinCats = [] } = useFinCategories();
+  const finCatById = useMemo(() => {
+    const m: Record<string, any> = {};
+    (allFinCats || []).forEach((c: any) => { m[c.id] = c; });
+    return m;
+  }, [allFinCats]);
+  const [editingFinCatId, setEditingFinCatId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([newDraft(roleDefaultSource)]);
 
   const isLoading = loadingExpenses;
