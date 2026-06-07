@@ -1,111 +1,79 @@
 import { useLandingI18n } from "../i18n/LandingI18nProvider";
-import { LangSwitcher } from "./LangSwitcher";
-
-const NAV = [
-  { id: "home", key: "home" as const },
-  { id: "modules", key: "modules" as const },
-  { id: "solutions", key: "solutions" as const },
-  { id: "partners", key: "partners" as const },
-  { id: "about", key: "about" as const },
-  { id: "contact", key: "contacts" as const },
-];
 
 export function SiteFooter() {
   const { t } = useLandingI18n();
   return (
     <footer
       style={{
+        position: "relative",
+        zIndex: 1,
         borderTop: "1px solid var(--l-border)",
-        padding: "56px 0 32px",
-        background: "var(--l-surface)",
+        padding: "48px 0 36px",
+        background: "rgba(7,9,12,0.6)",
       }}
     >
       <div className="l-container">
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1.5fr 1fr 1fr",
-            gap: 40,
-            marginBottom: 40,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 32,
+            flexWrap: "wrap",
+            marginBottom: 32,
           }}
-          className="l-footer-grid"
         >
-          <div>
+          <div style={{ maxWidth: 360 }}>
             <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
                 fontWeight: 800,
-                fontSize: 18,
-                letterSpacing: "-0.02em",
-                marginBottom: 12,
+                fontSize: 17,
                 color: "var(--l-text)",
+                marginBottom: 12,
               }}
             >
-              CMS · Casino Management System
+              <span
+                aria-hidden
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 5,
+                  background: "linear-gradient(135deg, var(--l-gold) 0%, #8a6e30 100%)",
+                }}
+              />
+              Casino Management System
             </div>
-            <p style={{ fontSize: 14, maxWidth: 360 }}>{t.footer.tagline}</p>
+            <p style={{ fontSize: 13.5, color: "var(--l-text-muted)", lineHeight: 1.6 }}>
+              {t.footer.tagline}
+            </p>
           </div>
-
-          <div>
-            <div
-              style={{
-                fontSize: 12,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "var(--l-text-dim)",
-                marginBottom: 14,
-                fontWeight: 600,
-              }}
-            >
-              {t.footer.nav}
-            </div>
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
-              {NAV.map((l) => (
-                <li key={l.id}>
-                  <a
-                    href={`#${l.id}`}
-                    style={{ color: "var(--l-text-muted)", textDecoration: "none", fontSize: 14 }}
-                  >
-                    {t.nav[l.key]}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <div
-              style={{
-                fontSize: 12,
-                textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "var(--l-text-dim)",
-                marginBottom: 14,
-                fontWeight: 600,
-              }}
-            >
-              {t.footer.languages}
-            </div>
-            <LangSwitcher />
+          <div
+            className="l-mono"
+            style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: "0.16em", textTransform: "uppercase" }}
+          >
+            EN · ES · RU
           </div>
         </div>
 
-        <div className="l-rule-gold" style={{ margin: "8px 0 24px" }} />
+        <div className="l-rule-gold" style={{ marginBottom: 24, opacity: 0.5 }} />
 
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            gap: 16,
             flexWrap: "wrap",
-            gap: 12,
             fontSize: 12.5,
             color: "var(--l-text-dim)",
           }}
         >
-          <div>{t.footer.rights}</div>
+          <span>{t.footer.rights}</span>
+          <span>Casino Management System · Custom enterprise software</span>
         </div>
       </div>
-      <style>{`@media (max-width: 768px) { .l-footer-grid { grid-template-columns: 1fr !important; gap: 24px !important; } }`}</style>
     </footer>
   );
 }

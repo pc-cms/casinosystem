@@ -1,44 +1,59 @@
-import { Check } from "lucide-react";
 import { useLandingI18n } from "../i18n/LandingI18nProvider";
+import { SectionLabel } from "./SectionLabel";
+import { StaggerContainer, StaggerItem } from "@/lib/motion";
 
 export function BuiltForLandBased() {
   const { t } = useLandingI18n();
   return (
-    <section className="l-section" style={{ background: "var(--l-surface)" }}>
+    <section className="l-section">
       <div className="l-container">
-        <span className="l-eyebrow">{t.builtFor.eyebrow}</span>
+        <SectionLabel code="02" label={t.builtFor.eyebrow} />
         <h2 className="l-section-title">{t.builtFor.title}</h2>
         <p className="l-section-sub">{t.builtFor.sub}</p>
-        <ul
+
+        <StaggerContainer
+          as="div"
           style={{
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
+            gap: 0,
+            border: "1px solid var(--l-border)",
+            borderRadius: 12,
+            overflow: "hidden",
+            background: "var(--l-surface)",
           }}
         >
-          {t.builtFor.items.map((it) => (
-            <li
-              key={it}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "12px 16px",
-                background: "var(--l-surface-2)",
-                border: "1px solid var(--l-border)",
-                borderRadius: 8,
-                fontSize: 14,
-                color: "var(--l-text)",
-              }}
-            >
-              <Check size={14} style={{ color: "var(--l-gold)", flexShrink: 0 }} />
-              {it}
-            </li>
+          {t.builtFor.items.map((item, i) => (
+            <StaggerItem key={item}>
+              <div
+                style={{
+                  padding: "22px 22px",
+                  borderRight: "1px solid var(--l-border)",
+                  borderBottom: "1px solid var(--l-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  minHeight: 84,
+                }}
+              >
+                <span
+                  className="l-mono"
+                  style={{
+                    fontSize: 10,
+                    color: "var(--l-gold)",
+                    letterSpacing: "0.18em",
+                    minWidth: 22,
+                  }}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span style={{ fontSize: 14, color: "var(--l-text)", fontWeight: 500 }}>
+                  {item}
+                </span>
+              </div>
+            </StaggerItem>
           ))}
-        </ul>
+        </StaggerContainer>
       </div>
     </section>
   );

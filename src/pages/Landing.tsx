@@ -1,9 +1,10 @@
 /**
  * Premium B2B landing for casinosystem.app — root-domain catch-all.
- * Custom Casino System for Land-Based Casinos.
+ * Dark cinematic enterprise command-center for the Custom Casino System.
  */
 
 import { LandingI18nProvider } from "./landing/i18n/LandingI18nProvider";
+import { BackdropLayers } from "./landing/components/BackdropLayers";
 import { SiteHeader } from "./landing/components/SiteHeader";
 import { Hero } from "./landing/components/Hero";
 import { BuiltForLandBased } from "./landing/components/BuiltForLandBased";
@@ -24,8 +25,9 @@ export default function Landing() {
   return (
     <LandingI18nProvider>
       <div className="landing-root">
+        <BackdropLayers />
         <SiteHeader />
-        <main>
+        <main style={{ position: "relative", zIndex: 1 }}>
           <Hero />
           <BuiltForLandBased />
           <ModulesGrid />

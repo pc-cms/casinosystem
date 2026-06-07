@@ -5,15 +5,18 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 interface StaggerContainerProps {
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   stagger?: number;
   delayChildren?: number;
   amount?: number;
   once?: boolean;
+  as?: keyof JSX.IntrinsicElements;
 }
 
 export function StaggerContainer({
   children,
   className,
+  style,
   stagger = 0.08,
   delayChildren = 0,
   amount = 0.2,
@@ -21,7 +24,7 @@ export function StaggerContainer({
 }: StaggerContainerProps) {
   const reduced = usePrefersReducedMotion();
 
-  if (reduced) return <div className={className}>{children}</div>;
+  if (reduced) return <div className={className} style={style}>{children}</div>;
 
   const variants: Variants = {
     hidden: {},
@@ -33,6 +36,7 @@ export function StaggerContainer({
   return (
     <motion.div
       className={className}
+      style={style}
       variants={variants}
       initial="hidden"
       whileInView="visible"
