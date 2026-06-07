@@ -238,10 +238,24 @@ export default function FinancesMonthlyReportPage() {
           expandedId={expanded}
           onToggle={toggle}
           usdRate={usdRate}
-          isNetwork={scope === "network"}
+          isNetwork={isNetwork}
           showUsd={showUsd}
+          editMode={editMode}
+          year={year}
+          month={month}
+          allCategories={allCats || []}
+          onPlanCommit={(catId, currency, amount) =>
+            upsertBudget.mutate({ year, month, category_id: catId, currency, planned_amount: amount })
+          }
+          onRenameCategory={(catId, newName) =>
+            upsertCategory.mutate({ id: catId, name: newName })
+          }
+          onMoveExpense={(id, newCatId) =>
+            moveExpense.mutate({ id, fin_category_id: newCatId })
+          }
         />
       ))}
+
 
       {/* GRAND TOTAL */}
       {data && (
