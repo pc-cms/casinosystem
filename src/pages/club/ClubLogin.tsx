@@ -52,7 +52,7 @@ export default function ClubLogin() {
         <span className="w-12" />
       </header>
 
-      <main className="relative flex-1 flex items-center justify-center px-5 py-10">
+      <main className="relative flex-1 flex items-center justify-center px-5 py-6">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img src="/premier-club-logo.svg" alt="Premier Club" className="h-20 w-20 mx-auto mb-5" />
@@ -93,6 +93,12 @@ export default function ClubLogin() {
             >
               {busy ? "Signing in…" : "Sign In"}
             </button>
+            <p
+              className="text-center text-[10px] tracking-[0.4em] uppercase pt-1"
+              style={{ color: GOLD_DEEP }}
+            >
+              18+ · Play Responsibly
+            </p>
           </ClubCard>
 
           <p className="text-center text-xs mt-6" style={{ color: GOLD_DEEP }}>
