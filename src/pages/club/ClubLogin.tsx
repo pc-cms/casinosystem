@@ -102,8 +102,8 @@ export default function ClubLogin() {
             </Link>
           </p>
         </div>
-        <ClubFooter />
       </main>
+      <ClubFooter />
     </div>
   );
 }
