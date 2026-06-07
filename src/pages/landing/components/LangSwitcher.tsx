@@ -15,10 +15,11 @@ export function LangSwitcher() {
       style={{
         display: "inline-flex",
         gap: 2,
-        background: "var(--l-surface-2)",
-        border: "1px solid var(--l-border)",
-        borderRadius: 8,
+        background: "rgba(255,255,255,0.8)",
+        border: "1px solid var(--l-border-strong)",
+        borderRadius: 999,
         padding: 3,
+        backdropFilter: "blur(8px)",
       }}
     >
       {LANGS.map((l) => {
@@ -33,12 +34,12 @@ export function LangSwitcher() {
               border: 0,
               cursor: "pointer",
               padding: "6px 12px",
-              borderRadius: 6,
+              borderRadius: 999,
               fontSize: 12,
               fontWeight: 600,
               fontFamily: "inherit",
-              background: active ? "var(--l-gold)" : "transparent",
-              color: active ? "#1a1206" : "var(--l-text-muted)",
+              background: active ? "#0a0a0a" : "transparent",
+              color: active ? "#ffffff" : "var(--l-text-muted)",
               transition: "all .15s",
             }}
           >

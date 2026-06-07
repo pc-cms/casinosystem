@@ -9,7 +9,8 @@ export function SiteFooter() {
         zIndex: 1,
         borderTop: "1px solid var(--l-border)",
         padding: "48px 0 36px",
-        background: "rgba(7,9,12,0.6)",
+        background: "rgba(255,255,255,0.6)",
+        backdropFilter: "blur(10px)",
       }}
     >
       <div className="l-container">
@@ -29,24 +30,25 @@ export function SiteFooter() {
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                fontWeight: 800,
-                fontSize: 17,
+                fontWeight: 700,
+                fontSize: 18,
                 color: "var(--l-text)",
                 marginBottom: 12,
+                letterSpacing: "-0.03em",
               }}
             >
               <span
                 aria-hidden
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 5,
-                  background: "linear-gradient(135deg, var(--l-gold) 0%, #8a6e30 100%)",
+                  width: 24,
+                  height: 24,
+                  borderRadius: 7,
+                  background: "#0a0a0a",
                 }}
               />
-              Casino Management System
+              Casino System
             </div>
-            <p style={{ fontSize: 13.5, color: "var(--l-text-muted)", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: "var(--l-text-muted)", lineHeight: 1.6 }}>
               {t.footer.tagline}
             </p>
           </div>
@@ -66,12 +68,12 @@ export function SiteFooter() {
             justifyContent: "space-between",
             gap: 16,
             flexWrap: "wrap",
-            fontSize: 12.5,
+            fontSize: 13,
             color: "var(--l-text-dim)",
           }}
         >
-          <span>{t.footer.rights}</span>
-          <span>Casino Management System · Custom enterprise software</span>
+          <span>©2026 Amaell Group LLC. All Rights Reserved.</span>
+          <span>Casino System · Custom enterprise software</span>
         </div>
       </div>
     </footer>

@@ -1,20 +1,21 @@
 /**
  * Premium B2B landing for casinosystem.app — root-domain catch-all.
- * Dark cinematic enterprise command-center for the Custom Casino System.
+ * Light Dreelio-inspired aesthetic: sky + clouds + huge grotesque headings,
+ * black pill CTAs, tilted dashboard mockup, marquee operators.
  */
 
 import { LandingI18nProvider } from "./landing/i18n/LandingI18nProvider";
 import { BackdropLayers } from "./landing/components/BackdropLayers";
 import { SiteHeader } from "./landing/components/SiteHeader";
 import { Hero } from "./landing/components/Hero";
+import { OperatorsStrip } from "./landing/components/OperatorsStrip";
 import { BuiltForLandBased } from "./landing/components/BuiltForLandBased";
 import { ModulesGrid } from "./landing/components/ModulesGrid";
 import { WhyCustom } from "./landing/components/WhyCustom";
+import { IntegrationsLanguages } from "./landing/components/IntegrationsLanguages";
 import { IntegrationProcess } from "./landing/components/IntegrationProcess";
-import { ProductScreens } from "./landing/components/ProductScreens";
-import { OperatorsStrip } from "./landing/components/OperatorsStrip";
 import { Pricing } from "./landing/components/Pricing";
-import { SolutionsGrid } from "./landing/components/SolutionsGrid";
+import { Testimonials } from "./landing/components/Testimonials";
 import { AboutCMS } from "./landing/components/AboutCMS";
 import { ContactForm } from "./landing/components/ContactForm";
 import { SiteFooter } from "./landing/components/SiteFooter";
@@ -29,14 +30,14 @@ export default function Landing() {
         <SiteHeader />
         <main style={{ position: "relative", zIndex: 1 }}>
           <Hero />
+          <OperatorsStrip />
           <BuiltForLandBased />
           <ModulesGrid />
           <WhyCustom />
+          <IntegrationsLanguages />
           <IntegrationProcess />
-          <ProductScreens />
-          <OperatorsStrip />
           <Pricing />
-          <SolutionsGrid />
+          <Testimonials />
           <AboutCMS />
           <ContactForm />
         </main>
