@@ -58,7 +58,7 @@ const QuickGrantDialog = ({ open, onOpenChange, player }: Props) => {
         p_source: source,
         p_funding_pool: pool,
         p_lifetime_mode: lifetime_mode,
-        p_lifetime_days,
+        p_lifetime_days: lifetime_days,
         p_fixed_date: expiry === "fixed" ? fixedDate || null : null,
         p_notes: notes || null,
       });
