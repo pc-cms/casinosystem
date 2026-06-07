@@ -341,8 +341,10 @@ const GroupTable = ({ group, expandedId, onToggle, usdRate, isNetwork, showUsd, 
                 isNetwork={isNetwork}
                 showUsd={showUsd}
                 colCount={colCount}
+                {...edit}
               />
             ))}
+
             <tr className="bg-muted/40 font-semibold border-t-2 border-border [&>td]:h-7 [&>td]:px-2 [&>td]:align-middle">
               <td className="sticky left-0 z-10 bg-muted/40">Total</td>
               <td className="text-right font-mono tabular-nums">{fmt(group.totals.plan_year_tzs)}</td>
