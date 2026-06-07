@@ -142,16 +142,27 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/import-reports") return "import_reports";
   if (base === "/logs") return "logs";
   // Premier Club / AM admin surfaces — gated by their own module keys (NOT 'admin').
-  if (base === "/admin/promo-codes") return "promo_codes" as ModuleKey;
-  if (base === "/admin/promo-grants") return "promo_grants" as ModuleKey;
-  if (base === "/admin/lotteries") return "lotteries" as ModuleKey;
-  if (base === "/admin/shop") return "shop_catalog" as ModuleKey;
-  if (base === "/admin/shop/orders") return "shop_orders" as ModuleKey;
-  if (base === "/admin/am-budget") return "am_budget" as ModuleKey;
-  if (base === "/admin/am-performance") return "am_performance" as ModuleKey;
-  if (base === "/admin/kyc") return "kyc_reviews" as ModuleKey;
-  if (base === "/admin/fm-topups") return "admin";
+  if (base === "/admin/promo-codes") return "promo_codes";
+  if (base === "/admin/promo-grants") return "promo_grants";
+  if (base === "/admin/lotteries") return "lotteries";
+  if (base === "/admin/shop") return "shop_catalog";
+  if (base === "/admin/shop/orders") return "shop_orders";
+  if (base === "/admin/am-budget") return "am_budget";
+  if (base === "/admin/am-performance") return "am_performance";
+  if (base === "/admin/kyc") return "kyc_reviews";
+  if (base === "/admin/fm-topups") return "fm_topups";
+
+  // Premier Club / AM reports
+  if (base === "/reports/promo-issuance") return "report_promo_issuance";
+  if (base === "/reports/promo-redemptions") return "report_promo_redemptions";
+  if (base === "/reports/promo-expiry") return "report_promo_expiry";
+  if (base === "/reports/promo-codes") return "report_promo_codes";
+  if (base === "/reports/cashback") return "report_cashback";
+  if (base === "/reports/lottery-sales") return "report_lottery_sales";
+  if (base === "/reports/am-budget") return "report_am_budget";
+
   if (base === "/admin" || base.startsWith("/admin/")) return "admin";
+
 
   // ============= MARKETING =============
   if (base === "/marketing/campaigns") return "marketing_campaigns";

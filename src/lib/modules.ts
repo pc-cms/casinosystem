@@ -62,13 +62,29 @@ export type ModuleKey =
   | "marketing_campaigns"
   | "crm_players"
   | "kyc_reviews"
+  | "promo_codes"
+  | "promo_grants"
+  | "lotteries"
+  | "shop_catalog"
+  | "shop_orders"
+  | "am_budget"
+  | "am_performance"
+  | "fm_topups"
+  | "report_promo_issuance"
+  | "report_promo_redemptions"
+  | "report_promo_expiry"
+  | "report_promo_codes"
+  | "report_cashback"
+  | "report_lottery_sales"
+  | "report_am_budget"
   | "admin";
 
 export interface ModuleDef {
   key: ModuleKey;
   label: string;
-  group: "Operations" | "Players" | "Finance" | "Reports" | "System";
+  group: "Operations" | "Players" | "Finance" | "Reports" | "Club" | "System";
 }
+
 
 export const MODULES: ModuleDef[] = [
   // Overview
@@ -105,7 +121,7 @@ export const MODULES: ModuleDef[] = [
   { key: "reception_register", label: "Reception · Register", group: "Players" },
   { key: "reception_update", label: "Reception · Update Data", group: "Players" },
   { key: "crm_players", label: "Player CRM", group: "Players" },
-  { key: "kyc_reviews", label: "KYC Reviews (AM)", group: "Players" },
+  { key: "kyc_reviews", label: "KYC Reviews (AM)", group: "Club" },
 
   // Finance
   { key: "bank_checks", label: "Bank", group: "Finance" },
@@ -119,7 +135,7 @@ export const MODULES: ModuleDef[] = [
   { key: "finance_review", label: "Daily Review", group: "Finance" },
   { key: "finance_transfers", label: "Inter-Casino Transfers", group: "Finance" },
   { key: "finance_summary", label: "Finance Summary", group: "Finance" },
-  { key: "finance_payments", label: "Finance Payments", group: "Finance" },
+  { key: "finance_payments", label: "Monthly Expenses", group: "Finance" },
   { key: "payroll", label: "Payroll", group: "Finance" },
 
   // Reports
@@ -140,6 +156,24 @@ export const MODULES: ModuleDef[] = [
   { key: "cctv_dashboard", label: "CCTV Dashboard", group: "System" },
   { key: "marketing_campaigns", label: "Marketing Campaigns", group: "Operations" },
   { key: "admin", label: "Admin Panel", group: "System" },
+
+  // Club / Premier Promo
+  { key: "promo_codes", label: "Promo Codes", group: "Club" },
+  { key: "promo_grants", label: "Promo Grants", group: "Club" },
+  { key: "lotteries", label: "Lotteries", group: "Club" },
+  { key: "shop_catalog", label: "Shop Catalog", group: "Club" },
+  { key: "shop_orders", label: "Shop Orders", group: "Club" },
+  { key: "am_budget", label: "My AM Budget", group: "Club" },
+  { key: "am_performance", label: "AM Performance", group: "Club" },
+  { key: "fm_topups", label: "FM Top-ups", group: "Club" },
+  { key: "report_promo_issuance", label: "Report · Issuance", group: "Club" },
+  { key: "report_promo_redemptions", label: "Report · Redemptions", group: "Club" },
+  { key: "report_promo_expiry", label: "Report · Expiry", group: "Club" },
+  { key: "report_promo_codes", label: "Report · Codes", group: "Club" },
+  { key: "report_cashback", label: "Report · Cashback", group: "Club" },
+  { key: "report_lottery_sales", label: "Report · Lottery Sales", group: "Club" },
+  { key: "report_am_budget", label: "Report · AM Budget", group: "Club" },
 ];
 
-export const MODULE_GROUPS = ["Operations", "Players", "Finance", "Reports", "System"] as const;
+export const MODULE_GROUPS = ["Operations", "Players", "Finance", "Reports", "Club", "System"] as const;
+
