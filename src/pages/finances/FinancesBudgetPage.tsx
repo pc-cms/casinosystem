@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { YearSelect } from "@/components/ui/year-select";
 
 import { Button } from "@/components/ui/button";
-import { useFinBudget, useFinCategories, useUpsertFinBudget, useSetAnnualBudget } from "@/hooks/use-fin";
+import { useFinBudget, useFinCategories, useUpsertFinBudget } from "@/hooks/use-fin";
 import { formatNumberSpaces } from "@/lib/currency";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
