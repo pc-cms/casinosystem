@@ -37,15 +37,24 @@ const OpenSlotsShiftScreen = () => {
   const [ratesPrefilled, setRatesPrefilled] = useState(false);
   const [showRates, setShowRates] = useState(false);
 
-  // Slots cage uses the SAME FX rates as Live Game cage — prefill from last closed live shift.
+  const { data: officeRates } = useFinDailyRatesForDate();
+  const officeRatesLocked = !!officeRates && Object.keys(officeRates).length > 0;
+
+  // Prefer Office-set rates per business date over the last Live Game shift.
   useEffect(() => {
+    if (officeRates && Object.keys(officeRates).length > 0) {
+      setRates(r => ({ ...r, ...officeRates }));
+      setRatesPrefilled(true);
+      return;
+    }
     if (ratesPrefilled) return;
     const prev = (lastShift?.exchange_rates || {}) as Record<string, number>;
     if (prev && Object.keys(prev).length > 0) {
       setRates(r => ({ ...r, ...prev }));
       setRatesPrefilled(true);
     }
-  }, [lastShift, ratesPrefilled]);
+  }, [lastShift, ratesPrefilled, officeRates]);
+
 
   const [openingCash, setOpeningCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
