@@ -28,21 +28,25 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
+import { BentoGrid, BentoTile, BentoKpi } from "@/components/ui/bento-grid";
 
-const StatCard = ({ label, value, icon: Icon, href }: {
-  label: string; value: string | number; icon: any; href: string;
+const StatTile = ({ label, value, icon: Icon, href, col = 3 }: {
+  label: string; value: string | number; icon: any; href: string; col?: 1 | 2 | 3 | 4 | 6;
 }) => (
-  <Link to={href} className="cms-panel p-5 hover:border-primary/30 transition-colors group block">
-    <div className="flex items-center gap-2 text-muted-foreground">
-      <div className="p-1.5 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
-        <Icon className="w-4 h-4" />
-      </div>
-      <p className="text-xs font-medium uppercase tracking-wider truncate">{label}</p>
-    </div>
-    <div className="mt-3 overflow-x-auto scrollbar-hide">
-      <p className="text-3xl font-bold font-mono whitespace-nowrap text-card-foreground">{value}</p>
-    </div>
-  </Link>
+  <BentoTile
+    col={col as any}
+    title={
+      <span className="inline-flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+        {label}
+      </span>
+    }
+    className="hover:border-primary/40"
+    onClick={() => { window.location.href = href; }}
+    style={{ cursor: "pointer" }}
+  >
+    <BentoKpi value={<span className="whitespace-nowrap">{value}</span>} />
+  </BentoTile>
 );
 
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
@@ -228,58 +232,79 @@ const Dashboard = () => {
 
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
-        const gridCols = isSurveillance ? "sm:grid-cols-2 lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4";
+        const cols = isSurveillance ? 6 : 3;
         return (
-          <div className={`grid grid-cols-1 ${gridCols} gap-4 mb-6`}>
-            {showFinancials && <StatCard label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />}
+          <BentoGrid className="mb-6">
             {showFinancials && (
-              <Link to="/tables?tab=tracker" className="cms-panel p-5 hover:border-primary/30 transition-colors group block">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="p-1.5 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
-                    <TrendingDown className="w-4 h-4" />
-                  </div>
-                  <p className="text-xs font-medium uppercase tracking-wider truncate">Result</p>
-                </div>
-                <div className="mt-3 overflow-x-auto scrollbar-hide">
-                  <p className={`text-3xl font-bold font-mono whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-                  </p>
-                </div>
-              </Link>
+              <StatTile col={cols as any} label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />
+            )}
+            {showFinancials && (
+              <BentoTile
+                col={cols as any}
+                title={
+                  <span className="inline-flex items-center gap-1.5">
+                    <TrendingDown className="w-3.5 h-3.5 text-primary" />
+                    Result
+                  </span>
+                }
+                className="hover:border-primary/40 cursor-pointer"
+                onClick={() => { window.location.href = "/tables?tab=tracker"; }}
+              >
+                <BentoKpi
+                  value={
+                    <span className={`whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
+                    </span>
+                  }
+                />
+              </BentoTile>
             )}
             {!isSurveillance && showFinancials && canApproveExpenses && (
-              <StatCard label="Daily Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
+              <StatTile col={cols as any} label="Daily Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
             )}
             {!isSurveillance && showFinancials && (
-              <StatCard label="Pending Cashless" value={pendingCashless} icon={Smartphone} href="/cashless" />
+              <StatTile col={cols as any} label="Pending Cashless" value={pendingCashless} icon={Smartphone} href="/cashless" />
             )}
-          </div>
+          </BentoGrid>
         );
       })()}
 
-      {/* Tables Totals — mirrors Tables page */}
+      {/* Tables Totals — bento, mirrors Tables page */}
       {showFinancials && gameTypeCount > 0 && (
-        <div className="mb-6">
-          
-          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gameTypeCount + 1}, minmax(0, 1fr))` }}>
-            {Object.entries(gameTypeTotals).map(([game, t]) => (
-              <Link to="/tables" key={game} className="cms-panel p-4 hover:border-primary/30 transition-colors">
-                <p className="text-xs uppercase text-muted-foreground tracking-wider">{t.label}</p>
-                <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                  {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
-                </p>
-                <p className="font-mono text-xs text-muted-foreground mt-1">​</p>
-              </Link>
-            ))}
-            <Link to="/tables" className="cms-panel p-4 border-primary/30 hover:border-primary/60 transition-colors">
-              <p className="text-xs uppercase text-muted-foreground tracking-wider">Total Casino</p>
-              <p className={`font-mono text-2xl font-bold mt-1 whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-              </p>
-              <p className="font-mono text-xs text-muted-foreground mt-1">​</p>
-            </Link>
-          </div>
-        </div>
+        <BentoGrid className="mb-6">
+          {Object.entries(gameTypeTotals).map(([game, t]) => (
+            <BentoTile
+              key={game}
+              col={2}
+              title={t.label}
+              className="hover:border-primary/40 cursor-pointer"
+              onClick={() => { window.location.href = "/tables"; }}
+            >
+              <BentoKpi
+                value={
+                  <span className={`whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
+                  </span>
+                }
+              />
+            </BentoTile>
+          ))}
+          <BentoTile
+            col={2}
+            accent
+            title="Total Casino"
+            className="cursor-pointer"
+            onClick={() => { window.location.href = "/tables"; }}
+          >
+            <BentoKpi
+              value={
+                <span className={`whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                  {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
+                </span>
+              }
+            />
+          </BentoTile>
+        </BentoGrid>
       )}
 
       {/* Floor Staff on Shift — full width, fills remaining height */}
