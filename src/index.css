@@ -470,7 +470,7 @@
     font-size: 6pt;
     padding: 0.5mm 1.5mm;
     border-radius: 2px;
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Share Tech Mono', ui-monospace, monospace;
   }
 
   .print-target table {
