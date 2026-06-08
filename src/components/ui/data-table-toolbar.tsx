@@ -3,9 +3,32 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   type MoneyDisplayMode,
+  formatMoneyCompact,
+  formatMoneyFull,
   readMoneyMode,
   writeMoneyMode,
 } from "@/lib/format-money";
+
+/**
+ * MoneyModeContext — lets nested report tables read the active Full/Compact
+ * mode chosen at the parent toolbar without prop-drilling.
+ */
+const MoneyModeContext = React.createContext<MoneyDisplayMode>("full");
+
+export const MoneyModeProvider = MoneyModeContext.Provider;
+
+export const useMoneyDisplayMode = () => React.useContext(MoneyModeContext);
+
+/** Format a number using the active money mode (full = "1 250 000", compact = "1.3M"). */
+export const useFormatMoney = () => {
+  const mode = useMoneyDisplayMode();
+  return React.useCallback(
+    (n: number | null | undefined) =>
+      mode === "compact" ? formatMoneyCompact(n) : formatMoneyFull(n),
+    [mode],
+  );
+};
+
 
 /**
  * useMoneyMode — wires a table's money display toggle to localStorage
