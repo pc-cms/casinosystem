@@ -26,6 +26,7 @@ import { useStaffMembers } from "@/hooks/use-staff";
 import { useGamingTables } from "@/hooks/use-tables";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
+import { SignedImage } from "@/components/SignedImage";
 import { toast } from "sonner";
 
 const DEPARTMENTS = ["game", "cash", "reception", "floor", "bar", "security", "pit"];
@@ -528,8 +529,9 @@ const Incidents = () => {
                     />
                     {form.photo_url ? (
                       <div className="relative inline-block">
-                        <img
+                        <SignedImage
                           src={form.photo_url}
+                          bucket="incident-photos"
                           alt=""
                           className="h-7 w-7 object-cover rounded cursor-pointer"
                           onClick={() => setViewPhoto(form.photo_url)}
@@ -622,8 +624,9 @@ const Incidents = () => {
       <Dialog open={!!viewPhoto} onOpenChange={(o) => !o && setViewPhoto(null)}>
         <DialogContent className="max-w-5xl p-0 bg-background border-border overflow-hidden">
           {viewPhoto && (
-            <img
+            <SignedImage
               src={viewPhoto}
+              bucket="incident-photos"
               alt="Incident photo"
               className="w-full h-auto max-h-[90vh] object-contain bg-muted"
             />
@@ -865,7 +868,7 @@ const IncidentRow = ({
         {editing ? (
           draft.photo_url ? (
             <div className="relative inline-block">
-              <img src={draft.photo_url} alt="" className="h-7 w-7 object-cover rounded cursor-pointer" onClick={() => onView(draft.photo_url)} />
+              <SignedImage src={draft.photo_url} bucket="incident-photos" alt="" className="h-7 w-7 object-cover rounded cursor-pointer" onClick={() => onView(draft.photo_url)} />
               <button type="button" onClick={() => setD("photo_url", null)} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center" title="Remove photo">
                 <X className="w-2 h-2" />
               </button>
