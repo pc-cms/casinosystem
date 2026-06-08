@@ -546,12 +546,6 @@ const Tables = () => {
       </div>
       {tables.length === 0 && <p className="text-muted-foreground text-sm text-center py-8">No tables configured</p>}
 
-      <PlayerDailyAvgBetTable
-        businessDate={businessDay}
-        players={players as any}
-        visits={visits as any}
-        canEdit={!isReadOnly}
-      />
 
 
 
