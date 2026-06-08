@@ -800,6 +800,7 @@ export const useCreateSlotsCashless = () => {
         currency: "TZS",
         reference: input.reference || "",
         note: input.note || "",
+        cage_type: "slots",
         cage_slots_shift_id: input.shift_id,
         source_module: "cage_slots",
       });
