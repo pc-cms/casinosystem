@@ -144,6 +144,7 @@ const Reports = () => {
 
 // =================== SHIFT REPORT ===================
 const ShiftReport = ({ from, to }: { from: string; to: string }) => {
+  const fmt = useFormatMoney();
   const { data: shifts = [] } = useShifts();
   const { data: transactions = [] } = useTransactions();
   const { data: expenses = [] } = useExpenses();
@@ -212,11 +213,11 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {[
           { label: "Shifts", value: String(shiftData.length), cls: "text-card-foreground" },
-          { label: "Tables", value: formatCurrency(totals.tables), cls: signCls(totals.tables) },
-          { label: "Slots", value: formatCurrency(totals.slots), cls: signCls(totals.slots) },
-          { label: "Result", value: formatCurrency(totals.result), cls: signCls(totals.result) },
-          { label: "Miss Chips", value: formatCurrency(totals.miss), cls: "text-warning" },
-          { label: "Total Cash", value: formatCurrency(totals.totalCash), cls: signCls(totals.totalCash) },
+          { label: "Tables", value: fmt(totals.tables), cls: signCls(totals.tables) },
+          { label: "Slots", value: fmt(totals.slots), cls: signCls(totals.slots) },
+          { label: "Result", value: fmt(totals.result), cls: signCls(totals.result) },
+          { label: "Miss Chips", value: fmt(totals.miss), cls: "text-warning" },
+          { label: "Total Cash", value: fmt(totals.totalCash), cls: signCls(totals.totalCash) },
         ].map(c => (
           <div key={c.label} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-lg">{c.label}</p>
@@ -251,14 +252,14 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
                     {s.status}
                   </span>
                 </td>
-                <td className={`px-3 py-2 text-right font-mono text-xs ${signCls(s.tablesResult)}`}>{formatCurrency(s.tablesResult)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{formatCurrency(s.slotsResult)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${signCls(s.result)}`}>{formatCurrency(s.result)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.expTotal)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(s.missTotal)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${signCls(s.totalCash)}`}>{formatCurrency(s.totalCash)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${signCls(s.tablesResult)}`}>{fmt(s.tablesResult)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{fmt(s.slotsResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${signCls(s.result)}`}>{fmt(s.result)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{fmt(s.expTotal)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-warning">{fmt(s.missTotal)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${signCls(s.totalCash)}`}>{fmt(s.totalCash)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${s.balanceRaw == null ? "text-muted-foreground" : s.balanceRaw === 0 ? "text-success" : "text-destructive"}`}>
-                  {s.balanceRaw != null ? `${s.balanceRaw >= 0 ? "+" : ""}${formatCurrency(s.balanceRaw)}` : "—"}
+                  {s.balanceRaw != null ? `${s.balanceRaw >= 0 ? "+" : ""}${fmt(s.balanceRaw)}` : "—"}
                 </td>
               </tr>
             ))}
@@ -271,6 +272,7 @@ const ShiftReport = ({ from, to }: { from: string; to: string }) => {
 
 // =================== PLAYER REPORT ===================
 const PlayerReport = ({ from, to }: { from: string; to: string }) => {
+  const fmt = useFormatMoney();
   const { data: players = [] } = usePlayers();
   const { data: transactions = [] } = useTransactions();
   const { data: expenses = [] } = useExpenses();
@@ -326,14 +328,14 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
                 <span className="text-sm font-medium text-card-foreground">{p.first_name} {p.last_name}</span>
                 {p.nickname && <span className="text-xs text-muted-foreground ml-1">({p.nickname})</span>}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(p.drop)}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(p.cashout)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(p.drop)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(p.cashout)}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${p.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {p.result >= 0 ? "+" : ""}{formatCurrency(p.result)}
+                {p.result >= 0 ? "+" : ""}{fmt(p.result)}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(p.expTotal)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-warning">{fmt(p.expTotal)}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${p.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {p.realResult >= 0 ? "+" : ""}{formatCurrency(p.realResult)}
+                {p.realResult >= 0 ? "+" : ""}{fmt(p.realResult)}
               </td>
               <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{p.txCount}</td>
             </tr>
@@ -341,14 +343,14 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
           {sorted.length > 0 && (
             <tr className="border-t-2 border-primary/30 bg-muted/30">
               <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals ({sorted.length} players)</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, p) => s + p.drop, 0))}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(sorted.reduce((s, p) => s + p.cashout, 0))}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{fmt(sorted.reduce((s, p) => s + p.drop, 0))}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{fmt(sorted.reduce((s, p) => s + p.cashout, 0))}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${sorted.reduce((s, p) => s + p.result, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {formatCurrency(sorted.reduce((s, p) => s + p.result, 0))}
+                {fmt(sorted.reduce((s, p) => s + p.result, 0))}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{formatCurrency(sorted.reduce((s, p) => s + p.expTotal, 0))}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-bold text-warning">{fmt(sorted.reduce((s, p) => s + p.expTotal, 0))}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${sorted.reduce((s, p) => s + p.realResult, 0) >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {formatCurrency(sorted.reduce((s, p) => s + p.realResult, 0))}
+                {fmt(sorted.reduce((s, p) => s + p.realResult, 0))}
               </td>
               <td className="px-3 py-2 text-right font-mono text-xs font-bold text-muted-foreground">{sorted.reduce((s, p) => s + p.txCount, 0)}</td>
             </tr>
@@ -361,6 +363,7 @@ const PlayerReport = ({ from, to }: { from: string; to: string }) => {
 
 // =================== GROUP REPORT ===================
 const GroupReport = ({ from, to }: { from: string; to: string }) => {
+  const fmt = useFormatMoney();
   const { data: groups = [] } = usePlayerGroups();
   const { data: transactions = [] } = useTransactions();
   const { data: expenses = [] } = useExpenses();
@@ -416,14 +419,14 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
             <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/30">
               <td className="px-3 py-2 text-sm font-medium text-card-foreground">{g.name}</td>
               <td className="px-3 py-2 text-right font-mono text-xs text-muted-foreground">{g.members}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(g.drop)}</td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(g.cashout)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(g.drop)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(g.cashout)}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${g.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {g.result >= 0 ? "+" : ""}{formatCurrency(g.result)}
+                {g.result >= 0 ? "+" : ""}{fmt(g.result)}
               </td>
-              <td className="px-3 py-2 text-right font-mono text-xs text-warning">{formatCurrency(g.expTotal)}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-warning">{fmt(g.expTotal)}</td>
               <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${g.realResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                {g.realResult >= 0 ? "+" : ""}{formatCurrency(g.realResult)}
+                {g.realResult >= 0 ? "+" : ""}{fmt(g.realResult)}
               </td>
             </tr>
           ))}
@@ -450,6 +453,7 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 // - Player Result = Cashout − Cash-in (player tx; positive = player wins)
 // - Diff          = Result + Player Result − Miss Chips (should converge to ~0)
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
+  const fmt = useFormatMoney();
   const { casinoId } = useAuth();
 
   const { data: rows = [], isLoading } = useQuery({
@@ -510,13 +514,13 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
         </div>
         {[
-          { label: "Drop (R)", value: formatCurrency(totals.dropR), cls: "text-card-foreground" },
-          { label: "Cash In", value: formatCurrency(totals.cashIn), cls: "text-card-foreground" },
-          { label: "Miss", value: formatCurrency(totals.miss), cls: cls(totals.miss) },
-          { label: "Result", value: formatCurrency(totals.result), cls: cls(totals.result) },
+          { label: "Drop (R)", value: fmt(totals.dropR), cls: "text-card-foreground" },
+          { label: "Cash In", value: fmt(totals.cashIn), cls: "text-card-foreground" },
+          { label: "Miss", value: fmt(totals.miss), cls: cls(totals.miss) },
+          { label: "Result", value: fmt(totals.result), cls: cls(totals.result) },
           { label: "Hold %", value: holdFmt(totals.hold), cls: holdCls(totals.hold) },
-          { label: "Player Result", value: formatCurrency(totals.playerResult), cls: cls(totals.playerResult) },
-          { label: "Diff", value: formatCurrency(totals.diff), cls: cls(totals.diff) },
+          { label: "Player Result", value: fmt(totals.playerResult), cls: cls(totals.playerResult) },
+          { label: "Diff", value: fmt(totals.diff), cls: cls(totals.diff) },
         ].map((c) => (
           <div key={c.label} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
@@ -547,29 +551,29 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
             ) : sorted.map((r) => (
               <tr key={r.date} className="border-b border-border last:border-0 hover:bg-muted/30">
                 <td className="px-3 py-2 text-xs font-mono text-card-foreground">{fmtDate(r.date)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.dropR)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{formatCurrency(r.cashIn)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.miss)}`}>{formatCurrency(r.miss)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.result)}`}>{formatCurrency(r.result)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(r.dropR)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(r.cashIn)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.miss)}`}>{fmt(r.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.result)}`}>{fmt(r.result)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs ${holdCls(r.hold)}`}>
                   {holdFmt(r.hold)}
                 </td>
-                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.playerResult)}`}>{formatCurrency(r.playerResult)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.diff)}`}>{formatCurrency(r.diff)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.playerResult)}`}>{fmt(r.playerResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.diff)}`}>{fmt(r.diff)}</td>
               </tr>
             ))}
             {sorted.length > 0 && (
               <tr className="border-t-2 border-primary/30 bg-muted/30">
                 <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals</td>
-                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(totals.dropR)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{formatCurrency(totals.cashIn)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.miss)}`}>{formatCurrency(totals.miss)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.result)}`}>{formatCurrency(totals.result)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{fmt(totals.dropR)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{fmt(totals.cashIn)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.miss)}`}>{fmt(totals.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.result)}`}>{fmt(totals.result)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${holdCls(totals.hold)}`}>
                   {holdFmt(totals.hold)}
                 </td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.playerResult)}`}>{formatCurrency(totals.playerResult)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.diff)}`}>{formatCurrency(totals.diff)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.playerResult)}`}>{fmt(totals.playerResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.diff)}`}>{fmt(totals.diff)}</td>
               </tr>
             )}
           </tbody>
