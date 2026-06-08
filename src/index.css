@@ -201,11 +201,24 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-  }
   html {
     @apply scroll-smooth;
+    font-size: 17px; /* Design tokens v2: 17px body baseline */
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-semibold tracking-tight;
+    letter-spacing: -0.015em;
+  }
+  /* Tabular numerals for all financial / data surfaces */
+  .tabular, .cms-data, table, input[type="number"] {
+    font-variant-numeric: tabular-nums;
   }
 }
 
