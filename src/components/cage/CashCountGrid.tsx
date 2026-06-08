@@ -63,7 +63,7 @@ const CashCountGrid = ({
   };
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-start ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
       {!hideChips && (
         /* Col 1 — TZS Chips, full height */
         <section className={`${sectionCls} h-full`}>
