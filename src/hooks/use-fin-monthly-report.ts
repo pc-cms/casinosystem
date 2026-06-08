@@ -137,7 +137,6 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       // Plan Month = sum of selected month(s): single month, or 1..month for YTD.
       const planMap = new Map<string, { tzs: number; usd: number }>();
       const planYearMap = new Map<string, { tzs: number; usd: number }>();
-      const startMonth = ytd ? 1 : month;
       const endMonth = month;
       (budgets.data || []).forEach((b: any) => {
         const key = b.category_id;
