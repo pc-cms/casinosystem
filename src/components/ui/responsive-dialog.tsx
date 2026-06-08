@@ -88,7 +88,7 @@ export const ResponsiveDialog = ({
   onOpenChange,
   title,
   description,
-  size = "lg",
+  size = "form",
   className,
   alwaysDialog,
   children,
