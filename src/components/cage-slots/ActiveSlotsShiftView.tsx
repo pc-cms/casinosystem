@@ -103,6 +103,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   );
 
   // Closing entry state (controlled locally, persisted on save)
+  const [activeSection, setActiveSection] = useState<"cage" | "cashless" | "transfers">("cage");
   const [closingCash, setClosingCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
