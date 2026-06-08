@@ -11,7 +11,7 @@ import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
 import CashlessReport from "@/components/reports/CashlessReport";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useMoneyMode } from "@/components/ui/data-table-toolbar";
+import { useMoneyMode, MoneyModeProvider, useFormatMoney } from "@/components/ui/data-table-toolbar";
 import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
