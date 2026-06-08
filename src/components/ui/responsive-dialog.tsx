@@ -32,16 +32,42 @@ import { cn } from "@/lib/utils";
  *   </ResponsiveDialog>
  */
 
-export type ResponsiveDialogSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "full";
+/**
+ * Two canonical widths only:
+ *   - "form"  → 560px  (simple forms: cancel tx, notes, quick grant, password)
+ *   - "table" → 880px  (table-like forms: open/close table, slots, chip count,
+ *                       cage tx, promo grant, AM grant, redeem, stock count)
+ *
+ * Legacy size names are kept as aliases so existing call-sites keep working,
+ * but they collapse to one of the two canonical widths.
+ */
+export type ResponsiveDialogSize =
+  | "form"
+  | "table"
+  | "sm"
+  | "md"
+  | "lg"
+  | "xl"
+  | "2xl"
+  | "3xl"
+  | "4xl"
+  | "full";
+
+const FORM_W = "sm:max-w-[560px]";
+const TABLE_W = "sm:max-w-[880px]";
 
 const SIZE_CLASS: Record<ResponsiveDialogSize, string> = {
-  sm: "sm:max-w-sm",
-  md: "sm:max-w-md",
-  lg: "sm:max-w-lg",
-  xl: "sm:max-w-xl",
-  "2xl": "sm:max-w-2xl",
-  "3xl": "sm:max-w-3xl",
-  "4xl": "sm:max-w-4xl",
+  form: FORM_W,
+  table: TABLE_W,
+  // legacy → form
+  sm: FORM_W,
+  md: FORM_W,
+  // legacy → table
+  lg: TABLE_W,
+  xl: TABLE_W,
+  "2xl": TABLE_W,
+  "3xl": TABLE_W,
+  "4xl": TABLE_W,
   full: "sm:max-w-[95vw]",
 };
 
