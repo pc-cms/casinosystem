@@ -49,6 +49,72 @@ const StatTile = ({ label, value, icon: Icon, href, col = 3 }: {
   </BentoTile>
 );
 
+/**
+ * Single-panel summary strip — one bordered card, one row per metric.
+ * Replaces multi-tile bento rows so values always stay on one line
+ * and dashboards never show empty containers around tiny numbers.
+ */
+const SummaryPanel = ({
+  title,
+  rows,
+  total,
+}: {
+  title?: string;
+  rows: Array<{
+    label: string;
+    value: React.ReactNode;
+    icon?: any;
+    href?: string;
+    signed?: number;  // value sign for color (>0 pos, <0 neg, 0 neutral)
+  }>;
+  total?: { label: string; value: React.ReactNode; signed?: number };
+}) => (
+  <section className="rounded-md border border-border bg-card mb-6">
+    {title && (
+      <header className="px-4 pt-3 pb-2 border-b border-border/60">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">{title}</p>
+      </header>
+    )}
+    <div className="divide-y divide-border/40">
+      {rows.map((r, i) => {
+        const Icon = r.icon;
+        const colorCls = r.signed === undefined
+          ? ""
+          : r.signed < 0 ? "cms-amount-negative" : r.signed > 0 ? "cms-amount-positive" : "";
+        const content = (
+          <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold min-w-0">
+              {Icon && <Icon className="w-3.5 h-3.5 text-primary shrink-0" />}
+              <span className="truncate">{r.label}</span>
+            </span>
+            <span className={`font-mono font-bold tabular-nums whitespace-nowrap text-xl ${colorCls}`}>
+              {r.value}
+            </span>
+          </div>
+        );
+        return r.href ? (
+          <Link key={i} to={r.href} className="block hover:bg-accent/40 transition-colors">{content}</Link>
+        ) : (
+          <div key={i}>{content}</div>
+        );
+      })}
+      {total && (() => {
+        const colorCls = total.signed === undefined
+          ? ""
+          : total.signed < 0 ? "cms-amount-negative" : total.signed > 0 ? "cms-amount-positive" : "";
+        return (
+          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-primary/5 border-t-2 border-primary/40">
+            <span className="text-sm uppercase tracking-[0.14em] text-foreground font-bold">{total.label}</span>
+            <span className={`font-mono font-extrabold tabular-nums whitespace-nowrap text-2xl ${colorCls || "text-foreground"}`}>
+              {total.value}
+            </span>
+          </div>
+        );
+      })()}
+    </div>
+  </section>
+);
+
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
 
 const Dashboard = () => {
@@ -230,88 +296,46 @@ const Dashboard = () => {
         <CCTVDashboardSection />
       )}
 
+      {/* Day at a glance — single panel, one row per metric, never wraps. */}
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
-        const cols = isSurveillance ? 6 : 3;
-        return (
-          <BentoGrid className="mb-6">
-            {showFinancials && (
-              <StatTile col={cols as any} label="Total Drop" value={formatCurrency(totalDrop)} icon={Landmark} href="/cage" />
-            )}
-            {showFinancials && (
-              <BentoTile
-                col={cols as any}
-                title={
-                  <span className="inline-flex items-center gap-1.5">
-                    <TrendingDown className="w-3.5 h-3.5 text-primary" />
-                    Result
-                  </span>
-                }
-                className="hover:border-primary/40 cursor-pointer"
-                onClick={() => { window.location.href = "/tables?tab=tracker"; }}
-              >
-                <BentoKpi
-                  value={
-                    <span className={`whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-                    </span>
-                  }
-                />
-              </BentoTile>
-            )}
-            {!isSurveillance && showFinancials && canApproveExpenses && (
-              <StatTile col={cols as any} label="Daily Expenses" value={pendingExpenses} icon={Receipt} href="/expenses" />
-            )}
-            {!isSurveillance && showFinancials && (
-              <StatTile col={cols as any} label="Pending Cashless" value={pendingCashless} icon={Smartphone} href="/cashless" />
-            )}
-          </BentoGrid>
-        );
+        if (!showFinancials) return null;
+        const rows: Array<{ label: string; value: React.ReactNode; icon?: any; href?: string; signed?: number }> = [
+          { label: "Total Drop", value: formatCurrency(totalDrop), icon: Landmark, href: "/cage" },
+          {
+            label: "Result",
+            icon: TrendingDown,
+            href: "/tables?tab=tracker",
+            signed: totalResult,
+            value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
+          },
+        ];
+        if (!isSurveillance && canApproveExpenses) {
+          rows.push({ label: "Daily Expenses", value: pendingExpenses, icon: Receipt, href: "/expenses" });
+        }
+        if (!isSurveillance) {
+          rows.push({ label: "Pending Cashless", value: pendingCashless, icon: Smartphone, href: "/cashless" });
+        }
+        return <SummaryPanel title="Day at a glance" rows={rows} />;
       })()}
 
-      {/* Tables Totals — bento, mirrors Tables page. Spans expand to fill 12 cols. */}
-      {showFinancials && gameTypeCount > 0 && (() => {
-        const games = Object.entries(gameTypeTotals);
-        // 12-col target. Reserve at least 2 for each game tile, give Total Casino the remainder.
-        const gameCol = Math.max(2, Math.floor(8 / Math.max(1, games.length))) as 2 | 3 | 4 | 6 | 8;
-        const totalCol = Math.max(2, 12 - gameCol * games.length) as 2 | 3 | 4 | 6 | 8;
-        return (
-          <BentoGrid className="mb-6">
-            {games.map(([game, t]) => (
-              <BentoTile
-                key={game}
-                col={gameCol}
-                title={t.label}
-                className="hover:border-primary/40 cursor-pointer"
-                onClick={() => { window.location.href = "/tables"; }}
-              >
-                <BentoKpi
-                  value={
-                    <span className={`whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                      {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
-                    </span>
-                  }
-                />
-              </BentoTile>
-            ))}
-            <BentoTile
-              col={totalCol}
-              accent
-              title="Total Casino"
-              className="cursor-pointer"
-              onClick={() => { window.location.href = "/tables"; }}
-            >
-              <BentoKpi
-                value={
-                  <span className={`whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-                  </span>
-                }
-              />
-            </BentoTile>
-          </BentoGrid>
-        );
-      })()}
+      {/* Tables Totals — single panel with row per game type + Total Casino accent row. */}
+      {showFinancials && gameTypeCount > 0 && (
+        <SummaryPanel
+          title="Tables Totals"
+          rows={Object.entries(gameTypeTotals).map(([game, t]) => ({
+            label: t.label,
+            signed: t.result,
+            href: "/tables",
+            value: `${t.result >= 0 ? "+" : ""}${formatCurrency(t.result)}`,
+          }))}
+          total={{
+            label: "Total Casino",
+            signed: totalResult,
+            value: `${totalResult >= 0 ? "+" : ""}${formatCurrency(totalResult)}`,
+          }}
+        />
+      )}
 
       {/* Floor Staff on Shift — full width, fills remaining height */}
       <div className="cms-panel flex flex-col" style={{ minHeight: "60vh" }}>
