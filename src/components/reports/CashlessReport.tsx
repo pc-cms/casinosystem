@@ -1,6 +1,6 @@
 /**
  * CashlessReport — read-only Cashless analytics over an arbitrary business-day range.
- * Mirrors Expenses report integration: KPI cards, provider breakdown, sortable history.
+ * Migrated to DataTable v2 + MoneyCell (Full/Compact mode toggle).
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -9,9 +9,13 @@ import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/currency";
 import { fmtDate } from "@/lib/format-date";
 import { ArrowUp, ArrowDown, ArrowUpDown, CheckCircle } from "lucide-react";
+import {
+  DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
+} from "@/components/ui/data-table";
+import { MoneyCell } from "@/components/ui/money-cell";
+import { useMoneyMode } from "@/components/ui/data-table-toolbar";
 
 type Direction = "IN" | "OUT";
 type Provider = "AIRTEL" | "MPESA" | "TIGO" | "HALOTEL";
@@ -40,6 +44,7 @@ type SortDir = "asc" | "desc";
 
 const CashlessReport = ({ from, to }: { from: string; to: string }) => {
   const { casinoId } = useAuth();
+  const [mode, MoneyToggle] = useMoneyMode("cashless-report");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["cashless-report", casinoId, from, to],
@@ -109,19 +114,19 @@ const CashlessReport = ({ from, to }: { from: string; to: string }) => {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "date", dir: "desc" });
   const toggleSort = (k: SortKey) =>
     setSort(s => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "desc" }));
-  const SortTh = ({ k, label, align = "left" }: { k: SortKey; label: string; align?: "left" | "right" | "center" }) => {
+
+  const SortLabel = ({ k, label }: { k: SortKey; label: string }) => {
     const active = sort.key === k;
     const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
     return (
-      <th
+      <button
+        type="button"
         onClick={() => toggleSort(k)}
-        className={`text-[10px] uppercase tracking-wider px-3 py-2 cursor-pointer select-none hover:text-foreground ${active ? "text-foreground" : "text-muted-foreground"} ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"}`}
+        className={`inline-flex items-center gap-1 hover:text-foreground ${active ? "text-foreground" : ""}`}
       >
-        <span className={`inline-flex items-center gap-1 ${align === "right" ? "flex-row-reverse" : ""}`}>
-          {label}
-          <Icon className="w-3 h-3 opacity-70" />
-        </span>
-      </th>
+        {label}
+        <Icon className="w-3 h-3 opacity-70" />
+      </button>
     );
   };
 
@@ -146,8 +151,6 @@ const CashlessReport = ({ from, to }: { from: string; to: string }) => {
     return arr;
   }, [filtered, sort]);
 
-  const cls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
-
   return (
     <div className="space-y-3">
       {/* KPI cards — clicking Total resets filters */}
@@ -162,15 +165,15 @@ const CashlessReport = ({ from, to }: { from: string; to: string }) => {
         </button>
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Deposit</p>
-          <p className="font-mono text-sm font-bold cms-amount-positive">{formatCurrency(totals.in)}</p>
+          <MoneyCell value={totals.in} mode={mode} className="text-sm font-bold cms-amount-positive" />
         </div>
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Withdrawal</p>
-          <p className="font-mono text-sm font-bold cms-amount-negative">{formatCurrency(totals.out)}</p>
+          <MoneyCell value={totals.out} mode={mode} className="text-sm font-bold cms-amount-negative" />
         </div>
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Net</p>
-          <p className={`font-mono text-sm font-bold ${cls(totals.net)}`}>{totals.net >= 0 ? "+" : ""}{formatCurrency(totals.net)}</p>
+          <MoneyCell value={totals.net} mode={mode} signed className="text-sm font-bold" />
         </div>
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Pending</p>
@@ -188,9 +191,18 @@ const CashlessReport = ({ from, to }: { from: string; to: string }) => {
               <div className="flex items-center justify-between mb-1">
                 <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[p]}`}>{PROVIDER_LABEL[p]}</span>
               </div>
-              <p className="font-mono text-[10px] text-muted-foreground">Deposit: <span className="cms-amount-positive">{formatCurrency(v.in)}</span></p>
-              <p className="font-mono text-[10px] text-muted-foreground">Withdrawal: <span className="cms-amount-negative">{formatCurrency(v.out)}</span></p>
-              <p className="font-mono text-[10px] text-muted-foreground">Net: <span className={cls(net)}>{net >= 0 ? "+" : ""}{formatCurrency(net)}</span></p>
+              <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                <span>Deposit</span>
+                <MoneyCell value={v.in} mode={mode} className="text-[11px] cms-amount-positive" />
+              </div>
+              <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                <span>Withdrawal</span>
+                <MoneyCell value={v.out} mode={mode} className="text-[11px] cms-amount-negative" />
+              </div>
+              <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                <span>Net</span>
+                <MoneyCell value={net} mode={mode} signed className="text-[11px]" />
+              </div>
             </div>
           );
         })}
@@ -251,75 +263,82 @@ const CashlessReport = ({ from, to }: { from: string; to: string }) => {
             className="h-8 text-xs"
           />
         </div>
+        <div className="ml-auto self-end">
+          <MoneyToggle />
+        </div>
       </div>
 
       {/* History table */}
-      <div className="cms-panel overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <SortTh k="date" label="Date" />
-              <SortTh k="source" label="Source" />
-              <SortTh k="direction" label="Direction" />
-              <SortTh k="provider" label="Provider" />
-              <SortTh k="player" label="Player" />
-              <th className="text-left px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground">Reference</th>
-              <SortTh k="amount" label="Amount" align="right" />
-              <SortTh k="status" label="Status" align="center" />
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-6">Loading…</td></tr>
-            ) : sorted.length === 0 ? (
-              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-6">No cashless transactions in range</td></tr>
-            ) : sorted.map((r: any) => {
-              const src = resolveSource(r);
-              return (
-                <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                  <td className="px-3 py-1.5 text-xs font-mono text-muted-foreground">{fmtDate(r.created_at)}</td>
-                  <td className="px-3 py-1.5">
-                    <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${src === "slots" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-400" : "bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400"}`}>
-                      {src === "slots" ? "Slots" : "Live"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">
-                      {r.direction === "IN" ? "Deposit" : "Withdrawal"}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider as Provider] || ""}`}>{r.provider}</span>
-                  </td>
-                  <td className="px-3 py-1.5 text-xs text-card-foreground">
-                    {r.players ? `${r.players.first_name} ${r.players.last_name}` : (r.player_name || "—")}
-                  </td>
-                  <td className="px-3 py-1.5 text-xs text-muted-foreground font-mono">{r.reference || "—"}</td>
-                  <td className={`px-3 py-1.5 text-right font-mono text-xs ${r.direction === "IN" ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    {formatCurrency(Number(r.amount))}
-                  </td>
-                  <td className="px-3 py-1.5 text-center">
-                    {r.status === "approved" ? (
-                      <span className="cms-status-active text-xs inline-flex items-center gap-0.5"><CheckCircle className="w-3 h-3" /> Approved</span>
-                    ) : r.status === "pending" ? (
-                      <Badge variant="secondary" className="text-[10px]">Pending</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px]">Recorded</Badge>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {sorted.length > 0 && (
-              <tr className="border-t-2 border-primary/30 bg-muted/30">
-                <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase" colSpan={6}>Totals ({sorted.length} records)</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.net)}`}>{totals.net >= 0 ? "+" : ""}{formatCurrency(totals.net)}</td>
-                <td />
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <DTHead>
+          <DTRow>
+            <DTHeader type="date"><SortLabel k="date" label="Date" /></DTHeader>
+            <DTHeader type="status"><SortLabel k="source" label="Source" /></DTHeader>
+            <DTHeader type="status"><SortLabel k="direction" label="Direction" /></DTHeader>
+            <DTHeader type="status"><SortLabel k="provider" label="Provider" /></DTHeader>
+            <DTHeader type="name"><SortLabel k="player" label="Player" /></DTHeader>
+            <DTHeader type="text">Reference</DTHeader>
+            <DTHeader type="money"><SortLabel k="amount" label="Amount" /></DTHeader>
+            <DTHeader type="status"><SortLabel k="status" label="Status" /></DTHeader>
+          </DTRow>
+        </DTHead>
+        <DTBody>
+          {isLoading ? (
+            <DTRow><DTCell colSpan={8} className="text-center text-muted-foreground py-6">Loading…</DTCell></DTRow>
+          ) : sorted.length === 0 ? (
+            <DTRow><DTCell colSpan={8} className="text-center text-muted-foreground py-6">No cashless transactions in range</DTCell></DTRow>
+          ) : sorted.map((r: any) => {
+            const src = resolveSource(r);
+            return (
+              <DTRow key={r.id}>
+                <DTCell type="date" className="text-muted-foreground">{fmtDate(r.created_at)}</DTCell>
+                <DTCell type="status">
+                  <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${src === "slots" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-400" : "bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-400"}`}>
+                    {src === "slots" ? "Slots" : "Live"}
+                  </span>
+                </DTCell>
+                <DTCell type="status">
+                  <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">
+                    {r.direction === "IN" ? "Deposit" : "Withdrawal"}
+                  </Badge>
+                </DTCell>
+                <DTCell type="status">
+                  <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider as Provider] || ""}`}>{r.provider}</span>
+                </DTCell>
+                <DTCell type="name">
+                  {r.players ? `${r.players.first_name} ${r.players.last_name}` : (r.player_name || "—")}
+                </DTCell>
+                <DTCell type="text" className="text-muted-foreground font-mono text-xs">{r.reference || "—"}</DTCell>
+                <DTCell type="money">
+                  <MoneyCell
+                    value={Number(r.amount)}
+                    mode={mode}
+                    className={r.direction === "IN" ? "cms-amount-positive" : "cms-amount-negative"}
+                  />
+                </DTCell>
+                <DTCell type="status">
+                  {r.status === "approved" ? (
+                    <span className="cms-status-active text-xs inline-flex items-center gap-0.5"><CheckCircle className="w-3 h-3" /> Approved</span>
+                  ) : r.status === "pending" ? (
+                    <Badge variant="secondary" className="text-[10px]">Pending</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">Recorded</Badge>
+                  )}
+                </DTCell>
+              </DTRow>
+            );
+          })}
+          {sorted.length > 0 && (
+            <DTRow className="border-t-2 border-primary/30 bg-muted/30 font-bold">
+              <DTCell colSpan={6} className="uppercase text-xs font-bold">Totals ({sorted.length} records)</DTCell>
+              <DTCell type="money">
+                <MoneyCell value={totals.net} mode={mode} signed className="font-bold" />
+              </DTCell>
+              <DTCell />
+            </DTRow>
+          )}
+        </DTBody>
+      </DataTable>
     </div>
   );
 };
