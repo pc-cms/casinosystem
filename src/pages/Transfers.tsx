@@ -68,7 +68,7 @@ const useUnifiedTransfers = (businessDate: string, source: Source) => {
       // The transfers tables themselves don't carry business_date — they are
       // joined via parent shifts which expose business_date. Easiest: filter
       // by created_at falling inside the business day window [bd 07:00 EAT, bd+1 07:00 EAT).
-      const fromUtc = new Date(`${businessDate}T${String(businessDayHourUTC()).padStart(2, "0")}:00:00Z`).toISOString();
+      const fromUtc = businessDayHourUTC(businessDate, 7);
       const toUtc = new Date(new Date(fromUtc).getTime() + 24 * 60 * 60 * 1000).toISOString();
 
       const acc: UnifiedRow[] = [];
