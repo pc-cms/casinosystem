@@ -144,9 +144,32 @@ const Cashless = () => {
       <PageHeader
         icon={CreditCard}
         title="Cashless"
-        subtitle={`Mobile money · ${rows.length} records · ${summary.pendingCount} pending`}
+        subtitle={`Mobile money · ${rows.length} records · ${summary.pendingCount} pending${sourceLocked ? ` · ${writeSource === "slots" ? "Slots" : "Live"}` : ""}`}
         date
       />
+
+      {/* Source filter — Live / Slots / All (locked for single-source cashiers) */}
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Source</span>
+        <div className="inline-flex rounded-md border border-border overflow-hidden h-8">
+          {(["all", "live_game", "slots"] as CashlessSource[]).map(s => (
+            <button
+              key={s}
+              type="button"
+              disabled={sourceLocked && s !== roleDefaultSource}
+              onClick={() => setSource(s)}
+              className={`px-3 text-xs font-medium transition-colors ${
+                source === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+              } ${sourceLocked && s !== roleDefaultSource ? "opacity-40 cursor-not-allowed" : ""}`}
+            >
+              {s === "all" ? "All" : s === "live_game" ? "Live" : "Slots"}
+            </button>
+          ))}
+        </div>
+        {source === "all" && !sourceLocked && (
+          <span className="text-[10px] text-muted-foreground">New rows go to <b>{writeSource === "slots" ? "Slots" : "Live"}</b> (active shift).</span>
+        )}
+      </div>
 
       {/* KPI cards — Deposit / Withdrawal / Net (no IN/OUT terminology) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
