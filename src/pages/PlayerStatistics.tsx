@@ -31,7 +31,7 @@ import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { usePlayerDailyAvgBets, useSetPlayerDailyAvgBet, type AvgBetGroup } from "@/hooks/use-player-daily-avg-bets";
-import { formatNumberSpaces, formatInputWithSpaces, parseFormattedNumber } from "@/lib/currency";
+import { formatNumberSpaces as _fmt, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 
 type TabKey = "day" | "present" | "left";
 
