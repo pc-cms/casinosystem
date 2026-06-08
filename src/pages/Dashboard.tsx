@@ -232,8 +232,6 @@ const Dashboard = () => {
 
       {(() => {
         const isSurveillance = roles.includes("surveillance") && !roles.includes("manager") && !roles.includes("super_admin");
-        const gridCols = isSurveillance ? "sm:grid-cols-2 lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4";
-        return (
         const cols = isSurveillance ? 6 : 3;
         return (
           <BentoGrid className="mb-6">
