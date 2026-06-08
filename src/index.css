@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@500;600;700&display=swap');
 
 @font-face {
   font-family: 'Faberge';
@@ -147,7 +147,7 @@
     --sidebar-border: 38 40% 78%;
     --sidebar-ring: 38 55% 72%;
 
-    --font-mono: 'Geist Mono', monospace;
+    --font-mono: 'Share Tech Mono', ui-monospace, monospace;
     --font-sans: 'Inter', sans-serif;
   }
 
@@ -470,7 +470,7 @@
     font-size: 6pt;
     padding: 0.5mm 1.5mm;
     border-radius: 2px;
-    font-family: 'Geist Mono', monospace;
+    font-family: 'Share Tech Mono', ui-monospace, monospace;
   }
 
   .print-target table {
