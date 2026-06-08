@@ -147,7 +147,7 @@
     --sidebar-border: 38 40% 78%;
     --sidebar-ring: 38 55% 72%;
 
-    --font-mono: 'JetBrains Mono', monospace;
+    --font-mono: 'IBM Plex Mono', monospace;
     --font-sans: 'Inter', sans-serif;
   }
 
@@ -470,7 +470,7 @@
     font-size: 6pt;
     padding: 0.5mm 1.5mm;
     border-radius: 2px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'IBM Plex Mono', monospace;
   }
 
   .print-target table {
