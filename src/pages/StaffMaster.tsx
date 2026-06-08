@@ -29,6 +29,7 @@ import {
   joinName,
 } from "@/lib/staff-dictionaries";
 import { EditableCell } from "@/components/staff-master/editable-cell";
+import { SignedImage } from "@/components/SignedImage";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
 
