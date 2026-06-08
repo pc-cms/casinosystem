@@ -1,85 +1,105 @@
-# Unified Layout Rules — Scroll, Columns, Numbers, Modals
+## Problems
 
-Целевой экран: Full HD 21"+ при `density=comfort`, body 17px, sidebar 320px. Все правила вшиваются в общие примитивы (`DataTable`, `ResponsiveDialog`, `MoneyCell`), а не правятся по местам.
+1. **Radius too big** — `--radius: 12px` makes tiles look like detached pills, dark "corner gaps" leak through (the card sits on dark page bg).
+2. **Dotted zero** — currently JetBrains Mono, whose `0` has a dot.
+3. **Tile-per-metric in Closing Preview** — 5 tiny tiles per row force numbers like `1 160 000` to wrap into 2 lines (`1 160` / `000`).
+4. **Dashboard tables row** — 4 game-type tiles × `col=2` + Total × `col=2` = 10 of 12 columns → blank gap on the right.
 
 ---
 
-## 1. Scroll: никогда две полосы одновременно
+## 1. Border radius
 
-Гибрид по контенту, решает сама таблица:
+Drop the global token from **12px → 8px** (matches the tighter dense look the user wants).
 
-- **Узкие (≤8 колонок или ширина контента ≤ контейнера)** → только вертикальный скролл страницы. `overflow-x: visible`. Колонки сжимаются по правилам §2.
-- **Широкие (>8 колонок или min-content шире контейнера)** → таблица в собственном контейнере: `overflow-x: auto`, `overflow-y: visible`, страница НЕ скроллится горизонтально, sticky header + sticky первая колонка (имя/время/дата).
-- Авто-детект в `DataTable` через `ResizeObserver`: сравнивает `scrollWidth` vs `clientWidth` родителя и переключает режим.
-- `PageShell` получает класс `overflow-x-clip` на корне — гарантия от случайного двойного скролла.
+```css
+/* src/index.css */
+--radius: 0.5rem;  /* 8px — was 0.75rem */
+```
 
-## 2. Ширины колонок: auto-fit + min/max токены
+This automatically tightens `rounded-lg` (8), `rounded-md` (6), `rounded-sm` (4) everywhere.
 
-В `DataTable` каждая колонка получает `type` (заменяет ручной `className="w-…"`):
+---
 
-| type | min | max | align | font |
-|---|---|---|---|---|
-| `text` | content | 240px | left | sans, truncate + tooltip |
-| `name` | content | 220px | left | sans, truncate + tooltip |
-| `money` | под `999 999 999` (~10ch) | auto | right | mono tabular |
-| `int` | под `9 999` (~5ch) | auto | right | mono tabular |
-| `time` | под `HH:MM` (~6ch) | fixed | center | mono |
-| `date` | под `DD/MM/YYYY` (~12ch) | fixed | center | mono |
-| `status` | content | 120px | center | badge |
-| `actions` | content | content | right | icons |
+## 2. Mono font — pick one (need user choice)
 
-Таблица = `table-layout: auto` + `width: max-content`, ячейки = `white-space: nowrap`. Длинный текст обрезается `…` с tooltip полного значения.
+Current: **JetBrains Mono** — `0` has a center dot.
 
-Имя/время/категория больше НЕ растягиваются — освобождают место под цифры.
+Three candidates with a clean (no-dot, no-slash) zero, all on Google Fonts:
 
-## 3. Числа: K/M через toolbar-toggle
+| Font | Zero | Feel |
+|---|---|---|
+| **Geist Mono** | plain oval | modern, neutral, Vercel-style — closest to current weight |
+| **IBM Plex Mono** | plain oval | corporate, slightly warmer |
+| **DM Mono** | plain round | softer, lighter weight, more editorial |
 
-- Новый компонент `<MoneyCell value={n}/>` и хелпер `formatMoneyCompact(n, mode)`:
-  - `full` → `1 250 000`
-  - `compact` → `1.25M`, `112K`, `1.2B`
-  - Правило: 4+ цифры → K, 7+ → M, 10+ → B; 1 знак после запятой, если результат ≠ целое.
-- Toggle `Full / Compact` в `<DataTableToolbar>` (новый глобальный toolbar из прошлого тура), хранится в localStorage по ключу таблицы.
-- Tooltip с полным значением ВСЕГДА (даже в Full), на hover/focus.
-- Cage, Cash Count, Expenses формы — всегда `full` (toggle спрятан, формат-инпуты не меняются).
-- Печать (print stylesheet) — всегда `full`.
+I'll ask the user via `ask_questions` which one to swap to, then replace the `@import` and `--font-mono` token in one shot.
 
-## 4. Modals: две ширины и точка
+---
 
-Удаляются размеры `sm | md | lg | xl | 2xl` у `ResponsiveDialog`. Остаются:
+## 3. Closing Preview — merge tiles into grouped panels
 
-- `<ResponsiveDialog size="form">` — **560px**. Простые формы: cancel transaction, notes, quick grant, weekly bonus, expense category, new player tag, password prompt.
-- `<ResponsiveDialog size="table">` — **880px**. Табличные формы: Open/Close Table, Open/Close Slot, Chip Count, Cage Tx, Promo Grant edit, AM Quick Grant, Cashier Redeem, Stock Count, Inter-Casino Transfer.
+Stop using 5 separate `<BigTile>` boxes. Render each section as **one bordered panel with inline rows**, so each number gets the full panel width and stays on one line.
 
-Общие правила контента:
+Target layout for the modal:
 
-- Высота: `auto`, max `min(80vh, 720px)`, внутренний скролл только у `<DialogBody>`. Header/footer sticky.
-- Внутри только `<FormGrid>` — `form` = 1 колонка, `table` = 2 колонки (на mobile коллапс в 1). Никаких произвольных `grid-cols-*`.
-- Все инпуты — 40px (form-density), числовые — `<MoneyInput>` (без стрелок, разделитель пробел, parse при blur, мгновенный ввод).
-- Один primary в footer + Cancel ghost. Destructive только в destructive-action диалогах.
-- Mobile (<768px) — `<Drawer>` снизу автоматически (как сейчас), правила те же.
+```text
+┌─ Cash on Hand (Closing) ─────────────────────────────────┐
+│  TZS Cash            291 000                              │
+│  Foreign Cash              0                              │
+│  Banks                     0                              │
+│  Mobile Money       +869 000                              │
+│  ──────────────────────────                               │
+│  Total Closing      1 160 000   ← bold, accent row        │
+└───────────────────────────────────────────────────────────┘
 
-Жертвы: пустое место в простых формах допускается ради консистентности. Никаких “средних” размеров.
+┌─ Shift Result ───────────────────────────────────────────┐
+│  Opening Cash       1 000 000                             │
+│  Closing Cash       1 160 000                             │
+│  System Result     +1 150 000                             │
+│  Cash Desk Result  +1 160 000                             │
+│  Cards Miss           +10 000                             │
+└───────────────────────────────────────────────────────────┘
 
-## 5. Refactor scope
+┌─ SHIFT BALANCE ──────────────────────────── 0 ───────────┐
+└───────────────────────────────────────────────────────────┘
 
-Затрагиваемые примитивы:
-- `src/components/ui/data-table.tsx` — добавить `columns` prop с `type`, авто-детект скролла, sticky-first.
-- `src/components/ui/data-table-toolbar.tsx` (новый из прошлого тура) — добавить Full/Compact toggle.
-- `src/components/ui/responsive-dialog.tsx` — оставить только `size: "form" | "table"`, удалить остальные.
-- `src/components/ui/money-cell.tsx` (новый), `src/lib/format-money.ts` (compact helper).
-- `src/components/ui/page-shell.tsx` — `overflow-x-clip`.
+┌──────────────┬───────────────────────┬───────────────────┐
+│ Cashless I/O │ Cashless Final        │ Cards Open · Close│
+│ 869 000 / 0  │ 0                     │ 33 · 31           │
+└──────────────┴───────────────────────┴───────────────────┘
+```
 
-Миграция вызовов (≈90 файлов): кодомод-скрипт `size="lg|xl|2xl" → "table"`, `size="sm|md" → "form"`. DataTable вызовы помечаются `columns=[…]` постепенно: критичные сначала (Cage, Cash Count, Promo, AM, Tables, Slots, Reports), остальные дефолтятся к auto-fit-text.
+Concretely, in `src/components/cage-slots/ActiveSlotsShiftView.tsx` (lines ~963-1018):
 
-## 6. Acceptance
+- Replace the two `grid grid-cols-5` blocks with a `<GroupedPanel>` (one `cms-panel` per section) that renders metric rows:
+  - Label on the left (`text-xs uppercase muted`)
+  - Value on the right (`font-mono tabular-nums text-xl/2xl`, `whitespace-nowrap`)
+  - Total row visually emphasized (bold + border-t)
+- Also widen the modal: `max-w-2xl` → `max-w-3xl` (gives Total Closing Cash plenty of room even at the widest value).
+- Remove `min-h-[88px]` tile padding — list rows are denser and cleaner.
+- Keep the bottom 3-up footer (`Cashless I/O`, `Cashless Final`, `Cards Open · Close`) since those are short.
 
-- Ни одна страница на 1920×1080 не имеет одновременно H-scroll и V-scroll на `<html>`.
-- Колонка `Name` в Cage Transactions / Promo Grants / Player list сжата до содержимого; цифры не переносятся.
-- В широких отчётах (Cashback, AM Budget, Monthly Tips) toggle Compact превращает столбцы в `K/M` без сдвига вёрстки.
-- Все диалоги имеют одну из двух ширин; нет ни одного `max-w-…` руками.
-- Open/Close Table modal: цифры не наезжают друг на друга на любом денежном пресете.
+Same treatment will be applied to the equivalent Live Game closing preview in `src/components/cage/CloseShiftDialog.tsx` (BlockTotal grid at line 444-457 and the KPI tile grid at 506-517) for consistency.
 
-## 7. Out of scope (этот PR)
+---
 
-- Bento-грид дашбордов и Cage/Slots parity — следующие итерации.
-- Изменение бизнес-логики, RLS, edge-функций. Только presentation-слой.
+## 4. Dashboard tables row stretches full width
+
+In `src/pages/Dashboard.tsx` (line ~273-307), the BentoGrid runs 12 cols at xl but only fills 10 (4 game tiles × 2 + total × 2).
+
+Fix: compute a dynamic span so the row always reaches 12.
+
+```ts
+const tileCount = Object.keys(gameTypeTotals).length;  // e.g. 4
+// Reserve 4 cols for Total Casino; split the remaining 8 across game tiles
+const gameCol = Math.max(2, Math.floor(8 / Math.max(1, tileCount)));  // 4→2, 2→4, 1→8
+const totalCol = 12 - gameCol * tileCount;                            // remainder
+```
+
+Pass `col={gameCol}` to each game tile and `col={totalCol}` to "Total Casino". With 4 game types this yields 2+2+2+2+4 = 12, no gap.
+
+---
+
+## Question for the user before I start
+
+Which mono font should I swap to? (Geist Mono / IBM Plex Mono / DM Mono — all have a clean no-dot zero.)

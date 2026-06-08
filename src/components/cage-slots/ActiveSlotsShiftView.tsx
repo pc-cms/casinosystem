@@ -954,45 +954,45 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       {/* Closing preview modal — Live Game-style review before submit-for-review */}
       {showClosingPreview && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowClosingPreview(false)}>
-          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-3xl w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-lg">Closing Preview</h3>
               <Badge variant="outline" className="text-[10px]">REVIEW BEFORE SUBMIT</Badge>
             </div>
 
-            {/* Cash on Hand — 5 clean columns */}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Cash on Hand (Closing)</p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                <BigTile label="TZS Cash" value={closingTzsTotal} />
-                <BigTile label="Foreign Cash" value={closingFxTzs} />
-                <BigTile label="Banks" value={bankTotalTzs(closingBanks, rateMap)} />
-                <BigTile label="Mobile Money" value={mobileMoneyTzs} signed />
-                <BigTile label="Total Closing Cash" value={closingCashTzs} emphasize />
-              </div>
-            </div>
+            {/* Cash on Hand — single grouped panel, one row per metric (no wrap) */}
+            <GroupedPanel
+              title="Cash on Hand (Closing)"
+              rows={[
+                { label: "TZS Cash",      value: closingTzsTotal },
+                { label: "Foreign Cash",  value: closingFxTzs },
+                { label: "Banks",         value: bankTotalTzs(closingBanks, rateMap) },
+                { label: "Mobile Money",  value: mobileMoneyTzs, signed: true },
+              ]}
+              total={{ label: "Total Closing Cash", value: closingCashTzs }}
+            />
 
-            {/* Shift Result — one row, no duplicates */}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Shift Result</p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                <BigTile label="Opening Cash" value={openingCashTzs} />
-                <BigTile label="Closing Cash" value={closingCashTzs} />
-                <BigTile label="System Result" value={systemResult} signed />
-                <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
-                <BigTile label="Cards Miss" value={cardsMiss} signed />
-              </div>
-              {(tipsCdTotal > 0 || tipsCdPayoutTotal > 0) && (
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  Tips CD this shift: IN <span className="font-mono cms-amount-positive">+{formatNumberSpaces(tipsCdTotal)}</span> · OUT <span className="font-mono cms-amount-negative">−{formatNumberSpaces(tipsCdPayoutTotal)}</span> — neutralized in Cash Desk Result.
-                </p>
-              )}
-            </div>
+            {/* Shift Result — single grouped panel */}
+            <GroupedPanel
+              title="Shift Result"
+              rows={[
+                { label: "Opening Cash",     value: openingCashTzs },
+                { label: "Closing Cash",     value: closingCashTzs },
+                { label: "System Result",    value: systemResult,   signed: true },
+                { label: "Cash Desk Result", value: cashDeskResult, signed: true },
+                { label: "Cards Miss",       value: cardsMiss,      signed: true },
+              ]}
+            />
+            {(tipsCdTotal > 0 || tipsCdPayoutTotal > 0) && (
+              <p className="text-[11px] text-muted-foreground -mt-2">
+                Tips CD this shift: IN <span className="font-mono cms-amount-positive">+{formatNumberSpaces(tipsCdTotal)}</span> · OUT <span className="font-mono cms-amount-negative">−{formatNumberSpaces(tipsCdPayoutTotal)}</span> — neutralized in Cash Desk Result.
+              </p>
+            )}
 
             {/* Shift Balance — big number, no formula */}
             <div className="rounded-lg border-2 border-primary/50 bg-primary/5 p-5 flex items-center justify-between">
               <span className="text-sm uppercase text-foreground tracking-[0.18em] font-bold">Shift Balance</span>
-              <span className={`font-mono font-extrabold text-5xl tabular-nums ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
+              <span className={`font-mono font-extrabold text-5xl tabular-nums whitespace-nowrap ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
                 {shiftBalance === 0 ? "0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
             </div>
@@ -1005,15 +1005,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="rounded-md border border-border p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless IN / OUT</p>
-                <p className="font-mono">{formatNumberSpaces(cashlessInManualTzs)} / {formatNumberSpaces(cashlessOutManualTzs)}</p>
+                <p className="font-mono whitespace-nowrap">{formatNumberSpaces(cashlessInManualTzs)} / {formatNumberSpaces(cashlessOutManualTzs)}</p>
               </div>
               <div className="rounded-md border border-border p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless Final (print only)</p>
-                <p className="font-mono">{formatNumberSpaces(cashlessFinal)}</p>
+                <p className="font-mono whitespace-nowrap">{formatNumberSpaces(cashlessFinal)}</p>
               </div>
               <div className="rounded-md border border-border p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Open · Close</p>
-                <p className="font-mono">{cards?.opening_card_count ?? 0} · {closingCards}</p>
+                <p className="font-mono whitespace-nowrap">{cards?.opening_card_count ?? 0} · {closingCards}</p>
               </div>
             </div>
 
@@ -1210,12 +1210,61 @@ const BigTile = ({ label, value, signed, emphasize }: { label: string; value: nu
   return (
     <div className={`rounded-md border px-2 py-3 flex flex-col items-center justify-center min-h-[88px] ${emphasize ? "border-primary/60 bg-primary/10" : "border-border bg-card"}`}>
       <p className="text-[10px] uppercase text-muted-foreground tracking-[0.14em] font-semibold text-center mb-1">{label}</p>
-      <p className={`font-mono font-bold tabular-nums text-center ${emphasize ? "text-2xl" : "text-xl"} ${colorCls}`}>
+      <p className={`font-mono font-bold tabular-nums text-center whitespace-nowrap ${emphasize ? "text-2xl" : "text-xl"} ${colorCls}`}>
         {signed && value > 0 ? "+" : ""}{formatNumberSpaces(value)}
       </p>
     </div>
   );
 };
+
+/**
+ * Grouped metrics panel — one bordered card with stacked rows.
+ * Replaces the multi-tile "5 tiny boxes per row" pattern so long numbers
+ * (e.g. 1 160 000) stay on a single line.
+ */
+const GroupedPanel = ({
+  title,
+  rows,
+  total,
+}: {
+  title: string;
+  rows: Array<{ label: string; value: number; signed?: boolean }>;
+  total?: { label: string; value: number; signed?: boolean };
+}) => (
+  <section className="rounded-md border border-border bg-card">
+    <header className="px-4 pt-3 pb-2 border-b border-border/60">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">{title}</p>
+    </header>
+    <div className="divide-y divide-border/40">
+      {rows.map(r => {
+        const colorCls = r.signed
+          ? r.value < 0 ? "cms-amount-negative" : r.value > 0 ? "cms-amount-positive" : ""
+          : "";
+        return (
+          <div key={r.label} className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{r.label}</span>
+            <span className={`font-mono font-bold tabular-nums whitespace-nowrap text-xl ${colorCls}`}>
+              {r.signed && r.value > 0 ? "+" : ""}{formatNumberSpaces(r.value)}
+            </span>
+          </div>
+        );
+      })}
+      {total && (() => {
+        const colorCls = total.signed
+          ? total.value < 0 ? "cms-amount-negative" : total.value > 0 ? "cms-amount-positive" : ""
+          : "";
+        return (
+          <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border-t-2 border-primary/40">
+            <span className="text-sm uppercase tracking-[0.14em] text-foreground font-bold">{total.label}</span>
+            <span className={`font-mono font-extrabold tabular-nums whitespace-nowrap text-2xl ${colorCls || "text-foreground"}`}>
+              {total.signed && total.value > 0 ? "+" : ""}{formatNumberSpaces(total.value)}
+            </span>
+          </div>
+        );
+      })()}
+    </div>
+  </section>
+);
 
 const CashlessProvidersBlock = ({
   title, values, onChange, disabled, onBlur, tone = "default", suggestions,
