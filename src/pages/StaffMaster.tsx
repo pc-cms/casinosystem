@@ -29,6 +29,7 @@ import {
   joinName,
 } from "@/lib/staff-dictionaries";
 import { EditableCell } from "@/components/staff-master/editable-cell";
+import { SignedImage } from "@/components/SignedImage";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n).replace(/,/g, " ");
 
@@ -815,7 +816,7 @@ const PhotoBadge = ({ employee, canEdit }: { employee: Employee; canEdit: boolea
     await upsert.mutateAsync({ id: employee.id, photo_url: data.publicUrl } as any);
   };
   return employee.photo_url ? (
-    <img src={employee.photo_url} alt={employee.full_name} className="w-7 h-7 rounded object-cover mx-auto" />
+    <SignedImage src={employee.photo_url} bucket="employee-photos" alt={employee.full_name} className="w-7 h-7 rounded object-cover mx-auto" />
   ) : canEdit ? (
     <label className="cursor-pointer inline-flex items-center justify-center w-7 h-7 rounded border border-dashed border-border text-muted-foreground hover:bg-muted mx-auto">
       <Camera className="w-3 h-3" />
