@@ -667,72 +667,73 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       {/* Tips CD payouts (Day / Evening cash-out) live inside the Tips CD modal. */}
 
       {/* Summary strip — Opening / Cards Open / System (input) / ACE Fills (input) / Cards Closing (input) / Slots Result */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2">
-        <TileCard label="Opening (TZS)">
-          <p className="font-mono text-2xl font-bold tabular-nums text-center">{formatNumberSpaces(openingTotalTzs)}</p>
-        </TileCard>
-        <TileCard label="Cards Opening" sub={`× TZS ${formatNumberSpaces(cardDepositTzs)}`}>
+      <div className="cms-panel p-2 mb-2">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-x-3 gap-y-1">
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Opening (TZS)</p>
+            <p className="font-mono text-base font-bold tabular-nums">{formatNumberSpaces(openingTotalTzs)}</p>
+          </div>
           <div className="relative">
-            <p className="font-mono text-2xl font-bold tabular-nums text-center">{cards?.opening_card_count ?? 0}</p>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Cards Opening <span className="text-muted-foreground/70 normal-case tracking-normal">· × {formatNumberSpaces(cardDepositTzs)}</span></p>
+            <p className="font-mono text-base font-bold tabular-nums">{cards?.opening_card_count ?? 0}</p>
             {canManage && shift.status === "open" && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowEditOpeningCards(true)}
-                className="absolute -top-1 -right-1 h-6 w-6 text-muted-foreground hover:text-primary"
+                className="absolute -top-1 -right-1 h-5 w-5 text-muted-foreground hover:text-primary"
                 title="Edit opening cards (manager)"
               >
-                <Pencil className="w-3.5 h-3.5" />
+                <Pencil className="w-3 h-3" />
               </Button>
             )}
           </div>
-        </TileCard>
-        <TileCard
-          label="System Result (TZS)"
-          valueClass={systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}
-        >
-          <NumberInput
-            value={systemResultInput}
-            onChange={v => setSystemResultInput(String(v))}
-            onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
-            className={`no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums ${systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}`}
-            placeholder="0"
-            disabled={shift.status !== "open"}
-          />
-        </TileCard>
-        <TileCard label="ACE Fills (TZS)" sub="Manual · subtracted from System">
-          <NumberInput
-            value={aceFillsInput}
-            onChange={v => setAceFillsInput(String(v))}
-            onBlur={async () => {
-              await supabase
-                .from("cage_slots_shifts")
-                .update({ ace_fills: Number(aceFillsInput) || 0 } as any)
-                .eq("id", shift.id);
-            }}
-            className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
-            placeholder="0"
-            disabled={shift.status !== "open"}
-          />
-        </TileCard>
-        <TileCard
-          label="Cards Closing"
-          sub={`Miss: ${cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))}`}
-        >
-          <NumberInput
-            value={closingCards || ""}
-            onChange={v => setClosingCards(Number(v) || 0)}
-            onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
-            className="no-spin h-9 w-full text-center font-mono text-2xl font-bold tabular-nums"
-            disabled={shift.status !== "open"}
-          />
-        </TileCard>
-        <TileCard label="Slots Result (TZS)" sub="System − ACE Fills · informative" emphasize>
-          <p className={`font-mono text-2xl font-bold tabular-nums text-center ${slotsResultDerived < 0 ? "cms-amount-negative" : slotsResultDerived > 0 ? "cms-amount-positive" : ""}`}>
-            {slotsResultDerived > 0 ? "+" : ""}{formatNumberSpaces(slotsResultDerived)}
-          </p>
-        </TileCard>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">System Result (TZS)</p>
+            <NumberInput
+              value={systemResultInput}
+              onChange={v => setSystemResultInput(String(v))}
+              onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
+              className={`no-spin h-7 w-full border-0 bg-transparent px-0 font-mono text-base font-bold tabular-nums focus-visible:ring-0 ${systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}`}
+              placeholder="0"
+              disabled={shift.status !== "open"}
+            />
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">ACE Fills (TZS) <span className="text-muted-foreground/70 normal-case tracking-normal">· manual</span></p>
+            <NumberInput
+              value={aceFillsInput}
+              onChange={v => setAceFillsInput(String(v))}
+              onBlur={async () => {
+                await supabase
+                  .from("cage_slots_shifts")
+                  .update({ ace_fills: Number(aceFillsInput) || 0 } as any)
+                  .eq("id", shift.id);
+              }}
+              className="no-spin h-7 w-full border-0 bg-transparent px-0 font-mono text-base font-bold tabular-nums focus-visible:ring-0"
+              placeholder="0"
+              disabled={shift.status !== "open"}
+            />
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Cards Closing <span className="text-muted-foreground/70 normal-case tracking-normal">· miss {cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))}</span></p>
+            <NumberInput
+              value={closingCards || ""}
+              onChange={v => setClosingCards(Number(v) || 0)}
+              onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
+              className="no-spin h-7 w-full border-0 bg-transparent px-0 font-mono text-base font-bold tabular-nums focus-visible:ring-0"
+              disabled={shift.status !== "open"}
+            />
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Slots Result (TZS)</p>
+            <p className={`font-mono text-base font-bold tabular-nums ${slotsResultDerived < 0 ? "cms-amount-negative" : slotsResultDerived > 0 ? "cms-amount-positive" : ""}`}>
+              {slotsResultDerived > 0 ? "+" : ""}{formatNumberSpaces(slotsResultDerived)}
+            </p>
+          </div>
+        </div>
       </div>
+
 
       <Tabs defaultValue="closing" className="space-y-2">
         <TabsList>
