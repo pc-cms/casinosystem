@@ -620,6 +620,21 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         )}
       </PageHeader>
 
+      {/* Compact KPI strip — visual parity with Live Cage active shift */}
+      <div className="cms-panel p-2 mb-4">
+        <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Opening Cash</p><p className="font-mono text-base font-bold text-card-foreground tabular-nums">{formatCurrency(openingCashTzs)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Closing Cash</p><p className="font-mono text-base font-bold text-card-foreground tabular-nums">{formatCurrency(closingCashTzs)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Δ Cash</p><p className={`font-mono text-base font-bold tabular-nums ${deltaCash >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{deltaCash >= 0 ? "+" : ""}{formatCurrency(deltaCash)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">+ Add Float</p><p className="font-mono text-base font-bold text-success tabular-nums">+{formatCurrency(transfersAgg.fill)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">− Collection</p><p className="font-mono text-base font-bold text-destructive tabular-nums">−{formatCurrency(transfersAgg.collection)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">− Expenses</p><p className="font-mono text-base font-bold text-warning tabular-nums">−{formatCurrency(expensesApproved)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Slots Result</p><p className={`font-mono text-base font-bold tabular-nums ${slotsResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{slotsResult >= 0 ? "+" : ""}{formatCurrency(slotsResult)}</p></div>
+          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Shift Balance</p><p className={`font-mono text-base font-bold tabular-nums ${shiftBalance === 0 ? "text-success" : "text-destructive"}`}>{shiftBalance >= 0 ? "+" : ""}{formatCurrency(shiftBalance)}</p></div>
+        </div>
+      </div>
+
+
       {/* Manager review banner — shown after cashier submits for review */}
       {isReadyForReview && (
         <div className="mb-3 rounded-md border-2 border-amber-500/60 bg-amber-500/10 p-4">
