@@ -269,43 +269,49 @@ const Dashboard = () => {
         );
       })()}
 
-      {/* Tables Totals — bento, mirrors Tables page */}
-      {showFinancials && gameTypeCount > 0 && (
-        <BentoGrid className="mb-6">
-          {Object.entries(gameTypeTotals).map(([game, t]) => (
+      {/* Tables Totals — bento, mirrors Tables page. Spans expand to fill 12 cols. */}
+      {showFinancials && gameTypeCount > 0 && (() => {
+        const games = Object.entries(gameTypeTotals);
+        // 12-col target. Reserve at least 2 for each game tile, give Total Casino the remainder.
+        const gameCol = Math.max(2, Math.floor(8 / Math.max(1, games.length))) as 2 | 3 | 4 | 6 | 8;
+        const totalCol = Math.max(2, 12 - gameCol * games.length) as 2 | 3 | 4 | 6 | 8;
+        return (
+          <BentoGrid className="mb-6">
+            {games.map(([game, t]) => (
+              <BentoTile
+                key={game}
+                col={gameCol}
+                title={t.label}
+                className="hover:border-primary/40 cursor-pointer"
+                onClick={() => { window.location.href = "/tables"; }}
+              >
+                <BentoKpi
+                  value={
+                    <span className={`whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                      {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
+                    </span>
+                  }
+                />
+              </BentoTile>
+            ))}
             <BentoTile
-              key={game}
-              col={2}
-              title={t.label}
-              className="hover:border-primary/40 cursor-pointer"
+              col={totalCol}
+              accent
+              title="Total Casino"
+              className="cursor-pointer"
               onClick={() => { window.location.href = "/tables"; }}
             >
               <BentoKpi
                 value={
-                  <span className={`whitespace-nowrap ${t.result >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                    {t.result >= 0 ? "+" : ""}{formatCurrency(t.result)}
+                  <span className={`whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
+                    {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
                   </span>
                 }
               />
             </BentoTile>
-          ))}
-          <BentoTile
-            col={2}
-            accent
-            title="Total Casino"
-            className="cursor-pointer"
-            onClick={() => { window.location.href = "/tables"; }}
-          >
-            <BentoKpi
-              value={
-                <span className={`whitespace-nowrap ${totalResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>
-                  {totalResult >= 0 ? "+" : ""}{formatCurrency(totalResult)}
-                </span>
-              }
-            />
-          </BentoTile>
-        </BentoGrid>
-      )}
+          </BentoGrid>
+        );
+      })()}
 
       {/* Floor Staff on Shift — full width, fills remaining height */}
       <div className="cms-panel flex flex-col" style={{ minHeight: "60vh" }}>
