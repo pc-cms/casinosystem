@@ -88,6 +88,7 @@ const TableTracker = lazy(() => import("@/pages/TableTracker"));
 
 const PlayerStatistics = lazy(() => import("@/pages/PlayerStatistics"));
 const Cashless = lazy(() => import("@/pages/Cashless"));
+const Transfers = lazy(() => import("@/pages/Transfers"));
 
 const Incidents = lazy(() => import("@/pages/Incidents"));
 const CloseShiftPage = lazy(() => import("@/pages/cage/CloseShiftPage"));
