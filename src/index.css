@@ -117,7 +117,7 @@
     --secondary-foreground: 220 20% 10%;
 
     --muted: 220 14% 95%;
-    --muted-foreground: 220 10% 46%;
+    --muted-foreground: 220 14% 36%;    /* AA contrast for secondary text */
 
     --accent: 38 55% 72%;
     --accent-foreground: 0 0% 8%;
