@@ -147,7 +147,7 @@
     --sidebar-border: 38 40% 78%;
     --sidebar-ring: 38 55% 72%;
 
-    --font-mono: 'Geist Mono', monospace;
+    --font-mono: 'Share Tech Mono', ui-monospace, monospace;
     --font-sans: 'Inter', sans-serif;
   }
 
