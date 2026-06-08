@@ -66,18 +66,16 @@ const CashCountGrid = ({
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 items-start ${hideChips ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
       {!hideChips && (
         /* Col 1 — TZS Chips, full height */
-        <section className={`${sectionCls} h-full`}>
+        <section className={sectionCls}>
           <p className={titleCls}>TZS Chips</p>
-          <div className="flex-1">
-            <ChipDenomInput
-              values={chips}
-              onChange={onChipsChange}
-              showValue={false}
-              placeholder={chipPlaceholder}
-              columns={1}
-              size="lg"
-            />
-          </div>
+          <ChipDenomInput
+            values={chips}
+            onChange={onChipsChange}
+            showValue={false}
+            placeholder={chipPlaceholder}
+            columns={1}
+            size="lg"
+          />
         </section>
       )}
       {/* Col 2 — TZS Cash + Mobile + Banks */}
