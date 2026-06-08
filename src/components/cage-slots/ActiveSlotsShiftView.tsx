@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Coins, Send, RotateCcw, Printer, FileText, CreditCard, Save, ArrowLeftRight, History, Pencil, Gift } from "lucide-react";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
 import EditOpeningCardsDialog from "./EditOpeningCardsDialog";
@@ -50,6 +50,11 @@ type Shift = Tables<"cage_slots_shifts">;
 
 const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const activeSection: "cage" | "cashless" | "transfers" =
+    location.pathname.endsWith("/cashless") ? "cashless"
+    : location.pathname.endsWith("/transfers") ? "transfers"
+    : "cage";
   const { roles, managerOverride } = useAuth();
   const canManage =
     roles.includes("manager") || roles.includes("super_admin") || managerOverride.active;
@@ -103,7 +108,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   );
 
   // Closing entry state (controlled locally, persisted on save)
-  const [activeSection, setActiveSection] = useState<"cage" | "cashless" | "transfers">("cage");
+  // activeSection is now driven by route (see top); no local state.
   const [closingCash, setClosingCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
@@ -760,32 +765,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
 
 
-      <div className="flex gap-3">
-        <nav className="flex flex-col gap-1 w-40 shrink-0">
-          {([
-            { id: "cage", label: "Cage", icon: Coins },
-            { id: "cashless", label: `Cashless (${cashless.length})`, icon: CreditCard },
-            { id: "transfers", label: "Transfers", icon: ArrowLeftRight },
-          ] as const).map(t => {
-            const Icon = t.icon;
-            const active = activeSection === t.id;
-            return (
-              <Button
-                key={t.id}
-                type="button"
-                variant={active ? "default" : "ghost"}
-                size="sm"
-                className="justify-start gap-2 h-9"
-                onClick={() => setActiveSection(t.id)}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="truncate">{t.label}</span>
-              </Button>
-            );
-          })}
-        </nav>
-
+      <div>
         <div className="flex-1 min-w-0 space-y-2">
+
           {activeSection === "cage" && (
             <>
               {/* Same grid as Live Game cage, scaled down ~30% for compactness. */}
