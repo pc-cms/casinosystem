@@ -954,45 +954,45 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       {/* Closing preview modal — Live Game-style review before submit-for-review */}
       {showClosingPreview && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowClosingPreview(false)}>
-          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-card border border-border rounded-md shadow-lg p-5 max-w-3xl w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-lg">Closing Preview</h3>
               <Badge variant="outline" className="text-[10px]">REVIEW BEFORE SUBMIT</Badge>
             </div>
 
-            {/* Cash on Hand — 5 clean columns */}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Cash on Hand (Closing)</p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                <BigTile label="TZS Cash" value={closingTzsTotal} />
-                <BigTile label="Foreign Cash" value={closingFxTzs} />
-                <BigTile label="Banks" value={bankTotalTzs(closingBanks, rateMap)} />
-                <BigTile label="Mobile Money" value={mobileMoneyTzs} signed />
-                <BigTile label="Total Closing Cash" value={closingCashTzs} emphasize />
-              </div>
-            </div>
+            {/* Cash on Hand — single grouped panel, one row per metric (no wrap) */}
+            <GroupedPanel
+              title="Cash on Hand (Closing)"
+              rows={[
+                { label: "TZS Cash",      value: closingTzsTotal },
+                { label: "Foreign Cash",  value: closingFxTzs },
+                { label: "Banks",         value: bankTotalTzs(closingBanks, rateMap) },
+                { label: "Mobile Money",  value: mobileMoneyTzs, signed: true },
+              ]}
+              total={{ label: "Total Closing Cash", value: closingCashTzs }}
+            />
 
-            {/* Shift Result — one row, no duplicates */}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-2">Shift Result</p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                <BigTile label="Opening Cash" value={openingCashTzs} />
-                <BigTile label="Closing Cash" value={closingCashTzs} />
-                <BigTile label="System Result" value={systemResult} signed />
-                <BigTile label="Cash Desk Result" value={cashDeskResult} signed />
-                <BigTile label="Cards Miss" value={cardsMiss} signed />
-              </div>
-              {(tipsCdTotal > 0 || tipsCdPayoutTotal > 0) && (
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  Tips CD this shift: IN <span className="font-mono cms-amount-positive">+{formatNumberSpaces(tipsCdTotal)}</span> · OUT <span className="font-mono cms-amount-negative">−{formatNumberSpaces(tipsCdPayoutTotal)}</span> — neutralized in Cash Desk Result.
-                </p>
-              )}
-            </div>
+            {/* Shift Result — single grouped panel */}
+            <GroupedPanel
+              title="Shift Result"
+              rows={[
+                { label: "Opening Cash",     value: openingCashTzs },
+                { label: "Closing Cash",     value: closingCashTzs },
+                { label: "System Result",    value: systemResult,   signed: true },
+                { label: "Cash Desk Result", value: cashDeskResult, signed: true },
+                { label: "Cards Miss",       value: cardsMiss,      signed: true },
+              ]}
+            />
+            {(tipsCdTotal > 0 || tipsCdPayoutTotal > 0) && (
+              <p className="text-[11px] text-muted-foreground -mt-2">
+                Tips CD this shift: IN <span className="font-mono cms-amount-positive">+{formatNumberSpaces(tipsCdTotal)}</span> · OUT <span className="font-mono cms-amount-negative">−{formatNumberSpaces(tipsCdPayoutTotal)}</span> — neutralized in Cash Desk Result.
+              </p>
+            )}
 
             {/* Shift Balance — big number, no formula */}
             <div className="rounded-lg border-2 border-primary/50 bg-primary/5 p-5 flex items-center justify-between">
               <span className="text-sm uppercase text-foreground tracking-[0.18em] font-bold">Shift Balance</span>
-              <span className={`font-mono font-extrabold text-5xl tabular-nums ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
+              <span className={`font-mono font-extrabold text-5xl tabular-nums whitespace-nowrap ${shiftBalance < 0 ? "cms-amount-negative" : shiftBalance > 0 ? "cms-amount-positive" : "text-emerald-500"}`}>
                 {shiftBalance === 0 ? "0" : `${shiftBalance > 0 ? "+" : ""}${formatNumberSpaces(shiftBalance)}`}
               </span>
             </div>
@@ -1005,15 +1005,15 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="rounded-md border border-border p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless IN / OUT</p>
-                <p className="font-mono">{formatNumberSpaces(cashlessInManualTzs)} / {formatNumberSpaces(cashlessOutManualTzs)}</p>
+                <p className="font-mono whitespace-nowrap">{formatNumberSpaces(cashlessInManualTzs)} / {formatNumberSpaces(cashlessOutManualTzs)}</p>
               </div>
               <div className="rounded-md border border-border p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cashless Final (print only)</p>
-                <p className="font-mono">{formatNumberSpaces(cashlessFinal)}</p>
+                <p className="font-mono whitespace-nowrap">{formatNumberSpaces(cashlessFinal)}</p>
               </div>
               <div className="rounded-md border border-border p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Cards Open · Close</p>
-                <p className="font-mono">{cards?.opening_card_count ?? 0} · {closingCards}</p>
+                <p className="font-mono whitespace-nowrap">{cards?.opening_card_count ?? 0} · {closingCards}</p>
               </div>
             </div>
 
