@@ -765,32 +765,9 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
 
 
-      <div className="flex gap-3">
-        <nav className="flex flex-col gap-1 w-40 shrink-0">
-          {([
-            { id: "cage", label: "Cage", icon: Coins },
-            { id: "cashless", label: `Cashless (${cashless.length})`, icon: CreditCard },
-            { id: "transfers", label: "Transfers", icon: ArrowLeftRight },
-          ] as const).map(t => {
-            const Icon = t.icon;
-            const active = activeSection === t.id;
-            return (
-              <Button
-                key={t.id}
-                type="button"
-                variant={active ? "default" : "ghost"}
-                size="sm"
-                className="justify-start gap-2 h-9"
-                onClick={() => setActiveSection(t.id)}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="truncate">{t.label}</span>
-              </Button>
-            );
-          })}
-        </nav>
-
+      <div>
         <div className="flex-1 min-w-0 space-y-2">
+
           {activeSection === "cage" && (
             <>
               {/* Same grid as Live Game cage, scaled down ~30% for compactness. */}
