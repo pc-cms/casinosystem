@@ -9,7 +9,9 @@ import MissChips from "@/pages/MissChips";
 import Expenses from "@/pages/finances/FinancesExpensesPage";
 import SlotsHistoryReport from "@/components/reports/SlotsHistoryReport";
 import CashlessReport from "@/components/reports/CashlessReport";
+import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useMoneyMode } from "@/components/ui/data-table-toolbar";
 import { fmtDate } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -92,9 +94,10 @@ const Reports = () => {
   const initialTab = (typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("tab")
     : null) || "daily";
+  const [, MoneyToggle] = useMoneyMode("reports-global");
 
   return (
-    <div>
+    <PageShell>
       <PageHeader
         icon={FileBarChart}
         title="Reports"
@@ -103,6 +106,7 @@ const Reports = () => {
         <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="w-40 font-mono text-xs h-9" />
         <span className="text-muted-foreground text-xs">→</span>
         <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs h-9" />
+        <MoneyToggle />
       </PageHeader>
 
       <Tabs defaultValue={initialTab} className="space-y-3">
@@ -132,7 +136,7 @@ const Reports = () => {
         <TabsContent value="cashless"><CashlessReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips /></TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 };
 
