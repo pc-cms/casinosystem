@@ -57,7 +57,7 @@ const ROW_CLASS: Record<number, string> = {
   4: "row-span-4",
 };
 
-interface BentoTileProps extends React.HTMLAttributes<HTMLDivElement> {
+interface BentoTileProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
