@@ -25,8 +25,8 @@ const CashDenomInput = ({ values, onChange, denoms, currency, onSubmit, size = "
   const t = SIZES[size];
 
   return (
-    <div className="flex flex-col h-full">
-      <div className={`${t.gap} flex-1`}>
+    <div className="flex flex-col">
+      <div className={t.gap}>
       {denoms.map((d, idx) => (
         <div key={d} className={`flex items-center ${t.row}`}>
           <span className={`cms-chip bg-muted text-foreground shrink-0 justify-center ${t.chip}`}>
