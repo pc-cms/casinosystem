@@ -109,6 +109,7 @@ const Reports = () => {
         <MoneyToggle />
       </PageHeader>
 
+      <MoneyModeProvider value={mode}>
       <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
           <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily diff</TabsTrigger>
