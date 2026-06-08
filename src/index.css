@@ -129,7 +129,7 @@
     --input: 38 40% 78%;
     --ring: 38 55% 72%;
 
-    --radius: 0.75rem;            /* 12px (design tour) */
+    --radius: 0.5rem;             /* 8px — tighter, less dark corner bleed */
 
     /* Status — muted-modern palette: less neon, still semantic.
        Profit/loss text stays distinctly green/red but at lower chroma. */
