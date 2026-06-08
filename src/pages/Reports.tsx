@@ -94,9 +94,10 @@ const Reports = () => {
   const initialTab = (typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("tab")
     : null) || "daily";
+  const [, MoneyToggle] = useMoneyMode("reports-global");
 
   return (
-    <div>
+    <PageShell>
       <PageHeader
         icon={FileBarChart}
         title="Reports"
@@ -105,6 +106,7 @@ const Reports = () => {
         <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="w-40 font-mono text-xs h-9" />
         <span className="text-muted-foreground text-xs">→</span>
         <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs h-9" />
+        <MoneyToggle />
       </PageHeader>
 
       <Tabs defaultValue={initialTab} className="space-y-3">
