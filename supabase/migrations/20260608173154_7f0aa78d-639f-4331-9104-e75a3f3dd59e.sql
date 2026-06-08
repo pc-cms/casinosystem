@@ -1,0 +1,1 @@
+INSERT INTO public.role_module_defaults (role, module_key) VALUES ('cashier_slots', 'cashless') ON CONFLICT DO NOTHING;

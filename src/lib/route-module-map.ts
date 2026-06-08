@@ -93,6 +93,7 @@ export const moduleKeyForRoute = (to: string, label?: string): ModuleKey | null 
   if (base === "/expenses/daily") return "daily_expenses";
   if (base === "/expenses/approvals") return "expenses_approvals";
   if (base === "/cashless") return "cashless";
+  if (base === "/transfers") return "cashless";
 
   // (expenses/cashless mapped above)
 
