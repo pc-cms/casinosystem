@@ -40,7 +40,7 @@ const CageSlotsHistoryView = () => {
       />
       <PageSection
         title={`Recent shifts (${shifts.length})`}
-        actions={<MoneyToggle />}
+        titleRight={<MoneyToggle />}
       >
         {isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
         <DataTable>
