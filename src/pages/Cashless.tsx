@@ -306,6 +306,7 @@ const Cashless = () => {
             <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-3 py-2">Time</th>
               <th className="text-left px-3 py-2">Type</th>
+              {source === "all" && <th className="text-left px-3 py-2">Src</th>}
               <th className="text-left px-3 py-2">Provider</th>
               <th className="text-left px-3 py-2">Player</th>
               <th className="text-right px-3 py-2">Amount</th>
@@ -316,7 +317,7 @@ const Cashless = () => {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-8">No cashless transactions for {isToday ? "today" : viewDate}</td></tr>
+              <tr><td colSpan={source === "all" ? 9 : 8} className="text-center text-muted-foreground text-sm py-8">No cashless transactions for {isToday ? "today" : viewDate}</td></tr>
             ) : rows.map(r => (
               <tr key={r.id} className="border-b border-border last:border-0">
                 <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
@@ -325,6 +326,9 @@ const Cashless = () => {
                 <td className="px-3 py-2">
                   <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">{r.direction === "IN" ? "Deposit" : "Withdrawal"}</Badge>
                 </td>
+                {source === "all" && (
+                  <td className="px-3 py-2 text-[10px] uppercase font-mono text-muted-foreground">{r.cage_type === "slots" ? "Slots" : "Live"}</td>
+                )}
                 <td className="px-3 py-2">
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider]}`}>{r.provider}</span>
                 </td>

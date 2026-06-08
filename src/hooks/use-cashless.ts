@@ -25,6 +25,7 @@ export interface CashlessRow {
   approved_by: string | null;
   approved_at: string | null;
   created_at: string;
+  cage_type: "live_game" | "slots";
   players?: { first_name: string; last_name: string } | null;
 }
 
