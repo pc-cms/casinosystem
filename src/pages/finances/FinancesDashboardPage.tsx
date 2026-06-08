@@ -9,6 +9,7 @@ import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import {
   useFinWalletTx, useFinWalletBalances, useFinWallets, useFinBudget, useFinCategories,
 } from "@/hooks/use-fin";
+import { BentoGrid, BentoTile, BentoKpi } from "@/components/ui/bento-grid";
 import { formatNumberSpaces } from "@/lib/currency";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -193,20 +194,19 @@ export default function FinancesDashboardPage() {
         <FinanceCasinoSwitcher />
       </PageHeader>
 
-      {/* Compact KPI strip */}
-      <div className="rounded-md border border-border bg-card divide-y sm:divide-y-0 sm:divide-x divide-border grid sm:grid-cols-4">
+      {/* KPI bento */}
+      <BentoGrid className="mb-3">
         {[
           { k: "Month Income", v: stats.income },
           { k: "Month Expense", v: stats.expense },
           { k: "Net (Month)", v: stats.net },
           { k: "Total Balance", v: totalBalance },
         ].map((x) => (
-          <div key={x.k} className="px-4 py-2.5">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{x.k}</div>
-            <div className="text-base font-mono tabular-nums mt-0.5"><Money v={x.v} /></div>
-          </div>
+          <BentoTile key={x.k} col={3} title={x.k}>
+            <BentoKpi value={<Money v={x.v} />} />
+          </BentoTile>
         ))}
-      </div>
+      </BentoGrid>
 
       <PageSection title="P&L · last 12 months">
         <div className="h-56">
