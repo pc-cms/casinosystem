@@ -7,8 +7,10 @@ import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 import {
   useCashless, useCreateCashless, useApproveCashless,
-  type CashlessDirection, type CashlessProvider,
+  type CashlessDirection, type CashlessProvider, type CashlessSource,
 } from "@/hooks/use-cashless";
+import { useActiveShift } from "@/hooks/use-shift";
+import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,13 +60,25 @@ const shiftDate = (d: string, days: number): string => {
 };
 
 const Cashless = () => {
-  const { isManager } = useAuth();
+  const { isManager, roles } = useAuth();
+  const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
+  const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
+  const sourceLocked = !isManager && (isCashierLive || isCashierSlots);
+  const roleDefaultSource: CashlessSource = isCashierSlots ? "slots" : "live_game";
+
+  const [source, setSource] = useState<CashlessSource>(
+    sourceLocked ? roleDefaultSource : (isManager ? "all" : roleDefaultSource)
+  );
+
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const [viewDate, setViewDate] = useState<string>(businessDate);
   const isToday = viewDate === businessDate;
-  const { data: rows = [] } = useCashless(viewDate);
-  
+  const { data: rows = [] } = useCashless(viewDate, source);
+
+  const { data: liveShift } = useActiveShift();
+  const { data: slotsShift } = useActiveCageSlotsShift();
+
   const create = useCreateCashless();
   const approve = useApproveCashless();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
@@ -77,6 +91,11 @@ const Cashless = () => {
   const removeDraft = (uid: string) =>
     setDrafts(d => (d.length > 1 ? d.filter(r => r.uid !== uid) : d));
 
+  // Source used when writing new rows: managers viewing "all" must explicitly pick;
+  // cashiers always write to their own scope.
+  const writeSource: "live_game" | "slots" =
+    source === "all" ? roleDefaultSource : source;
+
   const submitDraft = async (uid: string) => {
     const row = drafts.find(r => r.uid === uid);
     if (!row) return;
@@ -84,6 +103,9 @@ const Cashless = () => {
     if (!row.player_name.trim()) return toast.error("Enter player name");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
+    if (writeSource === "slots" && !slotsShift?.id) {
+      return toast.error("No open Slots shift");
+    }
     try {
       await create.mutateAsync({
         direction: row.direction,
@@ -92,6 +114,8 @@ const Cashless = () => {
         amount: amt,
         reference: row.reference,
         business_date: businessDate,
+        source: writeSource,
+        cage_slots_shift_id: writeSource === "slots" ? slotsShift?.id ?? null : null,
       });
       setDrafts(d => [...d.filter(r => r.uid !== uid), newDraft()]);
       toast.success(row.direction === "OUT" ? "Withdrawal → pending" : "Deposit recorded");
@@ -120,9 +144,32 @@ const Cashless = () => {
       <PageHeader
         icon={CreditCard}
         title="Cashless"
-        subtitle={`Mobile money · ${rows.length} records · ${summary.pendingCount} pending`}
+        subtitle={`Mobile money · ${rows.length} records · ${summary.pendingCount} pending${sourceLocked ? ` · ${writeSource === "slots" ? "Slots" : "Live"}` : ""}`}
         date
       />
+
+      {/* Source filter — Live / Slots / All (locked for single-source cashiers) */}
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Source</span>
+        <div className="inline-flex rounded-md border border-border overflow-hidden h-8">
+          {(["all", "live_game", "slots"] as CashlessSource[]).map(s => (
+            <button
+              key={s}
+              type="button"
+              disabled={sourceLocked && s !== roleDefaultSource}
+              onClick={() => setSource(s)}
+              className={`px-3 text-xs font-medium transition-colors ${
+                source === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+              } ${sourceLocked && s !== roleDefaultSource ? "opacity-40 cursor-not-allowed" : ""}`}
+            >
+              {s === "all" ? "All" : s === "live_game" ? "Live" : "Slots"}
+            </button>
+          ))}
+        </div>
+        {source === "all" && !sourceLocked && (
+          <span className="text-[10px] text-muted-foreground">New rows go to <b>{writeSource === "slots" ? "Slots" : "Live"}</b> (active shift).</span>
+        )}
+      </div>
 
       {/* KPI cards — Deposit / Withdrawal / Net (no IN/OUT terminology) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
@@ -259,6 +306,7 @@ const Cashless = () => {
             <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-3 py-2">Time</th>
               <th className="text-left px-3 py-2">Type</th>
+              {source === "all" && <th className="text-left px-3 py-2">Src</th>}
               <th className="text-left px-3 py-2">Provider</th>
               <th className="text-left px-3 py-2">Player</th>
               <th className="text-right px-3 py-2">Amount</th>
@@ -269,7 +317,7 @@ const Cashless = () => {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-8">No cashless transactions for {isToday ? "today" : viewDate}</td></tr>
+              <tr><td colSpan={source === "all" ? 9 : 8} className="text-center text-muted-foreground text-sm py-8">No cashless transactions for {isToday ? "today" : viewDate}</td></tr>
             ) : rows.map(r => (
               <tr key={r.id} className="border-b border-border last:border-0">
                 <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
@@ -278,6 +326,9 @@ const Cashless = () => {
                 <td className="px-3 py-2">
                   <Badge variant={r.direction === "IN" ? "default" : "secondary"} className="text-[10px]">{r.direction === "IN" ? "Deposit" : "Withdrawal"}</Badge>
                 </td>
+                {source === "all" && (
+                  <td className="px-3 py-2 text-[10px] uppercase font-mono text-muted-foreground">{r.cage_type === "slots" ? "Slots" : "Live"}</td>
+                )}
                 <td className="px-3 py-2">
                   <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${PROVIDER_COLORS[r.provider]}`}>{r.provider}</span>
                 </td>

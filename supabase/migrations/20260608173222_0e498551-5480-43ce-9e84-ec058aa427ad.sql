@@ -1,0 +1,1 @@
+UPDATE public.cashless_transactions SET cage_type = 'slots' WHERE cage_slots_shift_id IS NOT NULL AND cage_type <> 'slots';

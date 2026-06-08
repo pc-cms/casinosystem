@@ -25,21 +25,24 @@ export interface CashlessRow {
   approved_by: string | null;
   approved_at: string | null;
   created_at: string;
+  cage_type: "live_game" | "slots";
   players?: { first_name: string; last_name: string } | null;
 }
 
-export const useCashless = (date?: string) => {
+export type CashlessSource = "live_game" | "slots" | "all";
+
+export const useCashless = (date?: string, source: CashlessSource = "live_game") => {
   const { casinoId } = useAuth();
   return useQuery({
-    queryKey: ["cashless", casinoId, date],
+    queryKey: ["cashless", casinoId, date, source],
     queryFn: async () => {
       if (!casinoId) return [] as CashlessRow[];
       let q = (supabase as any)
         .from("cashless_transactions")
         .select("*, players(first_name, last_name)")
         .eq("casino_id", casinoId)
-        .eq("cage_type", "live_game")
         .order("created_at", { ascending: false });
+      if (source !== "all") q = q.eq("cage_type", source);
       if (date) q = q.eq("business_date", date);
       else q = q.limit(200);
       const { data, error } = await q;
@@ -103,8 +106,11 @@ export const useCreateCashless = () => {
       reference?: string;
       note?: string;
       business_date: string;
+      source?: "live_game" | "slots";
+      cage_slots_shift_id?: string | null;
     }) => {
       if (!casinoId || !user) throw new Error("Not authenticated");
+      const src = input.source || "live_game";
       const { error } = await (supabase as any).from("cashless_transactions").insert({
         casino_id: casinoId,
         operator_id: user.id,
@@ -117,14 +123,18 @@ export const useCreateCashless = () => {
         currency: "TZS",
         reference: input.reference || "",
         note: input.note || "",
+        cage_type: src,
+        cage_slots_shift_id: src === "slots" ? (input.cage_slots_shift_id ?? null) : null,
+        source_module: src === "slots" ? "cage_slots" : "cage",
       });
       if (error) throw error;
       await logAction(casinoId, "expense", "CASHLESS_CREATED", {
-        direction: input.direction, provider: input.provider, amount: input.amount,
+        direction: input.direction, provider: input.provider, amount: input.amount, source: src,
       });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cashless"] });
+      qc.invalidateQueries({ queryKey: ["cage-slots-cashless"] });
     },
     onError: (e: any) => toast.error(e.message),
   });

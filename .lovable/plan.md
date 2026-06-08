@@ -1,105 +1,69 @@
-## Problems
 
-1. **Radius too big** — `--radius: 12px` makes tiles look like detached pills, dark "corner gaps" leak through (the card sits on dark page bg).
-2. **Dotted zero** — currently JetBrains Mono, whose `0` has a dot.
-3. **Tile-per-metric in Closing Preview** — 5 tiny tiles per row force numbers like `1 160 000` to wrap into 2 lines (`1 160` / `000`).
-4. **Dashboard tables row** — 4 game-type tiles × `col=2` + Total × `col=2` = 10 of 12 columns → blank gap on the right.
+# Unify Cashless and Transfers (Expenses-style)
 
----
+## Goal
 
-## 1. Border radius
+One **Cashless** page and one **Transfers** page in the sidebar — both with a `Live / Slots / All` source filter, exactly like Expenses. Cashier roles get their scope auto-locked (cashier → Live, cashier_slots → Slots); managers see All by default.
 
-Drop the global token from **12px → 8px** (matches the tighter dense look the user wants).
+No more parallel surfaces: drop the inline "Cashless" and "Transfers" sections inside Cage / Cage Slots and the duplicate `Slots Cashless` / `Slots Transfers` menu items I just added.
 
-```css
-/* src/index.css */
---radius: 0.5rem;  /* 8px — was 0.75rem */
+## Current state
+
+- **Cashless** — `cashless_transactions` is already a single table. `/cashless` page exists (Live-only today). Slots cashless is entered inside `ActiveSlotsShiftView` (Cashless section); Live cashless is entered inside `ActiveShiftView`.
+- **Transfers** — two tables: `cage_transfers` (Live) + `cage_slots_transfers` (Slots), two forms (`TransfersForm`, `SlotsTransfersForm`), embedded in their respective active-shift views. No standalone page.
+- Sidebar (after the previous turn) has `Cage Slots`, `Slots Cashless`, `Slots Transfers` — the latter two will be removed.
+
+## Target layout
+
+Sidebar (CASHIER section):
+```
+Cage View                (managers)
+Cage Live Game           (cashier)
+Cage Slots               (cashier_slots)
+Closings                 (managers)
+Bank                     (managers)
+Cashless                 (cashier, cashier_slots, managers)   ← unified
+Transfers                (cashier, cashier_slots, managers)   ← new unified
+Expenses
+Reports
+Tips & Bonuses
 ```
 
-This automatically tightens `rounded-lg` (8), `rounded-md` (6), `rounded-sm` (4) everywhere.
+Both `Cage Live Game` and `Cage Slots` become single-screen surfaces (no inline Cashless/Transfers tabs). Their dashboards and Manual Entry stay.
 
----
+## Implementation
 
-## 2. Mono font — pick one (need user choice)
+### 1. Cashless — extend `/cashless` with source filter
+- Add `source: "all" | "live_game" | "slots"` filter chip in `PageHeader` (same UX as Expenses).
+- `useCashless` already reads the whole table by date — add optional `source` arg that filters by which shift column is set (`shift_id` vs `cage_slots_shift_id`) or by a `source` column if present (verify in hook).
+- New-entry form: source selector (locked for cashier roles, free for managers). On submit, attach to the active shift of the chosen source (`useActiveShift` / `useActiveCageSlotsShift`).
+- Role defaults mirror Expenses: cashier → live_game locked, cashier_slots → slots locked, managers → all.
 
-Current: **JetBrains Mono** — `0` has a center dot.
+### 2. Transfers — new `/transfers` page
+- New `src/pages/Transfers.tsx` + route.
+- Same shell as Expenses/Cashless: header, source filter (`Live / Slots / All`), table of historical transfers, inline new-row form.
+- Reads union of `cage_transfers` + `cage_slots_transfers` via a new combined hook `useTransfers({ business_date, source })` that queries both tables and tags rows with `source`.
+- Write path picks the right table + RPC by selected source; reuses the existing transfer-type configs (`add_float`, `collection`, `slots_in/out`, `lg_in/out` for slots).
+- Refactor `TransfersForm` / `SlotsTransfersForm` internals into a single shared `<TransferEntryForm source={…} shiftId={…} />` component.
 
-Three candidates with a clean (no-dot, no-slash) zero, all on Google Fonts:
+### 3. Drop in-page nav from Cage Slots
+- In `ActiveSlotsShiftView`: delete the `activeSection` routing (Cage / Cashless / Transfers) added previously. Keep only the Cage block + Manual Entry panel.
+- Delete the `cashless`/`transfers` route paths under `/cage-slots/*` from `App.tsx`.
+- Same cleanup in `ActiveShiftView` (Live cage): remove the embedded Transfers + Cashless sections, leaving just the Cage workspace.
 
-| Font | Zero | Feel |
-|---|---|---|
-| **Geist Mono** | plain oval | modern, neutral, Vercel-style — closest to current weight |
-| **IBM Plex Mono** | plain oval | corporate, slightly warmer |
-| **DM Mono** | plain round | softer, lighter weight, more editorial |
+### 4. Sidebar
+- Remove `Slots Cashless` and `Slots Transfers` items.
+- Add roles `cashier_slots` to existing `/cashless` item.
+- Add new `/transfers` item visible to `cashier`, `cashier_slots`, `manager`, `floor_manager`, `finance_manager`, `super_admin`.
 
-I'll ask the user via `ask_questions` which one to swap to, then replace the `@import` and `--font-mono` token in one shot.
+### 5. Route-module map
+- Map `/transfers` → a new `transfers` module key, or reuse `cage` / `cage_slots` (TBD — simplest: dedicated `transfers` module so it can be permissioned independently).
 
----
+## Out of scope
 
-## 3. Closing Preview — merge tiles into grouped panels
+- DB schema changes. We keep two transfer tables and union them in the UI; merging them is a bigger migration left for later.
+- Reports/closings — they keep reading their own per-shift transfers as today.
 
-Stop using 5 separate `<BigTile>` boxes. Render each section as **one bordered panel with inline rows**, so each number gets the full panel width and stays on one line.
+## Open question
 
-Target layout for the modal:
-
-```text
-┌─ Cash on Hand (Closing) ─────────────────────────────────┐
-│  TZS Cash            291 000                              │
-│  Foreign Cash              0                              │
-│  Banks                     0                              │
-│  Mobile Money       +869 000                              │
-│  ──────────────────────────                               │
-│  Total Closing      1 160 000   ← bold, accent row        │
-└───────────────────────────────────────────────────────────┘
-
-┌─ Shift Result ───────────────────────────────────────────┐
-│  Opening Cash       1 000 000                             │
-│  Closing Cash       1 160 000                             │
-│  System Result     +1 150 000                             │
-│  Cash Desk Result  +1 160 000                             │
-│  Cards Miss           +10 000                             │
-└───────────────────────────────────────────────────────────┘
-
-┌─ SHIFT BALANCE ──────────────────────────── 0 ───────────┐
-└───────────────────────────────────────────────────────────┘
-
-┌──────────────┬───────────────────────┬───────────────────┐
-│ Cashless I/O │ Cashless Final        │ Cards Open · Close│
-│ 869 000 / 0  │ 0                     │ 33 · 31           │
-└──────────────┴───────────────────────┴───────────────────┘
-```
-
-Concretely, in `src/components/cage-slots/ActiveSlotsShiftView.tsx` (lines ~963-1018):
-
-- Replace the two `grid grid-cols-5` blocks with a `<GroupedPanel>` (one `cms-panel` per section) that renders metric rows:
-  - Label on the left (`text-xs uppercase muted`)
-  - Value on the right (`font-mono tabular-nums text-xl/2xl`, `whitespace-nowrap`)
-  - Total row visually emphasized (bold + border-t)
-- Also widen the modal: `max-w-2xl` → `max-w-3xl` (gives Total Closing Cash plenty of room even at the widest value).
-- Remove `min-h-[88px]` tile padding — list rows are denser and cleaner.
-- Keep the bottom 3-up footer (`Cashless I/O`, `Cashless Final`, `Cards Open · Close`) since those are short.
-
-Same treatment will be applied to the equivalent Live Game closing preview in `src/components/cage/CloseShiftDialog.tsx` (BlockTotal grid at line 444-457 and the KPI tile grid at 506-517) for consistency.
-
----
-
-## 4. Dashboard tables row stretches full width
-
-In `src/pages/Dashboard.tsx` (line ~273-307), the BentoGrid runs 12 cols at xl but only fills 10 (4 game tiles × 2 + total × 2).
-
-Fix: compute a dynamic span so the row always reaches 12.
-
-```ts
-const tileCount = Object.keys(gameTypeTotals).length;  // e.g. 4
-// Reserve 4 cols for Total Casino; split the remaining 8 across game tiles
-const gameCol = Math.max(2, Math.floor(8 / Math.max(1, tileCount)));  // 4→2, 2→4, 1→8
-const totalCol = 12 - gameCol * tileCount;                            // remainder
-```
-
-Pass `col={gameCol}` to each game tile and `col={totalCol}` to "Total Casino". With 4 game types this yields 2+2+2+2+4 = 12, no gap.
-
----
-
-## Question for the user before I start
-
-Which mono font should I swap to? (Geist Mono / IBM Plex Mono / DM Mono — all have a clean no-dot zero.)
+Should the unified **Transfers** page also let a manager retrospectively switch a transfer's source after the fact? Default plan = no, transfers stay immutable (matches project rule). Confirm if you want otherwise.
