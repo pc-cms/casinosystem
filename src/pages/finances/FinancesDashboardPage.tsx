@@ -9,6 +9,7 @@ import FinanceCasinoSwitcher from "@/components/finances/FinanceCasinoSwitcher";
 import {
   useFinWalletTx, useFinWalletBalances, useFinWallets, useFinBudget, useFinCategories,
 } from "@/hooks/use-fin";
+import { BentoGrid, BentoTile, BentoKpi } from "@/components/ui/bento-grid";
 import { formatNumberSpaces } from "@/lib/currency";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
