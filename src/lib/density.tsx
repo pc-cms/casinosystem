@@ -26,7 +26,9 @@ const isCoarsePointer = () =>
 
 const roleDefault = (roles: string[]): DensityEffective => {
   if (isCoarsePointer()) return "touch";
-  if (roles.includes("cashier") || roles.includes("cashier_slots") || roles.includes("pit")) return "compact";
+  // Unified default: comfort for ALL roles (user decision, design tour).
+  // Override per-user via Profile dialog.
+  void roles;
   return "comfort";
 };
 
