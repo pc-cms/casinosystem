@@ -103,6 +103,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   );
 
   // Closing entry state (controlled locally, persisted on save)
+  const [activeSection, setActiveSection] = useState<"cage" | "cashless" | "transfers">("cage");
   const [closingCash, setClosingCash] = useState<Record<string, Record<number, number>>>(
     Object.fromEntries(CURRENCIES.map(c => [c, {}]))
   );
@@ -759,205 +760,218 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
 
 
 
-      <Tabs defaultValue="closing" className="space-y-2">
-        <TabsList>
-          <TabsTrigger value="closing">Shift Result</TabsTrigger>
-          <TabsTrigger value="cashless">Cashless ({cashless.length})</TabsTrigger>
-          <TabsTrigger value="transfers">Transfers</TabsTrigger>
+      <div className="flex gap-3">
+        <nav className="flex flex-col gap-1 w-40 shrink-0">
+          {([
+            { id: "cage", label: "Cage", icon: Coins },
+            { id: "cashless", label: `Cashless (${cashless.length})`, icon: CreditCard },
+            { id: "transfers", label: "Transfers", icon: ArrowLeftRight },
+          ] as const).map(t => {
+            const Icon = t.icon;
+            const active = activeSection === t.id;
+            return (
+              <Button
+                key={t.id}
+                type="button"
+                variant={active ? "default" : "ghost"}
+                size="sm"
+                className="justify-start gap-2 h-9"
+                onClick={() => setActiveSection(t.id)}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="truncate">{t.label}</span>
+              </Button>
+            );
+          })}
+        </nav>
 
-        </TabsList>
-
-
-        <TabsContent value="closing" className="space-y-2">
-
-
-          {/* Same grid as Live Game cage, scaled down ~30% for compactness. */}
-          <div className="cms-panel p-3">
-            <div style={{ zoom: 0.7 }}>
-              <CashCountGrid
-                chips={{}}
-                onChipsChange={() => { /* slots cage has no chips */ }}
-                cash={closingCash}
-                onCashChange={(cur, next) => {
-                  const prev = closingCash[cur] || {};
-                  setClosingCash(c => ({ ...c, [cur]: next }));
-                  const denoms = CASH_DENOMS[cur] || [];
-                  for (const d of denoms) {
-                    if ((next[d] || 0) !== (prev[d] || 0)) {
-                      persistClosingCash(cur, d, next[d] || 0);
-                    }
-                  }
-                }}
-                banks={closingBanks}
-                onBanksChange={setClosingBanks}
-                mobile={closingMobile}
-                onMobileChange={setClosingMobile}
-                rates={rateMap}
-                hideChips
-                hideMobile
-              />
-            </div>
-            <p className="mt-2 text-[10px] text-muted-foreground">
-              Bank balances are saved into the next Check (use the Check button at the top). Mobile Money is derived from Cashless IN − OUT below.
-            </p>
-          </div>
-
-          {/* Cashless manual entry — three provider blocks (IN / OUT / FINAL). */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <CashlessProvidersBlock
-              title="Cashless IN"
-              tone="in"
-              values={cashlessInProviders}
-              onChange={setCashlessInProviders}
-              onBlur={() => saveCashlessProviders("cashless_in_providers", cashlessInProviders)}
-              disabled={shift.status !== "open"}
-              suggestions={cashlessSug?.in}
-            />
-            <CashlessProvidersBlock
-              title="Cashless OUT"
-              tone="out"
-              values={cashlessOutProviders}
-              onChange={setCashlessOutProviders}
-              onBlur={() => saveCashlessProviders("cashless_out_providers", cashlessOutProviders)}
-              disabled={shift.status !== "open"}
-              suggestions={cashlessSug?.out}
-            />
-            <CashlessProvidersBlock
-              title="Cashless FINAL · print only"
-              tone="final"
-              values={cashlessFinalProviders}
-              onChange={(v) => {
-                setCashlessFinalProviders(v);
-                const total = mobileTotal(v);
-                setCashlessFinalInput(String(total));
-              }}
-              onBlur={async () => {
-                await saveCashlessProviders("cashless_final_providers", cashlessFinalProviders);
-                await supabase
-                  .from("cage_slots_shifts")
-                  .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
-                  .eq("id", shift.id);
-              }}
-              disabled={shift.status !== "open"}
-            />
-          </div>
-
-
-          {/* Checks history (was a separate tab) */}
-          <PageSection title={`Checks (${checks.length})`}>
-            <table className="w-full text-xs">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr><th className="text-left py-1.5">When</th><th className="text-left">Kind</th><th className="text-right">Balance (TZS)</th><th className="text-left">Note</th></tr>
-              </thead>
-              <tbody>
-                {checks.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-3">·</td></tr>}
-                {checks.map(c => {
-                  const d: any = c.denominations || {};
-                  const t: any = d.totals || {};
-                  const isOpening = !!(d.is_opening || t.is_opening);
-                  const isClosing = !!(d.is_closing || t.is_closing);
-                  const isReview = !!(d.is_review || t.is_review);
-                  const kind = isOpening ? "Opening" : isClosing ? "Closing" : isReview ? "Review" : "Check";
-                  const cls =
-                    kind === "Opening" ? "bg-primary/15 text-primary" :
-                    kind === "Closing" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
-                    kind === "Review"  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
-                                         "bg-muted text-muted-foreground";
-                  const balanceRaw = t.balance ?? t.shift_balance;
-                  const hasBalance = balanceRaw !== undefined && balanceRaw !== null && !isOpening;
-                  const balanceNum = Number(balanceRaw || 0);
-                  const balanceCls = !hasBalance
-                    ? "text-muted-foreground"
-                    : balanceNum > 0
-                      ? "cms-amount-positive"
-                      : balanceNum < 0
-                        ? "cms-amount-negative"
-                        : "";
-                  return (
-                    <tr
-                      key={c.id}
-                      onClick={() => setViewerCheck({ ...(c as any), total: (c as any).total_tzs } as Tables<"cash_counts">)}
-                      className="border-b border-border/50 cursor-pointer hover:bg-accent/30 transition-colors"
-                    >
-                      <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(c.created_at)}</td>
-                      <td><span className={`cms-chip text-[9px] h-4 px-1.5 uppercase ${cls}`}>{kind}</span></td>
-                      <td className={`text-right font-mono ${balanceCls}`}>{hasBalance ? formatNumberSpaces(balanceNum) : "·"}</td>
-                      <td className="text-muted-foreground">{c.note || "·"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </PageSection>
-          <CashCheckViewerDialog
-            open={!!viewerCheck}
-            onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
-            check={viewerCheck}
-            balanceMode="slots"
-          />
-        </TabsContent>
-
-        <TabsContent value="cashless">
-          <PageSection title="Cashless Transactions for this Shift">
-            {/* Grey per-provider hint: signed net totals already recorded in this shift. */}
-            {Object.keys(cashlessByProvider).length > 0 && (
-              <div className="mb-2 text-[11px] text-muted-foreground font-mono flex flex-wrap gap-x-3 gap-y-1">
-                {(["MPESA","AIRTEL","TIGO","HALOTEL"] as const).map(p => {
-                  const v = cashlessByProvider[p];
-                  if (!v) return null;
-                  return (
-                    <span key={p}>
-                      {p}: <span className={v < 0 ? "cms-amount-negative" : ""}>{v < 0 ? "−" : ""}{formatNumberSpaces(Math.abs(v))}</span>
-                    </span>
-                  );
-                })}
+        <div className="flex-1 min-w-0 space-y-2">
+          {activeSection === "cage" && (
+            <>
+              {/* Same grid as Live Game cage, scaled down ~30% for compactness. */}
+              <div className="cms-panel p-3">
+                <div style={{ zoom: 0.7 }}>
+                  <CashCountGrid
+                    chips={{}}
+                    onChipsChange={() => { /* slots cage has no chips */ }}
+                    cash={closingCash}
+                    onCashChange={(cur, next) => {
+                      const prev = closingCash[cur] || {};
+                      setClosingCash(c => ({ ...c, [cur]: next }));
+                      const denoms = CASH_DENOMS[cur] || [];
+                      for (const d of denoms) {
+                        if ((next[d] || 0) !== (prev[d] || 0)) {
+                          persistClosingCash(cur, d, next[d] || 0);
+                        }
+                      }
+                    }}
+                    banks={closingBanks}
+                    onBanksChange={setClosingBanks}
+                    mobile={closingMobile}
+                    onMobileChange={setClosingMobile}
+                    rates={rateMap}
+                    hideChips
+                    hideMobile
+                  />
+                </div>
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  Bank balances are saved into the next Check (use the Check button at the top). Mobile Money is derived from Cashless IN − OUT below.
+                </p>
               </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3 items-end">
-              <select value={clDirection} onChange={e => setClDirection(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
-                <option value="IN">IN</option>
-                <option value="OUT">OUT</option>
-              </select>
-              <select value={clProvider} onChange={e => setClProvider(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
-                <option value="MPESA">MPESA</option>
-                <option value="AIRTEL">AIRTEL</option>
-                <option value="TIGO">TIGO</option>
-                <option value="HALOTEL">HALOTEL</option>
-              </select>
-              <Input placeholder="Player / name" value={clName} onChange={e => setClName(e.target.value)} className="h-9" />
-              <NumberInput placeholder="Amount" value={clAmount || ""} onChange={v => setClAmount(Number(v) || 0)} className="no-spin h-9 text-right font-mono" />
-              <Input placeholder="Ref" value={clRef} onChange={e => setClRef(e.target.value)} className="h-9" />
-              <Button onClick={submitCashless} size="sm" className="h-9">Add</Button>
-            </div>
-            <table className="w-full text-xs">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr><th className="text-left py-1.5">When</th><th>Dir</th><th>Provider</th><th className="text-left">Player</th><th className="text-right">Amount</th><th>Ref</th></tr>
-              </thead>
-              <tbody>
-                {cashless.length === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground py-3">·</td></tr>}
-                {cashless.map((t: any) => (
-                  <tr key={t.id} className="border-b border-border/50">
-                    <td className="py-1.5">{fmtDateTime(t.created_at)}</td>
-                    <td className="text-center"><Badge variant={t.direction === "IN" ? "default" : "secondary"}>{t.direction}</Badge></td>
-                    <td className="text-center">{t.provider}</td>
-                    <td>{t.player_name}</td>
-                    <td className="text-right font-mono">{formatNumberSpaces(t.amount)}</td>
-                    <td className="text-center text-muted-foreground">{t.reference || "·"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </PageSection>
-        </TabsContent>
 
-        <TabsContent value="transfers">
-          <SlotsTransfersForm shiftId={shift.id} />
-        </TabsContent>
+              {/* Cashless manual entry — three provider blocks (IN / OUT / FINAL). */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <CashlessProvidersBlock
+                  title="Cashless IN"
+                  tone="in"
+                  values={cashlessInProviders}
+                  onChange={setCashlessInProviders}
+                  onBlur={() => saveCashlessProviders("cashless_in_providers", cashlessInProviders)}
+                  disabled={shift.status !== "open"}
+                  suggestions={cashlessSug?.in}
+                />
+                <CashlessProvidersBlock
+                  title="Cashless OUT"
+                  tone="out"
+                  values={cashlessOutProviders}
+                  onChange={setCashlessOutProviders}
+                  onBlur={() => saveCashlessProviders("cashless_out_providers", cashlessOutProviders)}
+                  disabled={shift.status !== "open"}
+                  suggestions={cashlessSug?.out}
+                />
+                <CashlessProvidersBlock
+                  title="Cashless FINAL · print only"
+                  tone="final"
+                  values={cashlessFinalProviders}
+                  onChange={(v) => {
+                    setCashlessFinalProviders(v);
+                    const total = mobileTotal(v);
+                    setCashlessFinalInput(String(total));
+                  }}
+                  onBlur={async () => {
+                    await saveCashlessProviders("cashless_final_providers", cashlessFinalProviders);
+                    await supabase
+                      .from("cage_slots_shifts")
+                      .update({ cashless_final: Number(cashlessFinalInput) || 0 } as any)
+                      .eq("id", shift.id);
+                  }}
+                  disabled={shift.status !== "open"}
+                />
+              </div>
 
+              {/* Checks history (was a separate tab) */}
+              <PageSection title={`Checks (${checks.length})`}>
+                <table className="w-full text-xs">
+                  <thead className="text-muted-foreground border-b border-border">
+                    <tr><th className="text-left py-1.5">When</th><th className="text-left">Kind</th><th className="text-right">Balance (TZS)</th><th className="text-left">Note</th></tr>
+                  </thead>
+                  <tbody>
+                    {checks.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-3">·</td></tr>}
+                    {checks.map(c => {
+                      const d: any = c.denominations || {};
+                      const t: any = d.totals || {};
+                      const isOpening = !!(d.is_opening || t.is_opening);
+                      const isClosing = !!(d.is_closing || t.is_closing);
+                      const isReview = !!(d.is_review || t.is_review);
+                      const kind = isOpening ? "Opening" : isClosing ? "Closing" : isReview ? "Review" : "Check";
+                      const cls =
+                        kind === "Opening" ? "bg-primary/15 text-primary" :
+                        kind === "Closing" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
+                        kind === "Review"  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
+                                             "bg-muted text-muted-foreground";
+                      const balanceRaw = t.balance ?? t.shift_balance;
+                      const hasBalance = balanceRaw !== undefined && balanceRaw !== null && !isOpening;
+                      const balanceNum = Number(balanceRaw || 0);
+                      const balanceCls = !hasBalance
+                        ? "text-muted-foreground"
+                        : balanceNum > 0
+                          ? "cms-amount-positive"
+                          : balanceNum < 0
+                            ? "cms-amount-negative"
+                            : "";
+                      return (
+                        <tr
+                          key={c.id}
+                          onClick={() => setViewerCheck({ ...(c as any), total: (c as any).total_tzs } as Tables<"cash_counts">)}
+                          className="border-b border-border/50 cursor-pointer hover:bg-accent/30 transition-colors"
+                        >
+                          <td className="py-1.5 font-mono text-[10px] text-muted-foreground">{fmtDateTime(c.created_at)}</td>
+                          <td><span className={`cms-chip text-[9px] h-4 px-1.5 uppercase ${cls}`}>{kind}</span></td>
+                          <td className={`text-right font-mono ${balanceCls}`}>{hasBalance ? formatNumberSpaces(balanceNum) : "·"}</td>
+                          <td className="text-muted-foreground">{c.note || "·"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </PageSection>
+              <CashCheckViewerDialog
+                open={!!viewerCheck}
+                onOpenChange={(o) => { if (!o) setViewerCheck(null); }}
+                check={viewerCheck}
+                balanceMode="slots"
+              />
+            </>
+          )}
 
+          {activeSection === "cashless" && (
+            <PageSection title="Cashless Transactions for this Shift">
+              {/* Grey per-provider hint: signed net totals already recorded in this shift. */}
+              {Object.keys(cashlessByProvider).length > 0 && (
+                <div className="mb-2 text-[11px] text-muted-foreground font-mono flex flex-wrap gap-x-3 gap-y-1">
+                  {(["MPESA","AIRTEL","TIGO","HALOTEL"] as const).map(p => {
+                    const v = cashlessByProvider[p];
+                    if (!v) return null;
+                    return (
+                      <span key={p}>
+                        {p}: <span className={v < 0 ? "cms-amount-negative" : ""}>{v < 0 ? "−" : ""}{formatNumberSpaces(Math.abs(v))}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3 items-end">
+                <select value={clDirection} onChange={e => setClDirection(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
+                  <option value="IN">IN</option>
+                  <option value="OUT">OUT</option>
+                </select>
+                <select value={clProvider} onChange={e => setClProvider(e.target.value as any)} className="h-9 rounded border border-border bg-background px-2 text-sm">
+                  <option value="MPESA">MPESA</option>
+                  <option value="AIRTEL">AIRTEL</option>
+                  <option value="TIGO">TIGO</option>
+                  <option value="HALOTEL">HALOTEL</option>
+                </select>
+                <Input placeholder="Player / name" value={clName} onChange={e => setClName(e.target.value)} className="h-9" />
+                <NumberInput placeholder="Amount" value={clAmount || ""} onChange={v => setClAmount(Number(v) || 0)} className="no-spin h-9 text-right font-mono" />
+                <Input placeholder="Ref" value={clRef} onChange={e => setClRef(e.target.value)} className="h-9" />
+                <Button onClick={submitCashless} size="sm" className="h-9">Add</Button>
+              </div>
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground border-b border-border">
+                  <tr><th className="text-left py-1.5">When</th><th>Dir</th><th>Provider</th><th className="text-left">Player</th><th className="text-right">Amount</th><th>Ref</th></tr>
+                </thead>
+                <tbody>
+                  {cashless.length === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground py-3">·</td></tr>}
+                  {cashless.map((t: any) => (
+                    <tr key={t.id} className="border-b border-border/50">
+                      <td className="py-1.5">{fmtDateTime(t.created_at)}</td>
+                      <td className="text-center"><Badge variant={t.direction === "IN" ? "default" : "secondary"}>{t.direction}</Badge></td>
+                      <td className="text-center">{t.provider}</td>
+                      <td>{t.player_name}</td>
+                      <td className="text-right font-mono">{formatNumberSpaces(t.amount)}</td>
+                      <td className="text-center text-muted-foreground">{t.reference || "·"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </PageSection>
+          )}
 
-
-      </Tabs>
+          {activeSection === "transfers" && (
+            <SlotsTransfersForm shiftId={shift.id} />
+          )}
+        </div>
+      </div>
 
 
       {comments.length > 0 && (
