@@ -137,6 +137,7 @@ const Reports = () => {
         <TabsContent value="cashless"><CashlessReport from={from} to={to} /></TabsContent>
         <TabsContent value="miss-chips"><MissChips /></TabsContent>
       </Tabs>
+      </MoneyModeProvider>
     </PageShell>
   );
 };
