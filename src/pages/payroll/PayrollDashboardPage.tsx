@@ -79,7 +79,7 @@ export default function PayrollDashboardPage() {
       </PageHeader>
 
       <PageSection card={false}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <BentoGrid>
           <KPI icon={Users}      label="Employees"     value={entries.length} />
           <KPI icon={Wallet}     label="Total Basic"   value={totals.basic} />
           <KPI icon={Coins}      label="Total Gross"   value={totals.gross} />
@@ -88,7 +88,7 @@ export default function PayrollDashboardPage() {
           <KPI icon={Banknote}   label="Total Advances" value={totals.adv} />
           <KPI icon={Ban}        label="Total Deductions" value={totals.ded} />
           <KPI icon={Banknote}   label="Net Payable"   value={totals.net} />
-        </div>
+        </BentoGrid>
       </PageSection>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
