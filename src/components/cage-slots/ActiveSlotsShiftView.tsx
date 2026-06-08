@@ -1210,12 +1210,61 @@ const BigTile = ({ label, value, signed, emphasize }: { label: string; value: nu
   return (
     <div className={`rounded-md border px-2 py-3 flex flex-col items-center justify-center min-h-[88px] ${emphasize ? "border-primary/60 bg-primary/10" : "border-border bg-card"}`}>
       <p className="text-[10px] uppercase text-muted-foreground tracking-[0.14em] font-semibold text-center mb-1">{label}</p>
-      <p className={`font-mono font-bold tabular-nums text-center ${emphasize ? "text-2xl" : "text-xl"} ${colorCls}`}>
+      <p className={`font-mono font-bold tabular-nums text-center whitespace-nowrap ${emphasize ? "text-2xl" : "text-xl"} ${colorCls}`}>
         {signed && value > 0 ? "+" : ""}{formatNumberSpaces(value)}
       </p>
     </div>
   );
 };
+
+/**
+ * Grouped metrics panel — one bordered card with stacked rows.
+ * Replaces the multi-tile "5 tiny boxes per row" pattern so long numbers
+ * (e.g. 1 160 000) stay on a single line.
+ */
+const GroupedPanel = ({
+  title,
+  rows,
+  total,
+}: {
+  title: string;
+  rows: Array<{ label: string; value: number; signed?: boolean }>;
+  total?: { label: string; value: number; signed?: boolean };
+}) => (
+  <section className="rounded-md border border-border bg-card">
+    <header className="px-4 pt-3 pb-2 border-b border-border/60">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">{title}</p>
+    </header>
+    <div className="divide-y divide-border/40">
+      {rows.map(r => {
+        const colorCls = r.signed
+          ? r.value < 0 ? "cms-amount-negative" : r.value > 0 ? "cms-amount-positive" : ""
+          : "";
+        return (
+          <div key={r.label} className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{r.label}</span>
+            <span className={`font-mono font-bold tabular-nums whitespace-nowrap text-xl ${colorCls}`}>
+              {r.signed && r.value > 0 ? "+" : ""}{formatNumberSpaces(r.value)}
+            </span>
+          </div>
+        );
+      })}
+      {total && (() => {
+        const colorCls = total.signed
+          ? total.value < 0 ? "cms-amount-negative" : total.value > 0 ? "cms-amount-positive" : ""
+          : "";
+        return (
+          <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border-t-2 border-primary/40">
+            <span className="text-sm uppercase tracking-[0.14em] text-foreground font-bold">{total.label}</span>
+            <span className={`font-mono font-extrabold tabular-nums whitespace-nowrap text-2xl ${colorCls || "text-foreground"}`}>
+              {total.signed && total.value > 0 ? "+" : ""}{formatNumberSpaces(total.value)}
+            </span>
+          </div>
+        );
+      })()}
+    </div>
+  </section>
+);
 
 const CashlessProvidersBlock = ({
   title, values, onChange, disabled, onBlur, tone = "default", suggestions,
