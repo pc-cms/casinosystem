@@ -65,6 +65,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   // Cage Slots: cashier-only surface. Managers/Finance/Surveillance/Pit use Cage View (which shows slots checks too).
   { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["cashier_slots"], section: "CASHIER" },
+  { to: "/cage-slots/cashless", icon: CreditCard, label: "Slots Cashless", roles: ["cashier_slots"], section: "CASHIER" },
+  { to: "/cage-slots/transfers", icon: ArrowLeftRight, label: "Slots Transfers", roles: ["cashier_slots"], section: "CASHIER" },
   // Closings hub — managerial surface only.
   { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   { to: "/bank-checks", icon: CreditCard, label: "Bank", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
