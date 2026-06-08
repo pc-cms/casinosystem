@@ -26,12 +26,11 @@ import { getTableCellClasses } from "@/lib/table-colors";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
-import { formatCurrency, formatNumberCompact } from "@/lib/currency";
+import { formatCurrency, formatNumberCompact, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
 import { usePlayerDailyAvgBets, useSetPlayerDailyAvgBet, type AvgBetGroup } from "@/hooks/use-player-daily-avg-bets";
-import { formatNumberSpaces as _fmt, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 
 type TabKey = "day" | "present" | "left";
 
