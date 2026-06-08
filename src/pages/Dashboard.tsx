@@ -28,21 +28,25 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CCTVDashboardSection } from "@/components/dashboard/CCTVDashboardSection";
+import { BentoGrid, BentoTile, BentoKpi } from "@/components/ui/bento-grid";
 
-const StatCard = ({ label, value, icon: Icon, href }: {
-  label: string; value: string | number; icon: any; href: string;
+const StatTile = ({ label, value, icon: Icon, href, col = 3 }: {
+  label: string; value: string | number; icon: any; href: string; col?: 1 | 2 | 3 | 4 | 6;
 }) => (
-  <Link to={href} className="cms-panel p-5 hover:border-primary/30 transition-colors group block">
-    <div className="flex items-center gap-2 text-muted-foreground">
-      <div className="p-1.5 rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
-        <Icon className="w-4 h-4" />
-      </div>
-      <p className="text-xs font-medium uppercase tracking-wider truncate">{label}</p>
-    </div>
-    <div className="mt-3 overflow-x-auto scrollbar-hide">
-      <p className="text-3xl font-bold font-mono whitespace-nowrap text-card-foreground">{value}</p>
-    </div>
-  </Link>
+  <BentoTile
+    col={col as any}
+    title={
+      <span className="inline-flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+        {label}
+      </span>
+    }
+    className="hover:border-primary/40"
+    onClick={() => { window.location.href = href; }}
+    style={{ cursor: "pointer" }}
+  >
+    <BentoKpi value={<span className="whitespace-nowrap">{value}</span>} />
+  </BentoTile>
 );
 
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
