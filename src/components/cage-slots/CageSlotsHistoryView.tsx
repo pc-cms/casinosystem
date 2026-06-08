@@ -4,7 +4,9 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatNumberSpaces } from "@/lib/currency";
+import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
+import { MoneyCell } from "@/components/ui/money-cell";
+import { useMoneyMode } from "@/components/ui/data-table-toolbar";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { useCageSlotsHistory, useSlotsCashlessAggByShift, useSlotsClosingTotalsByShift } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "./PrintSlotsShiftDialog";
@@ -26,6 +28,7 @@ const CageSlotsHistoryView = () => {
   const { data: closingTotals = {} } = useSlotsClosingTotalsByShift(shiftIds);
   const [printShiftId, setPrintShiftId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [mode, MoneyToggle] = useMoneyMode("cage-slots-history");
 
   return (
     <PageShell>
@@ -35,30 +38,34 @@ const CageSlotsHistoryView = () => {
         subtitle="Closed and reviewed slots shifts (read-only)"
         date
       />
-      <PageSection title={`Recent shifts (${shifts.length})`}>
+      <PageSection
+        title={`Recent shifts (${shifts.length})`}
+        actions={<MoneyToggle />}
+      >
         {isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
-        <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead className="text-muted-foreground border-b border-border">
-            <tr>
-              <th className="text-left py-1.5">Business Day</th>
-              <th>Status</th>
-              <th>Opened</th>
-              <th>Closed</th>
-              <th className="text-right">System</th>
-              <th className="text-right">Slots Result</th>
-              <th className="text-right">Cash Desk Result</th>
-              <th className="text-right">Cards Miss</th>
-              <th className="text-right">Cashless IN</th>
-              <th className="text-right">Cashless OUT</th>
-              <th className="text-right">Cashless NET</th>
-              <th className="text-right">Balance</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
+        <DataTable>
+          <DTHead>
+            <DTRow>
+              <DTHeader type="date">Business Day</DTHeader>
+              <DTHeader type="status">Status</DTHeader>
+              <DTHeader type="date">Opened</DTHeader>
+              <DTHeader type="date">Closed</DTHeader>
+              <DTHeader type="money">System</DTHeader>
+              <DTHeader type="money">Slots Result</DTHeader>
+              <DTHeader type="money">Cash Desk</DTHeader>
+              <DTHeader type="money">Cards Miss</DTHeader>
+              <DTHeader type="money">Cashless IN</DTHeader>
+              <DTHeader type="money">Cashless OUT</DTHeader>
+              <DTHeader type="money">Cashless NET</DTHeader>
+              <DTHeader type="money">Balance</DTHeader>
+              <DTHeader type="actions" />
+            </DTRow>
+          </DTHead>
+          <DTBody>
             {shifts.length === 0 && !isLoading && (
-              <tr><td colSpan={13} className="text-center text-muted-foreground py-4">·</td></tr>
+              <DTRow>
+                <DTCell colSpan={13} className="text-center text-muted-foreground py-4">·</DTCell>
+              </DTRow>
             )}
             {shifts.map(s => {
               const ct = closingTotals[s.id];
@@ -67,7 +74,6 @@ const CageSlotsHistoryView = () => {
               const cMiss = Number(s.cards_miss || 0);
               const sysRes = Number(s.system_shift_result || 0);
               const slotsRes = Number(s.slots_result || 0);
-              // Build per-provider fallback from shift columns (Mpesa/Tigo/Halo/AirTel)
               const providersFromShift: Record<string, { in: number; out: number }> = {};
               const addProv = (raw: Record<string, any> | null | undefined, dir: "in" | "out") => {
                 if (!raw || typeof raw !== "object") return;
@@ -87,7 +93,6 @@ const CageSlotsHistoryView = () => {
               const txIn = txAgg?.in || 0;
               const txOut = txAgg?.out || 0;
 
-              // Prefer live tx aggregation; fall back to shift columns; final fallback closing totals
               const clIn = txIn || shiftClIn || (ct?.cashless_in ?? 0);
               const clOut = txOut || shiftClOut || (ct?.cashless_out ?? 0);
               const clNet = clIn - clOut;
@@ -101,66 +106,53 @@ const CageSlotsHistoryView = () => {
               };
               return (
                 <Fragment key={s.id}>
-                <tr
-                  className={`border-b border-border/50 hover:bg-accent/30 cursor-pointer ${isExpanded ? "bg-accent/20" : ""}`}
-                  onClick={toggleExpanded}
-                  onKeyDown={onRowKeyDown}
-                  tabIndex={0}
-                  role="button"
-                  aria-expanded={isExpanded}
-                >
-                  <td className="py-1.5">
-                    <span className="inline-flex items-center gap-1">
-                      {isExpanded
-                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-                      {fmtDate(s.business_date)}
-                    </span>
-                  </td>
-                  <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{s.status.replace("_", " ")}</Badge></td>
-                  <td className="text-center text-muted-foreground">{fmtDateTime(s.opened_at)}</td>
-                  <td className="text-center text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</td>
-                  <td className="text-right font-mono">{formatNumberSpaces(sysRes)}</td>
-                  <td className={`text-right font-mono ${slotsRes < 0 ? "cms-amount-negative" : slotsRes > 0 ? "cms-amount-positive" : ""}`}>
-                    {slotsRes > 0 ? "+" : ""}{formatNumberSpaces(slotsRes)}
-                  </td>
-                  <td className={`text-right font-mono ${cdr < 0 ? "cms-amount-negative" : cdr > 0 ? "cms-amount-positive" : ""}`}>
-                    {cdr > 0 ? "+" : ""}{formatNumberSpaces(cdr)}
-                  </td>
-                  <td className={`text-right font-mono ${cMiss < 0 ? "cms-amount-negative" : ""}`}>
-                    {cMiss !== 0 ? (cMiss > 0 ? "+" : "") + formatNumberSpaces(cMiss) : "·"}
-                  </td>
-                  <td className={`text-right font-mono ${clIn ? "cms-amount-positive" : ""}`}>
-                    {clIn ? "+" + formatNumberSpaces(clIn) : "·"}
-                  </td>
-                  <td className={`text-right font-mono ${clOut ? "cms-amount-negative" : ""}`}>
-                    {clOut ? "−" + formatNumberSpaces(clOut) : "·"}
-                  </td>
-                  <td className={`text-right font-mono ${clNet < 0 ? "cms-amount-negative" : clNet > 0 ? "cms-amount-positive" : ""}`}>
-                    {clNet !== 0 ? (clNet > 0 ? "+" : "") + formatNumberSpaces(clNet) : "·"}
-                  </td>
-                  <td className={`text-right font-mono ${balance < 0 ? "cms-amount-negative" : balance > 0 ? "cms-amount-positive" : ""}`}>
-                    {balance > 0 ? "+" : ""}{formatNumberSpaces(balance)}
-                  </td>
-                  <td className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
-                      <Printer className="w-3.5 h-3.5" /> Print
-                    </Button>
-                  </td>
-                </tr>
-                {isExpanded && (
-                  <tr className="bg-muted/10 border-b border-border">
-                    <td colSpan={13} className="p-3">
-                      <SlotsShiftReportBody id={s.id} showHeader={false} compact />
-                    </td>
-                  </tr>
-                )}
+                  <DTRow
+                    className={`cursor-pointer ${isExpanded ? "bg-accent/20" : ""}`}
+                    onClick={toggleExpanded}
+                    onKeyDown={onRowKeyDown}
+                    tabIndex={0}
+                    role="button"
+                    aria-expanded={isExpanded}
+                  >
+                    <DTCell type="date">
+                      <span className="inline-flex items-center gap-1">
+                        {isExpanded
+                          ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                          : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                        {fmtDate(s.business_date)}
+                      </span>
+                    </DTCell>
+                    <DTCell type="status">
+                      <Badge variant="outline" className="text-[10px] uppercase">{s.status.replace("_", " ")}</Badge>
+                    </DTCell>
+                    <DTCell type="date" className="text-muted-foreground">{fmtDateTime(s.opened_at)}</DTCell>
+                    <DTCell type="date" className="text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</DTCell>
+                    <DTCell type="money"><MoneyCell value={sysRes} mode={mode} /></DTCell>
+                    <DTCell type="money"><MoneyCell value={slotsRes} mode={mode} signed /></DTCell>
+                    <DTCell type="money"><MoneyCell value={cdr} mode={mode} signed /></DTCell>
+                    <DTCell type="money"><MoneyCell value={cMiss} mode={mode} signed empty="·" /></DTCell>
+                    <DTCell type="money"><MoneyCell value={clIn || null} mode={mode} signed empty="·" /></DTCell>
+                    <DTCell type="money"><MoneyCell value={clOut ? -clOut : null} mode={mode} signed empty="·" /></DTCell>
+                    <DTCell type="money"><MoneyCell value={clNet || null} mode={mode} signed empty="·" /></DTCell>
+                    <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
+                    <DTCell type="actions" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
+                        <Printer className="w-3.5 h-3.5" /> Print
+                      </Button>
+                    </DTCell>
+                  </DTRow>
+                  {isExpanded && (
+                    <DTRow className="bg-muted/10">
+                      <DTCell colSpan={13} className="p-3">
+                        <SlotsShiftReportBody id={s.id} showHeader={false} compact />
+                      </DTCell>
+                    </DTRow>
+                  )}
                 </Fragment>
               );
             })}
-          </tbody>
-        </table>
-        </div>
+          </DTBody>
+        </DataTable>
       </PageSection>
       {printShiftId && (
         <PrintSlotsShiftDialog
