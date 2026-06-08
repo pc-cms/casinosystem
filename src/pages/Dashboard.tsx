@@ -49,6 +49,72 @@ const StatTile = ({ label, value, icon: Icon, href, col = 3 }: {
   </BentoTile>
 );
 
+/**
+ * Single-panel summary strip — one bordered card, one row per metric.
+ * Replaces multi-tile bento rows so values always stay on one line
+ * and dashboards never show empty containers around tiny numbers.
+ */
+const SummaryPanel = ({
+  title,
+  rows,
+  total,
+}: {
+  title?: string;
+  rows: Array<{
+    label: string;
+    value: React.ReactNode;
+    icon?: any;
+    href?: string;
+    signed?: number;  // value sign for color (>0 pos, <0 neg, 0 neutral)
+  }>;
+  total?: { label: string; value: React.ReactNode; signed?: number };
+}) => (
+  <section className="rounded-md border border-border bg-card mb-6">
+    {title && (
+      <header className="px-4 pt-3 pb-2 border-b border-border/60">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">{title}</p>
+      </header>
+    )}
+    <div className="divide-y divide-border/40">
+      {rows.map((r, i) => {
+        const Icon = r.icon;
+        const colorCls = r.signed === undefined
+          ? ""
+          : r.signed < 0 ? "cms-amount-negative" : r.signed > 0 ? "cms-amount-positive" : "";
+        const content = (
+          <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+            <span className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold min-w-0">
+              {Icon && <Icon className="w-3.5 h-3.5 text-primary shrink-0" />}
+              <span className="truncate">{r.label}</span>
+            </span>
+            <span className={`font-mono font-bold tabular-nums whitespace-nowrap text-xl ${colorCls}`}>
+              {r.value}
+            </span>
+          </div>
+        );
+        return r.href ? (
+          <Link key={i} to={r.href} className="block hover:bg-accent/40 transition-colors">{content}</Link>
+        ) : (
+          <div key={i}>{content}</div>
+        );
+      })}
+      {total && (() => {
+        const colorCls = total.signed === undefined
+          ? ""
+          : total.signed < 0 ? "cms-amount-negative" : total.signed > 0 ? "cms-amount-positive" : "";
+        return (
+          <div className="flex items-center justify-between gap-4 px-4 py-3 bg-primary/5 border-t-2 border-primary/40">
+            <span className="text-sm uppercase tracking-[0.14em] text-foreground font-bold">{total.label}</span>
+            <span className={`font-mono font-extrabold tabular-nums whitespace-nowrap text-2xl ${colorCls || "text-foreground"}`}>
+              {total.value}
+            </span>
+          </div>
+        );
+      })()}
+    </div>
+  </section>
+);
+
 const ALL_SHIFTS = ["D", "M", "N", "G", "E", "L", "O"] as const;
 
 const Dashboard = () => {
