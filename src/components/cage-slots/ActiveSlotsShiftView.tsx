@@ -50,6 +50,11 @@ type Shift = Tables<"cage_slots_shifts">;
 
 const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const activeSection: "cage" | "cashless" | "transfers" =
+    location.pathname.endsWith("/cashless") ? "cashless"
+    : location.pathname.endsWith("/transfers") ? "transfers"
+    : "cage";
   const { roles, managerOverride } = useAuth();
   const canManage =
     roles.includes("manager") || roles.includes("super_admin") || managerOverride.active;
