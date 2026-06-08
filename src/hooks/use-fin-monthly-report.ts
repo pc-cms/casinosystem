@@ -97,21 +97,41 @@ export const useMonthlyReport = ({ year, month, ytd, scope }: Args) => {
       const endUtc = `${endExclusive}T04:00:00.000Z`;
       let shiftsQ = supabase.from("shifts").select("tables_result, casino_id").gte("opened_at", startUtc).lt("opened_at", endUtc);
       let slotsQ = supabase.from("cage_slots_shifts").select("system_shift_result, casino_id").gte("opened_at", startUtc).lt("opened_at", endUtc);
+      // Other Incomes — dedicated fin_incomes table (replaces legacy expenses.is_income hack).
+      const startMonth = ytd ? 1 : month;
+      let incomesQ = (supabase as any)
+        .from("fin_incomes")
+        .select("fin_category_id, month, currency, amount, casino_id")
+        .eq("year", year)
+        .gte("month", startMonth)
+        .lte("month", month);
+      // Avg USD→TZS rate for the period (for USD income conversion)
+      let ratesQ = supabase
+        .from("fin_daily_rates")
+        .select("usd_to_tzs, business_date")
+        .gte("business_date", start)
+        .lt("business_date", endExclusive);
       if (!network && casinoId) {
         shiftsQ = shiftsQ.eq("casino_id", casinoId);
         slotsQ = slotsQ.eq("casino_id", casinoId);
+        incomesQ = incomesQ.eq("casino_id", casinoId);
+        ratesQ = ratesQ.eq("casino_id", casinoId);
       }
 
-      const [cats, budgets, expenses, shifts, slots] = await Promise.all([catsQ, budgetQ, expQ, shiftsQ, slotsQ]);
+      const [cats, budgets, expenses, shifts, slots, incomes, rates] = await Promise.all([catsQ, budgetQ, expQ, shiftsQ, slotsQ, incomesQ, ratesQ]);
       if (cats.error) throw cats.error;
       if (budgets.error) throw budgets.error;
       if (expenses.error) throw expenses.error;
 
       const liveGame = (shifts.data || []).reduce((s, r: any) => s + Number(r.tables_result || 0), 0);
       const slotsIncome = (slots.data || []).reduce((s, r: any) => s + Number(r.system_shift_result || 0), 0);
-      // "Other Incomes" — voided=false, category is_income=true and not Tables/Slots auto
-      const incomeCatIds = new Set((cats.data || []).filter((c: any) => c.is_income && !/^(Tables Income|Slots Income)$/.test(c.name)).map((c: any) => c.id));
-      const other = (expenses.data || []).filter((e: any) => incomeCatIds.has(e.fin_category_id)).reduce((s, e: any) => s + Number(e.amount_tzs || 0), 0);
+      const rateList = ((rates as any)?.data || []).map((r: any) => Number(r.usd_to_tzs || 0)).filter((n: number) => n > 0);
+      const avgUsdTzs = rateList.length ? rateList.reduce((s: number, n: number) => s + n, 0) / rateList.length : 0;
+      const other = ((incomes as any)?.data || []).reduce((s: number, r: any) => {
+        const amt = Number(r.amount || 0);
+        if (r.currency === "USD") return s + (avgUsdTzs ? amt * avgUsdTzs : 0);
+        return s + amt; // TZS
+      }, 0);
 
       // Plan Year = sum of all 12 months per category.
       // Plan Month = sum of selected month(s): single month, or 1..month for YTD.
