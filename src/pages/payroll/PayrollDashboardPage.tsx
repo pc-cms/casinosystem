@@ -8,17 +8,22 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MonthCarousel, useMonthFromUrl, MONTHS, StatusBadge } from "@/components/payroll/MonthCarousel";
 import { usePeriodForMonth, usePayrollEntries, useEmployees } from "@/hooks/use-payroll";
+import { BentoGrid, BentoTile, BentoKpi } from "@/components/ui/bento-grid";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n)).replace(/,/g, " ");
 
 const KPI = ({ icon: Icon, label, value, sub }: any) => (
-  <div className="rounded-md border border-border bg-card p-4">
-    <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-      <Icon className="w-3.5 h-3.5" /> {label}
-    </div>
-    <div className="text-2xl font-bold font-mono mt-1">{fmt(value)}</div>
-    {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
-  </div>
+  <BentoTile
+    col={3}
+    title={
+      <span className="inline-flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+        {label}
+      </span>
+    }
+  >
+    <BentoKpi value={fmt(value)} hint={sub} />
+  </BentoTile>
 );
 
 const COLORS = ["#3b82f6","#ef4444","#10b981","#f59e0b","#8b5cf6","#06b6d4"];
