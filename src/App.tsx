@@ -338,6 +338,8 @@ const ProtectedRoutes = () => {
           <Route path="/closings" element={<RoleGuard path="/closings"><ErrorBoundary><ClosingsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage-slots/cashless" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage-slots/transfers" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/tips" element={<RoleGuard path="/cage-slots"><ErrorBoundary><SlotsTipsCdPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/expenses" element={<Navigate to="/expenses" replace />} />
           <Route path="/cage-slots/report/:id" element={<Navigate to="/closings?tab=slots" replace />} />
