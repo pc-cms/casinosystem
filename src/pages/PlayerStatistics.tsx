@@ -723,7 +723,9 @@ const PlayerStatistics = () => {
               <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]" onClick={(e) => e.stopPropagation()}>
                 <AvgBetPopover
                   playerId={r.playerId}
+                  businessDate={fromDate}
                   isSingleDay={isSingleDay}
+                  canEdit={canEditAvgBet}
                   bets={dailyAvgBetByPlayer.get(r.playerId)}
                   fallback={r.avgBet}
                 />
