@@ -360,6 +360,7 @@ const ProtectedRoutes = () => {
           <Route path="/expenses" element={<RoleGuard path="/expenses"><Expenses /></RoleGuard>} />
           <Route path="/expenses/daily" element={<Navigate to="/expenses" replace />} />
           <Route path="/cashless" element={<RoleGuard path="/cashless"><Cashless /></RoleGuard>} />
+          <Route path="/transfers" element={<RoleGuard path="/transfers"><Transfers /></RoleGuard>} />
           {/* Phase 2 flat URLs — Pit (Live Game) */}
           <Route path="/breaklist" element={<RoleGuard path="/breaklist"><ErrorBoundary><BreaklistPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/rota/live" element={<RoleGuard path="/rota/live"><ErrorBoundary><PitRotaPage /></ErrorBoundary></RoleGuard>} />
