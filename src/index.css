@@ -168,22 +168,23 @@
     --secondary-foreground: 220 14% 90%;
 
     --muted: 220 16% 14%;
-    --muted-foreground: 220 10% 54%;
+    --muted-foreground: 220 12% 70%;    /* lift muted text for readability */
 
     --accent: 38 60% 65%;
     --accent-foreground: 0 0% 8%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 38 35% 32%;
     --input: 38 35% 32%;
     --ring: 38 60% 65%;
 
-    --success: 152 60% 42%;
-    --warning: 43 96% 56%;
-    --danger: 0 72% 51%;
-    --info: 210 100% 52%;
+    /* Muted-modern status — dark mode */
+    --success: 152 50% 50%;
+    --warning: 38 78% 58%;
+    --danger: 0 65% 58%;
+    --info: 210 70% 60%;
 
     --sidebar-background: 220 20% 5%;
     --sidebar-foreground: 220 14% 90%;
