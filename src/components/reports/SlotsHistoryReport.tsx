@@ -1,8 +1,12 @@
+/**
+ * SlotsHistoryReport — read-only Slots cage shift history over an arbitrary
+ * business-day range. Migrated to DataTable v2 + MoneyCell (Full/Compact toggle).
+ */
 import { Fragment, KeyboardEvent, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatNumberSpaces } from "@/lib/currency";
+import { formatMoneyFull } from "@/lib/format-money";
 import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import {
   useCageSlotsHistory,
@@ -11,6 +15,11 @@ import {
 } from "@/hooks/use-cage-slots";
 import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
 import SlotsShiftReportBody from "@/components/cage-slots/SlotsShiftReportBody";
+import {
+  DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
+} from "@/components/ui/data-table";
+import { MoneyCell } from "@/components/ui/money-cell";
+import { useMoneyMode } from "@/components/ui/data-table-toolbar";
 
 const NORMALIZE_PROVIDER = (k: string): string | null => {
   const v = String(k || "").toLowerCase().replace(/[\s_-]+/g, "");
@@ -28,8 +37,8 @@ type SortDir = "asc" | "desc";
 
 const SlotsHistoryReport = ({ from, to }: { from: string; to: string }) => {
   const { data: allShifts = [], isLoading } = useCageSlotsHistory(500);
+  const [mode, MoneyToggle] = useMoneyMode("slots-history-report");
 
-  // Filter by from..to (business_date) and closed-only.
   const shifts = useMemo(() => {
     return allShifts.filter((s: any) => {
       if (s.status !== "closed" && s.status !== "reviewed") return false;
@@ -45,7 +54,6 @@ const SlotsHistoryReport = ({ from, to }: { from: string; to: string }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "business_date", dir: "desc" });
 
-  // Decorate rows with computed values for sorting + render.
   const rows = useMemo(() => {
     return shifts.map((s: any) => {
       const ct = (closingTotals as any)[s.id];
@@ -82,7 +90,6 @@ const SlotsHistoryReport = ({ from, to }: { from: string; to: string }) => {
     });
   }, [shifts, cashlessAgg, closingTotals]);
 
-  // KPI summary across the filtered range.
   const totals = useMemo(() => ({
     shifts: rows.length,
     slotsResult: rows.reduce((a, r) => a + r.slotsRes, 0),
@@ -120,110 +127,120 @@ const SlotsHistoryReport = ({ from, to }: { from: string; to: string }) => {
   const toggleSort = (k: SortKey) =>
     setSort(s => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "desc" }));
 
-  const sortArrow = (k: SortKey) => sort.key === k ? (sort.dir === "asc" ? "↑" : "↓") : "";
+  const sortArrow = (k: SortKey) => sort.key === k ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
 
-  const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
+  const signCls = (n: number) => n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "";
 
   return (
     <div className="space-y-3">
-      {/* KPI summary cards */}
+      {/* KPI summary tiles */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {[
-          { label: "Shifts", value: String(totals.shifts), cls: "text-card-foreground" },
-          { label: "Slots Result", value: formatCurrency(totals.slotsResult), cls: signCls(totals.slotsResult) },
-          { label: "Cash Desk Result", value: formatCurrency(totals.cdr), cls: signCls(totals.cdr) },
-          { label: "Cashless Net", value: formatCurrency(totals.cashlessNet), cls: signCls(totals.cashlessNet) },
-          { label: "Cards Miss", value: formatCurrency(totals.miss), cls: "text-warning" },
-          { label: "Balance", value: formatCurrency(totals.balance), cls: signCls(totals.balance) },
-        ].map(c => (
+          { label: "Shifts", value: String(totals.shifts), cls: "text-card-foreground", raw: false },
+          { label: "Slots Result", value: totals.slotsResult, cls: signCls(totals.slotsResult), raw: true },
+          { label: "Cash Desk Result", value: totals.cdr, cls: signCls(totals.cdr), raw: true },
+          { label: "Cashless Net", value: totals.cashlessNet, cls: signCls(totals.cashlessNet), raw: true },
+          { label: "Cards Miss", value: totals.miss, cls: "text-warning", raw: true },
+          { label: "Balance", value: totals.balance, cls: signCls(totals.balance), raw: true },
+        ].map((c) => (
           <div key={c.label} className="cms-panel p-2">
             <p className="uppercase text-muted-foreground tracking-wider text-[10px]">{c.label}</p>
-            <p className={`font-mono text-sm font-bold ${c.cls}`}>{c.value}</p>
+            <p className={`font-mono text-sm font-bold ${c.cls}`}>
+              {c.raw ? formatMoneyFull(c.value as number) : (c.value as string)}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="cms-panel overflow-x-auto">
-        {isLoading && <p className="text-xs text-muted-foreground p-3">Loading…</p>}
-        <table className="w-full text-xs">
-          <thead className="text-muted-foreground border-b border-border">
-            <tr>
-              <th className="text-left py-1.5 px-2 cursor-pointer select-none" onClick={() => toggleSort("business_date")}>Business Day {sortArrow("business_date")}</th>
-              <th className="cursor-pointer select-none" onClick={() => toggleSort("status")}>Status {sortArrow("status")}</th>
-              <th>Opened</th>
-              <th>Closed</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("system")}>System {sortArrow("system")}</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("slots")}>Slots Result {sortArrow("slots")}</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("cdr")}>Cash Desk Result {sortArrow("cdr")}</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("miss")}>Cards Miss {sortArrow("miss")}</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("clIn")}>Cashless IN {sortArrow("clIn")}</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("clOut")}>Cashless OUT {sortArrow("clOut")}</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("clNet")}>Cashless NET {sortArrow("clNet")}</th>
-              <th className="text-right cursor-pointer select-none" onClick={() => toggleSort("balance")}>Balance {sortArrow("balance")}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.length === 0 && !isLoading && (
-              <tr><td colSpan={13} className="text-center text-muted-foreground py-4">No closed slots shifts in range</td></tr>
-            )}
-            {sorted.map(({ s, balance, cdr, cMiss, sysRes, slotsRes, clIn, clOut, clNet }) => {
-              const isExpanded = expandedId === s.id;
-              const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
-              const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  toggleExpanded();
-                }
-              };
-              return (
-                <Fragment key={s.id}>
-                  <tr
-                    className={`border-b border-border/50 hover:bg-accent/30 cursor-pointer ${isExpanded ? "bg-accent/20" : ""}`}
-                    onClick={toggleExpanded}
-                    onKeyDown={onRowKeyDown}
-                    tabIndex={0}
-                    role="button"
-                    aria-expanded={isExpanded}
-                  >
-                    <td className="py-1.5 px-2">
-                      <span className="inline-flex items-center gap-1">
-                        {isExpanded
-                          ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                          : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-                        {fmtDate(s.business_date)}
-                      </span>
-                    </td>
-                    <td className="text-center"><Badge variant="outline" className="text-[10px] uppercase">{String(s.status).replace("_", " ")}</Badge></td>
-                    <td className="text-center text-muted-foreground">{fmtDateTime(s.opened_at)}</td>
-                    <td className="text-center text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</td>
-                    <td className="text-right font-mono">{formatNumberSpaces(sysRes)}</td>
-                    <td className={`text-right font-mono ${signCls(slotsRes)}`}>{slotsRes > 0 ? "+" : ""}{formatNumberSpaces(slotsRes)}</td>
-                    <td className={`text-right font-mono ${signCls(cdr)}`}>{cdr > 0 ? "+" : ""}{formatNumberSpaces(cdr)}</td>
-                    <td className={`text-right font-mono ${cMiss < 0 ? "cms-amount-negative" : ""}`}>{cMiss !== 0 ? (cMiss > 0 ? "+" : "") + formatNumberSpaces(cMiss) : "·"}</td>
-                    <td className={`text-right font-mono ${clIn ? "cms-amount-positive" : ""}`}>{clIn ? "+" + formatNumberSpaces(clIn) : "·"}</td>
-                    <td className={`text-right font-mono ${clOut ? "cms-amount-negative" : ""}`}>{clOut ? "−" + formatNumberSpaces(clOut) : "·"}</td>
-                    <td className={`text-right font-mono ${signCls(clNet)}`}>{clNet !== 0 ? (clNet > 0 ? "+" : "") + formatNumberSpaces(clNet) : "·"}</td>
-                    <td className={`text-right font-mono ${signCls(balance)}`}>{balance > 0 ? "+" : ""}{formatNumberSpaces(balance)}</td>
-                    <td className="text-right whitespace-nowrap pr-2" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
-                        <Printer className="w-3.5 h-3.5" /> Print
-                      </Button>
-                    </td>
-                  </tr>
-                  {isExpanded && (
-                    <tr className="bg-muted/10 border-b border-border">
-                      <td colSpan={13} className="p-3">
-                        <SlotsShiftReportBody id={s.id} showHeader={false} compact />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="flex items-center justify-end">
+        <MoneyToggle />
       </div>
+
+      <DataTable stickyFirstColumn>
+        <DTHead>
+          <DTRow>
+            <DTHeader type="date" className="cursor-pointer select-none" onClick={() => toggleSort("business_date")}>
+              Business Day{sortArrow("business_date")}
+            </DTHeader>
+            <DTHeader type="status" className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
+              Status{sortArrow("status")}
+            </DTHeader>
+            <DTHeader type="date">Opened</DTHeader>
+            <DTHeader type="date">Closed</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("system")}>System{sortArrow("system")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("slots")}>Slots Result{sortArrow("slots")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")}>Cash Desk Result{sortArrow("cdr")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("miss")}>Cards Miss{sortArrow("miss")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clIn")}>Cashless IN{sortArrow("clIn")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clOut")}>Cashless OUT{sortArrow("clOut")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("clNet")}>Cashless NET{sortArrow("clNet")}</DTHeader>
+            <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("balance")}>Balance{sortArrow("balance")}</DTHeader>
+            <DTHeader type="actions" />
+          </DTRow>
+        </DTHead>
+        <DTBody>
+          {isLoading && (
+            <DTRow><DTCell colSpan={13} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
+          )}
+          {!isLoading && sorted.length === 0 && (
+            <DTRow><DTCell colSpan={13} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
+          )}
+          {sorted.map(({ s, balance, cdr, cMiss, sysRes, slotsRes, clIn, clOut, clNet }) => {
+            const isExpanded = expandedId === s.id;
+            const toggleExpanded = () => setExpandedId(isExpanded ? null : s.id);
+            const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                toggleExpanded();
+              }
+            };
+            return (
+              <Fragment key={s.id}>
+                <DTRow
+                  className={`cursor-pointer ${isExpanded ? "bg-accent/20" : ""}`}
+                  onClick={toggleExpanded}
+                  onKeyDown={onRowKeyDown}
+                  tabIndex={0}
+                  role="button"
+                  aria-expanded={isExpanded}
+                >
+                  <DTCell type="date">
+                    <span className="inline-flex items-center gap-1">
+                      {isExpanded
+                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                      {fmtDate(s.business_date)}
+                    </span>
+                  </DTCell>
+                  <DTCell type="status"><Badge variant="outline" className="text-[10px] uppercase">{String(s.status).replace("_", " ")}</Badge></DTCell>
+                  <DTCell type="date" className="text-muted-foreground">{fmtDateTime(s.opened_at)}</DTCell>
+                  <DTCell type="date" className="text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</DTCell>
+                  <DTCell type="money"><MoneyCell value={sysRes} mode={mode} /></DTCell>
+                  <DTCell type="money"><MoneyCell value={slotsRes} mode={mode} signed /></DTCell>
+                  <DTCell type="money"><MoneyCell value={cdr} mode={mode} signed /></DTCell>
+                  <DTCell type="money"><MoneyCell value={cMiss} mode={mode} empty="·" className={cMiss < 0 ? "cms-amount-negative" : ""} /></DTCell>
+                  <DTCell type="money"><MoneyCell value={clIn || null} mode={mode} empty="·" className={clIn ? "cms-amount-positive" : ""} /></DTCell>
+                  <DTCell type="money"><MoneyCell value={clOut ? -clOut : null} mode={mode} empty="·" className={clOut ? "cms-amount-negative" : ""} /></DTCell>
+                  <DTCell type="money"><MoneyCell value={clNet || null} mode={mode} signed empty="·" /></DTCell>
+                  <DTCell type="money"><MoneyCell value={balance} mode={mode} signed /></DTCell>
+                  <DTCell type="actions" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" onClick={() => setPrintShiftId(s.id)} className="gap-1 h-7">
+                      <Printer className="w-3.5 h-3.5" /> Print
+                    </Button>
+                  </DTCell>
+                </DTRow>
+                {isExpanded && (
+                  <DTRow className="bg-muted/10">
+                    <DTCell colSpan={13} className="p-3">
+                      <SlotsShiftReportBody id={s.id} showHeader={false} compact />
+                    </DTCell>
+                  </DTRow>
+                )}
+              </Fragment>
+            );
+          })}
+        </DTBody>
+      </DataTable>
 
       {printShiftId && (
         <PrintSlotsShiftDialog open shiftId={printShiftId} onClose={() => setPrintShiftId(null)} />
