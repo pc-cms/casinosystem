@@ -3,7 +3,7 @@ import { usePlayers, useTransactions, useExpenses, usePlayerGroups } from "@/hoo
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/currency";
+
 import { BarChart3, Table2, Users, Receipt, Landmark, UsersRound, FileBarChart, ArrowUp, ArrowDown, ArrowUpDown, Coins, CalendarDays, Joystick, CreditCard } from "lucide-react";
 import MissChips from "@/pages/MissChips";
 import Expenses from "@/pages/finances/FinancesExpensesPage";
