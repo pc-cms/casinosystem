@@ -544,5 +544,5 @@ const BetPopover = (() => {
     );
   };
 
-  return (require("react") as typeof import("react")).forwardRef<HTMLDivElement, BetPopoverProps>(Inner as any);
+  return forwardRef<HTMLDivElement, BetPopoverProps>(Inner as any);
 })();
