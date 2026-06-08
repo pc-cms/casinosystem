@@ -1,6 +1,7 @@
-import { useMemo, useState, useEffect } from "react";
-import { Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { useMemo, useState, useEffect, useRef, useLayoutEffect } from "react";
+import { Search, ArrowUp, ArrowDown, ArrowUpDown, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { formatNumberSpaces } from "@/lib/currency";
 import { formatCardNumber } from "@/lib/card-number";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
@@ -38,7 +39,7 @@ interface Props {
   canEdit: boolean;
 }
 
-type SortKey = "card" | "name" | "level" | "visits" | "entry" | "exit" | "ar" | "bj" | "poker";
+type SortKey = "card" | "name" | "level" | "visits" | "entry" | "exit" | "bet";
 
 const CATEGORY_NAME_TINT: Record<string, string> = {
   diamond: "bg-blue-100/70 dark:bg-blue-500/15",
@@ -77,7 +78,6 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
     return m;
   }, [bets]);
 
-  // Lifetime visit count per player at this casino (all-time, not limited to businessDate).
   const { activeCasinoId } = useCasino();
   const visiblePlayerIds = useMemo(
     () => Array.from(new Set(visits.filter(v => v.date === businessDate).map(v => v.player_id))),
@@ -152,9 +152,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
             case "visits": return r.visits || 0;
             case "entry": return new Date(r.entryAt).getTime();
             case "exit": return r.exitAt ? new Date(r.exitAt).getTime() : 0;
-            case "ar": return r.ar ?? -1;
-            case "bj": return r.bj ?? -1;
-            case "poker": return r.poker ?? -1;
+            case "bet": return (r.ar || 0) + (r.bj || 0) + (r.poker || 0);
           }
         };
         const av = get(a), bv = get(b);
@@ -178,8 +176,12 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
     return t;
   }, [filteredRows]);
 
-  const handleSave = (playerId: string, group: AvgBetGroup, value: number | null) => {
-    setBet.mutate({ playerId, businessDate, group, value });
+  const handleSaveAll = (playerId: string, values: Record<AvgBetGroup, number | null>, prev: Record<AvgBetGroup, number | null>) => {
+    (Object.keys(values) as AvgBetGroup[]).forEach(g => {
+      if (values[g] !== prev[g]) {
+        setBet.mutate({ playerId, businessDate, group: g, value: values[g] });
+      }
+    });
   };
 
   const SortIcon = ({ k }: { k: SortKey }) =>
@@ -193,7 +195,7 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-card-foreground">Daily Average Bet — by Player</h3>
           <p className="text-xs text-muted-foreground">
-            Manual entry by Pit / Manager / Floor Manager. Each player has AR / BJ / Poker average bet for the business day.
+            Tap the Bet cell to enter AR / BJ / Poker average bets for this business day.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -266,30 +268,18 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
                 </th>
                 <th
                   style={{ top: "var(--ppheader-h, 0px)" }}
-                  onClick={() => toggleSort("ar")}
-                  className="px-2 py-3 text-right sticky bg-zinc-900 text-white z-20 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap min-w-[160px]"
+                  onClick={() => toggleSort("bet")}
+                  className="px-2 py-3 text-right sticky bg-zinc-900 text-white z-20 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap min-w-[180px]"
                 >
-                  AR<SortIcon k="ar" />
-                </th>
-                <th
-                  style={{ top: "var(--ppheader-h, 0px)" }}
-                  onClick={() => toggleSort("bj")}
-                  className="px-2 py-3 text-right sticky bg-zinc-900 text-white z-20 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap min-w-[160px]"
-                >
-                  BJ<SortIcon k="bj" />
-                </th>
-                <th
-                  style={{ top: "var(--ppheader-h, 0px)" }}
-                  onClick={() => toggleSort("poker")}
-                  className="px-2 py-3 text-right sticky bg-zinc-900 text-white z-20 font-bold cursor-pointer select-none hover:text-primary whitespace-nowrap min-w-[160px]"
-                >
-                  Poker<SortIcon k="poker" />
+                  Bet (AR · BJ · Poker)<SortIcon k="bet" />
                 </th>
               </tr>
               {filteredRows.length > 0 && (() => {
                 const stickyStyle = { top: "calc(var(--ppheader-h, 0px) + 38px)", boxShadow: "inset 0 -2px 0 0 hsl(45 90% 55% / 0.9)" } as const;
                 const stickyCls = "sticky bg-[#F5D061] dark:bg-[#6B5A1A] z-20";
-                const Money = ({ value }: { value: number }) => (!value ? <>·</> : <>{formatNumberSpaces(value)}</>);
+                const avgAR = totals.arN ? Math.round(totals.ar / totals.arN) : 0;
+                const avgBJ = totals.bjN ? Math.round(totals.bj / totals.bjN) : 0;
+                const avgPoker = totals.pokerN ? Math.round(totals.poker / totals.pokerN) : 0;
                 return (
                   <tr className="text-sm bg-[#F5D061] dark:bg-[#6B5A1A] border-b-2 border-primary/40 font-mono text-amber-950 dark:text-amber-50">
                     <td style={stickyStyle} className={`px-2 py-2 text-center left-0 ${stickyCls} z-30 font-bold w-16`}>{totals.count}</td>
@@ -298,13 +288,11 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
                     <td style={stickyStyle} className={`px-1 py-2 ${stickyCls}`}></td>
                     <td style={stickyStyle} className={`px-1 py-2 ${stickyCls}`}></td>
                     <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap ${stickyCls}`}>
-                      <Money value={totals.arN ? Math.round(totals.ar / totals.arN) : 0} />
-                    </td>
-                    <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap ${stickyCls}`}>
-                      <Money value={totals.bjN ? Math.round(totals.bj / totals.bjN) : 0} />
-                    </td>
-                    <td style={stickyStyle} className={`px-2 py-2 text-right font-bold whitespace-nowrap ${stickyCls}`}>
-                      <Money value={totals.pokerN ? Math.round(totals.poker / totals.pokerN) : 0} />
+                      <div className="flex justify-end gap-2 text-[11px] leading-tight">
+                        <span><span className="opacity-70 mr-1">AR</span>{avgAR ? formatNumberSpaces(avgAR) : "·"}</span>
+                        <span><span className="opacity-70 mr-1">BJ</span>{avgBJ ? formatNumberSpaces(avgBJ) : "·"}</span>
+                        <span><span className="opacity-70 mr-1">P</span>{avgPoker ? formatNumberSpaces(avgPoker) : "·"}</span>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -335,15 +323,19 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
                     <td className="px-2 py-1.5 font-mono text-[11px] text-center w-12">{r.visits || "·"}</td>
                     <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{fmtClock(r.entryAt)}</td>
                     <td className="px-1 py-1.5 font-mono text-xs w-[44px] text-center">{r.exitAt ? fmtClock(r.exitAt) : "·"}</td>
-                    {(["ar", "bj", "poker"] as const).map(g => (
-                      <td key={g} className="px-2 py-1.5 text-right min-w-[160px]" onClick={(e) => e.stopPropagation()}>
-                        <BetCell
-                          value={(r as any)[g]}
-                          canEdit={canEdit}
-                          onCommit={(v) => handleSave(r.playerId, g, v)}
-                        />
-                      </td>
-                    ))}
+                    <td className="px-2 py-1.5 text-right min-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                      <BetCell
+                        ar={r.ar}
+                        bj={r.bj}
+                        poker={r.poker}
+                        playerLabel={`${r.firstName} ${r.lastName}`.trim()}
+                        cardLabel={formatCardNumber(r.card)}
+                        canEdit={canEdit}
+                        onCommit={(values) =>
+                          handleSaveAll(r.playerId, values, { ar: r.ar, bj: r.bj, poker: r.poker })
+                        }
+                      />
+                    </td>
                   </tr>
                 );
               })}
@@ -355,48 +347,202 @@ export function PlayerDailyAvgBetTable({ businessDate, players, visits, canEdit 
   );
 }
 
-function BetCell({ value, canEdit, onCommit }: { value: number | null; canEdit: boolean; onCommit: (v: number | null) => void }) {
-  const displayValue = value ?? 0;
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(displayValue));
+type BetValues = Record<AvgBetGroup, number | null>;
 
-  useEffect(() => { setDraft(String(value ?? 0)); }, [value]);
+function BetCell({
+  ar, bj, poker, playerLabel, cardLabel, canEdit, onCommit,
+}: {
+  ar: number | null; bj: number | null; poker: number | null;
+  playerLabel: string; cardLabel: string;
+  canEdit: boolean;
+  onCommit: (values: BetValues) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+
+  const Trio = (
+    <div className="flex justify-end gap-2 font-mono text-[11px] leading-tight tabular-nums">
+      <span className={ar == null ? "text-muted-foreground/50" : "text-card-foreground"}>
+        <span className="opacity-60 mr-1">AR</span>{ar == null ? "·" : formatNumberSpaces(ar)}
+      </span>
+      <span className={bj == null ? "text-muted-foreground/50" : "text-card-foreground"}>
+        <span className="opacity-60 mr-1">BJ</span>{bj == null ? "·" : formatNumberSpaces(bj)}
+      </span>
+      <span className={poker == null ? "text-muted-foreground/50" : "text-card-foreground"}>
+        <span className="opacity-60 mr-1">P</span>{poker == null ? "·" : formatNumberSpaces(poker)}
+      </span>
+    </div>
+  );
 
   if (!canEdit) {
-    return <span className="font-mono text-sm">{formatNumberSpaces(displayValue)}</span>;
+    return <div className="text-sm">{Trio}</div>;
   }
-  if (editing) {
-    return (
-      <Input
-        autoFocus
-        type="number"
-        inputMode="numeric"
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onFocus={e => e.currentTarget.select()}
-        onBlur={() => {
-          setEditing(false);
-          const trimmed = draft.trim();
-          const n = trimmed === "" ? 0 : Number(trimmed);
-          if (!Number.isFinite(n)) return;
-          if (n !== (value ?? 0)) onCommit(n === 0 ? null : n);
-        }}
-        onKeyDown={e => {
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          if (e.key === "Escape") { setDraft(String(value ?? 0)); setEditing(false); }
-        }}
-        className="no-spin h-8 w-[150px] ml-auto text-right font-mono text-sm"
-      />
-    );
-  }
+
   return (
-    <button
-      type="button"
-      onClick={() => setEditing(true)}
-      className={`font-mono text-sm hover:text-primary ${value == null ? "text-muted-foreground/60" : "text-card-foreground"}`}
-      title="Click to edit"
-    >
-      {formatNumberSpaces(displayValue)}
-    </button>
+    <div className="relative inline-block w-full">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full text-right rounded-md px-2 py-1 hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
+        title="Click to edit bets"
+      >
+        {Trio}
+      </button>
+      {open && (
+        <BetPopover
+          ref={popRef}
+          anchor={btnRef.current}
+          dropUp={dropUp}
+          setDropUp={setDropUp}
+          ar={ar} bj={bj} poker={poker}
+          playerLabel={playerLabel}
+          cardLabel={cardLabel}
+          onClose={() => setOpen(false)}
+          onCommit={(values) => { onCommit(values); setOpen(false); }}
+        />
+      )}
+    </div>
   );
 }
+
+interface BetPopoverProps {
+  anchor: HTMLElement | null;
+  dropUp: boolean;
+  setDropUp: (b: boolean) => void;
+  ar: number | null; bj: number | null; poker: number | null;
+  playerLabel: string; cardLabel: string;
+  onClose: () => void;
+  onCommit: (values: BetValues) => void;
+}
+
+const BetPopover = (() => {
+  const Inner = (
+    { anchor, dropUp, setDropUp, ar, bj, poker, playerLabel, cardLabel, onClose, onCommit }: BetPopoverProps,
+    ref: React.Ref<HTMLDivElement>,
+  ) => {
+    const localRef = useRef<HTMLDivElement>(null);
+    const setRefs = (el: HTMLDivElement | null) => {
+      (localRef as any).current = el;
+      if (typeof ref === "function") ref(el);
+      else if (ref) (ref as any).current = el;
+    };
+
+    const [arS, setArS] = useState(ar == null ? "" : String(ar));
+    const [bjS, setBjS] = useState(bj == null ? "" : String(bj));
+    const [pkS, setPkS] = useState(poker == null ? "" : String(poker));
+    const firstInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+      firstInputRef.current?.focus();
+      firstInputRef.current?.select();
+    }, []);
+
+    // Outside click + Esc
+    useEffect(() => {
+      const onDoc = (e: MouseEvent) => {
+        if (localRef.current?.contains(e.target as Node)) return;
+        if (anchor?.contains(e.target as Node)) return;
+        onClose();
+      };
+      const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+      document.addEventListener("mousedown", onDoc);
+      document.addEventListener("keydown", onEsc);
+      return () => {
+        document.removeEventListener("mousedown", onDoc);
+        document.removeEventListener("keydown", onEsc);
+      };
+    }, [anchor, onClose]);
+
+    // Auto-flip
+    useLayoutEffect(() => {
+      if (!anchor || !localRef.current) return;
+      const aRect = anchor.getBoundingClientRect();
+      const popH = localRef.current.offsetHeight;
+      const spaceBelow = window.innerHeight - aRect.bottom - 8;
+      const spaceAbove = aRect.top - 8;
+      if (popH > spaceBelow && spaceAbove > spaceBelow) setDropUp(true);
+      else setDropUp(false);
+    }, [anchor, setDropUp]);
+
+    const parse = (s: string): number | null => {
+      const t = s.trim().replace(/\s/g, "");
+      if (t === "") return null;
+      const n = Number(t);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    };
+
+    const commit = () => {
+      onCommit({
+        ar: parse(arS),
+        bj: parse(bjS),
+        poker: parse(pkS),
+      });
+    };
+
+    const onKey = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") { e.preventDefault(); commit(); }
+    };
+
+    const Row = ({
+      label, value, setValue, inputRef,
+    }: {
+      label: string; value: string; setValue: (s: string) => void; inputRef?: React.Ref<HTMLInputElement>;
+    }) => (
+      <div className="flex items-center gap-2">
+        <span className="w-12 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <Input
+          ref={inputRef as any}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={onKey}
+          className="no-spin h-9 text-right font-mono"
+          placeholder="0"
+        />
+      </div>
+    );
+
+    return (
+      <div
+        ref={setRefs}
+        className={`absolute z-50 right-0 ${dropUp ? "bottom-full mb-2" : "top-full mt-2"} w-[260px] bg-popover border border-border rounded-lg shadow-xl p-3`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-card-foreground truncate">{playerLabel || "Player"}</p>
+            {cardLabel && (
+              <p className="text-[10px] font-mono text-muted-foreground">{cardLabel}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground p-0.5"
+            aria-label="Close"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <Row label="AR" value={arS} setValue={setArS} inputRef={firstInputRef} />
+          <Row label="BJ" value={bjS} setValue={setBjS} />
+          <Row label="Poker" value={pkS} setValue={setPkS} />
+        </div>
+
+        <div className="flex justify-end gap-2 mt-3">
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button type="button" size="sm" onClick={commit}>Save</Button>
+        </div>
+      </div>
+    );
+  };
+
+  return (require("react") as typeof import("react")).forwardRef<HTMLDivElement, BetPopoverProps>(Inner as any);
+})();
