@@ -152,8 +152,8 @@
   }
 
   .dark {
-    --background: 220 20% 7%;
-    --foreground: 220 14% 90%;
+    --background: 220 24% 5%;
+    --foreground: 220 16% 96%;       /* AAA contrast on dark surfaces */
 
     --card: 220 20% 10%;
     --card-foreground: 220 14% 90%;
