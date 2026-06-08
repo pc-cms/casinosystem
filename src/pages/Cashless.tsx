@@ -7,8 +7,10 @@ import { useEffectiveBusinessDate } from "@/hooks/use-business-day-closure";
 
 import {
   useCashless, useCreateCashless, useApproveCashless,
-  type CashlessDirection, type CashlessProvider,
+  type CashlessDirection, type CashlessProvider, type CashlessSource,
 } from "@/hooks/use-cashless";
+import { useActiveShift } from "@/hooks/use-shift";
+import { useActiveCageSlotsShift } from "@/hooks/use-cage-slots";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,13 +60,25 @@ const shiftDate = (d: string, days: number): string => {
 };
 
 const Cashless = () => {
-  const { isManager } = useAuth();
+  const { isManager, roles } = useAuth();
+  const isCashierLive = roles.includes("cashier") && !roles.includes("cashier_slots");
+  const isCashierSlots = roles.includes("cashier_slots") && !roles.includes("cashier");
+  const sourceLocked = !isManager && (isCashierLive || isCashierSlots);
+  const roleDefaultSource: CashlessSource = isCashierSlots ? "slots" : "live_game";
+
+  const [source, setSource] = useState<CashlessSource>(
+    sourceLocked ? roleDefaultSource : (isManager ? "all" : roleDefaultSource)
+  );
+
   const { data: serverBusinessDate } = useEffectiveBusinessDate();
   const businessDate = serverBusinessDate || getBusinessDate();
   const [viewDate, setViewDate] = useState<string>(businessDate);
   const isToday = viewDate === businessDate;
-  const { data: rows = [] } = useCashless(viewDate);
-  
+  const { data: rows = [] } = useCashless(viewDate, source);
+
+  const { data: liveShift } = useActiveShift();
+  const { data: slotsShift } = useActiveCageSlotsShift();
+
   const create = useCreateCashless();
   const approve = useApproveCashless();
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
@@ -77,6 +91,11 @@ const Cashless = () => {
   const removeDraft = (uid: string) =>
     setDrafts(d => (d.length > 1 ? d.filter(r => r.uid !== uid) : d));
 
+  // Source used when writing new rows: managers viewing "all" must explicitly pick;
+  // cashiers always write to their own scope.
+  const writeSource: "live_game" | "slots" =
+    source === "all" ? roleDefaultSource : source;
+
   const submitDraft = async (uid: string) => {
     const row = drafts.find(r => r.uid === uid);
     if (!row) return;
@@ -84,6 +103,9 @@ const Cashless = () => {
     if (!row.player_name.trim()) return toast.error("Enter player name");
     const amt = Number(row.amount);
     if (!amt || amt <= 0) return toast.error("Amount must be > 0");
+    if (writeSource === "slots" && !slotsShift?.id) {
+      return toast.error("No open Slots shift");
+    }
     try {
       await create.mutateAsync({
         direction: row.direction,
@@ -92,6 +114,8 @@ const Cashless = () => {
         amount: amt,
         reference: row.reference,
         business_date: businessDate,
+        source: writeSource,
+        cage_slots_shift_id: writeSource === "slots" ? slotsShift?.id ?? null : null,
       });
       setDrafts(d => [...d.filter(r => r.uid !== uid), newDraft()]);
       toast.success(row.direction === "OUT" ? "Withdrawal → pending" : "Deposit recorded");
