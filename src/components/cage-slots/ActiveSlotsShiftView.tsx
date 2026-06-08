@@ -50,11 +50,6 @@ type Shift = Tables<"cage_slots_shifts">;
 
 const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const activeSection: "cage" | "cashless" | "transfers" =
-    location.pathname.endsWith("/cashless") ? "cashless"
-    : location.pathname.endsWith("/transfers") ? "transfers"
-    : "cage";
   const { roles, managerOverride } = useAuth();
   const canManage =
     roles.includes("manager") || roles.includes("super_admin") || managerOverride.active;
@@ -768,7 +763,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
       <div>
         <div className="flex-1 min-w-0 space-y-2">
 
-          {activeSection === "cage" && (
+          {true && (
             <>
               {/* Same grid as Live Game cage, scaled down ~30% for compactness. */}
               <div className="cms-panel p-3">
@@ -896,7 +891,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </>
           )}
 
-          {activeSection === "cashless" && (
+          {true && (
             <PageSection title="Cashless Transactions for this Shift">
               {/* Grey per-provider hint: signed net totals already recorded in this shift. */}
               {Object.keys(cashlessByProvider).length > 0 && (
@@ -949,7 +944,7 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
             </PageSection>
           )}
 
-          {activeSection === "transfers" && (
+          {true && (
             <SlotsTransfersForm shiftId={shift.id} />
           )}
         </div>
