@@ -129,13 +129,14 @@
     --input: 38 40% 78%;
     --ring: 38 55% 72%;
 
-    --radius: 0.375rem;
+    --radius: 0.75rem;            /* 12px (design tour) */
 
-    /* Semantic financial colors keep green for profit, red for loss */
-    --success: 152 60% 36%;
-    --warning: 43 96% 56%;
-    --danger: 0 72% 51%;
-    --info: 210 100% 52%;
+    /* Status — muted-modern palette: less neon, still semantic.
+       Profit/loss text stays distinctly green/red but at lower chroma. */
+    --success: 152 45% 38%;
+    --warning: 38 78% 48%;
+    --danger: 0 65% 50%;
+    --info: 210 70% 48%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 20% 10%;
