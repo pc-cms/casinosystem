@@ -94,7 +94,7 @@ const Reports = () => {
   const initialTab = (typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("tab")
     : null) || "daily";
-  const [, MoneyToggle] = useMoneyMode("reports-global");
+  const [mode, MoneyToggle] = useMoneyMode("reports-global");
 
   return (
     <PageShell>
