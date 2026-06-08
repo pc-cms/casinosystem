@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Camera, Eye, X } from "lucide-react";
 import { compressImage } from "@/lib/image-compress";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { SignedImage } from "@/components/SignedImage";
 
 interface EmployeePhotoCellProps {
   id: string;
@@ -86,7 +87,7 @@ const EmployeePhotoCell = ({ id, name, photoUrl, onUpdate, canManage }: Employee
         <DialogContent className="max-w-sm p-0 overflow-hidden">
           <DialogTitle className="sr-only">{name} — Photo</DialogTitle>
           <div className="relative">
-            <img src={photoUrl!} alt={name} className="w-full h-auto max-h-[70vh] object-contain bg-black" />
+            <SignedImage src={photoUrl!} bucket="employee-photos" alt={name} className="w-full h-auto max-h-[70vh] object-contain bg-black" />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
               <p className="text-white text-sm font-medium">{name}</p>
             </div>
