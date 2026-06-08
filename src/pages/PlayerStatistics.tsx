@@ -26,11 +26,11 @@ import { getTableCellClasses } from "@/lib/table-colors";
 import CategoryBadge, { type PlayerCategory } from "@/components/player/CategoryBadge";
 import CategoryFilter from "@/components/player/CategoryFilter";
 import FlagBadges from "@/components/player/FlagBadges";
-import { formatCurrency, formatNumberCompact } from "@/lib/currency";
+import { formatCurrency, formatNumberCompact, formatInputWithSpaces, parseSpacedNumber } from "@/lib/currency";
 import { formatCardNumber } from "@/lib/card-number";
 import { offlineMutation } from "@/lib/offline-mutation";
 import { toast } from "sonner";
-import { usePlayerDailyAvgBets } from "@/hooks/use-player-daily-avg-bets";
+import { usePlayerDailyAvgBets, useSetPlayerDailyAvgBet, type AvgBetGroup } from "@/hooks/use-player-daily-avg-bets";
 
 type TabKey = "day" | "present" | "left";
 
@@ -180,6 +180,7 @@ const PlayerStatistics = () => {
 
   const showFinancials = canSeePlayerFinancials(roles);
   const canTransfer = false;
+  const canEditAvgBet = isSingleDay && roles.some(r => ["pit", "manager", "floor_manager", "super_admin"].includes(r));
 
   const { data: visits = [] } = useQuery({
     queryKey: ["casino_visits", casinoId, fromDate, toDate],
@@ -722,7 +723,9 @@ const PlayerStatistics = () => {
               <td className="px-2 py-1.5 font-mono text-sm text-right whitespace-nowrap min-w-[90px]" onClick={(e) => e.stopPropagation()}>
                 <AvgBetPopover
                   playerId={r.playerId}
+                  businessDate={fromDate}
                   isSingleDay={isSingleDay}
+                  canEdit={canEditAvgBet}
                   bets={dailyAvgBetByPlayer.get(r.playerId)}
                   fallback={r.avgBet}
                 />
@@ -991,10 +994,12 @@ const PlayerStatistics = () => {
 };
 
 function AvgBetPopover({
-  playerId, isSingleDay, bets, fallback,
+  playerId, businessDate, isSingleDay, canEdit, bets, fallback,
 }: {
   playerId: string;
+  businessDate: string;
   isSingleDay: boolean;
+  canEdit: boolean;
   bets: { ar: number | null; bj: number | null; poker: number | null } | undefined;
   fallback: number;
 }) {
@@ -1003,39 +1008,108 @@ function AvgBetPopover({
   const poker = bets?.poker ?? null;
   const vals = [ar, bj, poker].filter((v): v is number => v != null && v > 0);
   const display = vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : fallback;
+  const setBet = useSetPlayerDailyAvgBet();
+  const [open, setOpen] = useState(false);
+  const [draftAr, setDraftAr] = useState("");
+  const [draftBj, setDraftBj] = useState("");
+  const [draftPoker, setDraftPoker] = useState("");
+
   if (!isSingleDay) {
     return display ? <span>{formatCurrency(display)}</span> : <span>·</span>;
   }
-  if (!display) {
-    return <span className="text-muted-foreground">·</span>;
-  }
+
+  const openEditor = () => {
+    setDraftAr(ar ? formatInputWithSpaces(String(ar)) : "");
+    setDraftBj(bj ? formatInputWithSpaces(String(bj)) : "");
+    setDraftPoker(poker ? formatInputWithSpaces(String(poker)) : "");
+    setOpen(true);
+  };
+
+  const commit = async () => {
+    const next: Record<AvgBetGroup, number | null> = {
+      ar: draftAr.trim() === "" ? null : parseSpacedNumber(draftAr) || null,
+      bj: draftBj.trim() === "" ? null : parseSpacedNumber(draftBj) || null,
+      poker: draftPoker.trim() === "" ? null : parseSpacedNumber(draftPoker) || null,
+    };
+    const current: Record<AvgBetGroup, number | null> = { ar, bj, poker };
+    const writes: Array<Promise<unknown>> = [];
+    (["ar", "bj", "poker"] as AvgBetGroup[]).forEach(g => {
+      if (next[g] !== current[g]) {
+        writes.push(setBet.mutateAsync({ playerId, businessDate, group: g, value: next[g] }));
+      }
+    });
+    if (writes.length) await Promise.all(writes);
+    setOpen(false);
+  };
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={(o) => { if (o && canEdit) openEditor(); else setOpen(o); }}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="font-mono hover:text-primary cursor-pointer"
-          title="Click to see AR / BJ / Poker breakdown"
+          className={`font-mono cursor-pointer hover:text-primary ${display ? "" : "text-muted-foreground"}`}
+          title={canEdit ? "Click to edit AR / BJ / Poker" : "Avg Bet breakdown"}
         >
-          {formatCurrency(display)}
+          {display ? formatCurrency(display) : "·"}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-44 p-2">
-        <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1.5 px-1">Avg Bet by Game</p>
-        <div className="space-y-1">
-          {[
-            { label: "AR", value: ar },
-            { label: "BJ", value: bj },
-            { label: "Poker", value: poker },
-          ].map(g => (
-            <div key={g.label} className="flex items-center justify-between px-1.5 py-1 rounded hover:bg-muted/40">
-              <span className="text-xs font-semibold text-muted-foreground">{g.label}</span>
-              <span className={`font-mono text-sm ${g.value == null ? "text-muted-foreground/40" : "text-card-foreground"}`}>
-                {g.value == null ? "·" : formatCurrency(g.value)}
-              </span>
+      <PopoverContent
+        align="end"
+        side="bottom"
+        sideOffset={6}
+        collisionPadding={8}
+        avoidCollisions
+        className="w-56 p-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-[10px] uppercase text-muted-foreground tracking-wider mb-2 px-0.5">
+          {canEdit ? "Edit Avg Bet" : "Avg Bet by Game"}
+        </p>
+        {canEdit ? (
+          <>
+            <div className="space-y-2">
+              {([
+                { label: "AR", value: draftAr, set: setDraftAr },
+                { label: "BJ", value: draftBj, set: setDraftBj },
+                { label: "Poker", value: draftPoker, set: setDraftPoker },
+              ] as const).map(g => (
+                <div key={g.label} className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground w-12">{g.label}</span>
+                  <Input
+                    value={g.value}
+                    onChange={(e) => g.set(formatInputWithSpaces(e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); commit(); }
+                      if (e.key === "Escape") { e.preventDefault(); setOpen(false); }
+                    }}
+                    inputMode="numeric"
+                    placeholder="·"
+                    className="h-9 text-right font-mono text-sm"
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+            <div className="flex justify-end gap-2 mt-3">
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button size="sm" className="h-8" onClick={commit} disabled={setBet.isPending}>Save</Button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-1">
+            {[
+              { label: "AR", value: ar },
+              { label: "BJ", value: bj },
+              { label: "Poker", value: poker },
+            ].map(g => (
+              <div key={g.label} className="flex items-center justify-between px-1.5 py-1 rounded hover:bg-muted/40">
+                <span className="text-xs font-semibold text-muted-foreground">{g.label}</span>
+                <span className={`font-mono text-sm ${g.value == null ? "text-muted-foreground/40" : "text-card-foreground"}`}>
+                  {g.value == null ? "·" : formatCurrency(g.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
