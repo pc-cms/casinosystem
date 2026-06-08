@@ -22,7 +22,7 @@ interface PageShellProps {
 }
 
 export const PageShell = ({ children, className }: PageShellProps) => (
-  <div className={cn("space-y-4", className)}>{children}</div>
+  <div className={cn("space-y-4 overflow-x-clip", className)}>{children}</div>
 );
 
 /**
