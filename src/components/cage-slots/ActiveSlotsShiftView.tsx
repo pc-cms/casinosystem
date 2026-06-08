@@ -620,81 +620,88 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
         )}
       </PageHeader>
 
-      {/* Compact KPI strip — visual parity with Live Cage active shift */}
-      <div className="cms-panel p-2 mb-4">
-        <div className="grid grid-cols-3 md:grid-cols-8 gap-2">
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Opening Cash</p><p className="font-mono text-base font-bold text-card-foreground tabular-nums">{formatCurrency(openingCashTzs)}</p></div>
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Closing Cash</p><p className="font-mono text-base font-bold text-card-foreground tabular-nums">{formatCurrency(closingCashTzs)}</p></div>
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Δ Cash</p><p className={`font-mono text-base font-bold tabular-nums ${deltaCash >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{deltaCash >= 0 ? "+" : ""}{formatCurrency(deltaCash)}</p></div>
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">+ Add Float</p><p className="font-mono text-base font-bold text-success tabular-nums">+{formatCurrency(transfersAgg.fill)}</p></div>
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">− Collection</p><p className="font-mono text-base font-bold text-destructive tabular-nums">−{formatCurrency(transfersAgg.collection)}</p></div>
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">− Expenses</p><p className="font-mono text-base font-bold text-warning tabular-nums">−{formatCurrency(expensesApproved)}</p></div>
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Slots Result</p><p className={`font-mono text-base font-bold tabular-nums ${slotsResult >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{slotsResult >= 0 ? "+" : ""}{formatCurrency(slotsResult)}</p></div>
-          <div><p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Shift Balance</p><p className={`font-mono text-base font-bold tabular-nums ${shiftBalance === 0 ? "text-success" : "text-destructive"}`}>{shiftBalance >= 0 ? "+" : ""}{formatCurrency(shiftBalance)}</p></div>
+      {/* ===== Unified Shift Dashboard — two rows, read-only metrics ===== */}
+      <div className="cms-panel p-2 mb-2">
+        {/* Row 1 — Cash flow */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-x-3 gap-y-1">
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Opening Cash</p>
+            <p className="font-mono text-base font-bold text-card-foreground tabular-nums">{formatCurrency(openingCashTzs)}</p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">+ Add Float</p>
+            <p className="font-mono text-base font-bold text-success tabular-nums">+{formatCurrency(transfersAgg.fill)}</p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">− Collection</p>
+            <p className="font-mono text-base font-bold text-destructive tabular-nums">−{formatCurrency(transfersAgg.collection)}</p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">− Expenses</p>
+            <p className="font-mono text-base font-bold text-warning tabular-nums">−{formatCurrency(expensesApproved)}</p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Δ Cash</p>
+            <p className={`font-mono text-base font-bold tabular-nums ${deltaCash >= 0 ? "cms-amount-positive" : "cms-amount-negative"}`}>{deltaCash >= 0 ? "+" : ""}{formatCurrency(deltaCash)}</p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Closing Cash</p>
+            <p className="font-mono text-base font-bold text-card-foreground tabular-nums">{formatCurrency(closingCashTzs)}</p>
+          </div>
+        </div>
+
+        <div className="my-2 border-t border-border/60" />
+
+        {/* Row 2 — Slots P&L */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-x-3 gap-y-1">
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">System Result</p>
+            <p className={`font-mono text-base font-bold tabular-nums ${systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}`}>
+              {systemResult > 0 ? "+" : ""}{formatNumberSpaces(systemResult)}
+            </p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">− ACE Fills</p>
+            <p className="font-mono text-base font-bold text-warning tabular-nums">−{formatNumberSpaces(aceFills)}</p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Slots Result</p>
+            <p className={`font-mono text-base font-bold tabular-nums ${slotsResultDerived < 0 ? "cms-amount-negative" : slotsResultDerived > 0 ? "cms-amount-positive" : ""}`}>
+              {slotsResultDerived > 0 ? "+" : ""}{formatNumberSpaces(slotsResultDerived)}
+            </p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Cards Miss</p>
+            <p className={`font-mono text-base font-bold tabular-nums ${cardsMiss < 0 ? "cms-amount-negative" : cardsMiss > 0 ? "cms-amount-positive" : ""}`}>
+              {cardsMiss > 0 ? "+" : ""}{formatNumberSpaces(cardsMiss)}
+            </p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Cash Desk Result</p>
+            <p className={`font-mono text-base font-bold tabular-nums ${cashDeskResult < 0 ? "cms-amount-negative" : cashDeskResult > 0 ? "cms-amount-positive" : ""}`}>
+              {cashDeskResult > 0 ? "+" : ""}{formatNumberSpaces(cashDeskResult)}
+            </p>
+          </div>
+          <div>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Shift Balance</p>
+            <p className={`font-mono text-base font-bold tabular-nums ${shiftBalance === 0 ? "text-success" : "text-destructive"}`}>
+              {shiftBalance >= 0 ? "+" : ""}{formatCurrency(shiftBalance)}
+            </p>
+          </div>
         </div>
       </div>
 
-
-      {/* Manager review banner — shown after cashier submits for review */}
-      {isReadyForReview && (
-        <div className="mb-3 rounded-md border-2 border-amber-500/60 bg-amber-500/10 p-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-                Shift Submitted · Awaiting Manager
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Cashier has submitted the closing. A manager must authenticate to close this shift.
-              </p>
-              <div className="grid grid-cols-3 gap-3 mt-3 max-w-md">
-                <Stat label="Count Cash" value={closingCashTzs} />
-                <Stat label="Slots Result" value={slotsResult} signed />
-                <Stat label="Balance" value={shiftBalance} signed emphasize />
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowApprove(true)}
-              size="lg"
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold whitespace-nowrap"
-              disabled={approve.isPending}
-            >
-              <Save className="w-5 h-5" /> Close Shift (Manager)
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Tips CD payouts (Day / Evening cash-out) live inside the Tips CD modal. */}
-
-      {/* Summary strip — Opening / Cards Open / System (input) / ACE Fills (input) / Cards Closing (input) / Slots Result */}
-      <div className="cms-panel p-2 mb-2">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-x-3 gap-y-1">
-          <div>
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Opening (TZS)</p>
-            <p className="font-mono text-base font-bold tabular-nums">{formatNumberSpaces(openingTotalTzs)}</p>
-          </div>
-          <div className="relative">
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Cards Opening <span className="text-muted-foreground/70 normal-case tracking-normal">· × {formatNumberSpaces(cardDepositTzs)}</span></p>
-            <p className="font-mono text-base font-bold tabular-nums">{cards?.opening_card_count ?? 0}</p>
-            {canManage && shift.status === "open" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowEditOpeningCards(true)}
-                className="absolute -top-1 -right-1 h-5 w-5 text-muted-foreground hover:text-primary"
-                title="Edit opening cards (manager)"
-              >
-                <Pencil className="w-3 h-3" />
-              </Button>
-            )}
-          </div>
+      {/* ===== Manual Inputs — separate panel below the dashboard ===== */}
+      <div className="cms-panel p-2 mb-4 border-dashed">
+        <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium mb-2">Manual Entry</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-2">
           <div>
             <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">System Result (TZS)</p>
             <NumberInput
               value={systemResultInput}
               onChange={v => setSystemResultInput(String(v))}
               onBlur={() => setSystem.mutate({ shift_id: shift.id, system_shift_result: Number(systemResultInput) || 0 })}
-              className={`no-spin h-7 w-full border-0 bg-transparent px-0 font-mono text-base font-bold tabular-nums focus-visible:ring-0 ${systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}`}
+              className={`no-spin h-8 w-full font-mono text-base font-bold tabular-nums ${systemResult < 0 ? "cms-amount-negative" : systemResult > 0 ? "cms-amount-positive" : ""}`}
               placeholder="0"
               disabled={shift.status !== "open"}
             />
@@ -710,29 +717,46 @@ const ActiveSlotsShiftView = ({ shift }: { shift: Shift }) => {
                   .update({ ace_fills: Number(aceFillsInput) || 0 } as any)
                   .eq("id", shift.id);
               }}
-              className="no-spin h-7 w-full border-0 bg-transparent px-0 font-mono text-base font-bold tabular-nums focus-visible:ring-0"
+              className="no-spin h-8 w-full font-mono text-base font-bold tabular-nums"
               placeholder="0"
               disabled={shift.status !== "open"}
             />
           </div>
+          <div className="relative">
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">
+              Cards Opening <span className="text-muted-foreground/70 normal-case tracking-normal">· × {formatNumberSpaces(cardDepositTzs)}</span>
+            </p>
+            <div className="h-8 flex items-center font-mono text-base font-bold tabular-nums">
+              {cards?.opening_card_count ?? 0}
+            </div>
+            {canManage && shift.status === "open" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowEditOpeningCards(true)}
+                className="absolute top-0 right-0 h-5 w-5 text-muted-foreground hover:text-primary"
+                title="Edit opening cards (manager)"
+              >
+                <Pencil className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
           <div>
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Cards Closing <span className="text-muted-foreground/70 normal-case tracking-normal">· miss {cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))}</span></p>
+            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">
+              Cards Closing <span className="text-muted-foreground/70 normal-case tracking-normal">· miss {cards?.miss_card_count ?? (closingCards - (cards?.opening_card_count ?? 0))}</span>
+            </p>
             <NumberInput
               value={closingCards || ""}
               onChange={v => setClosingCards(Number(v) || 0)}
               onBlur={() => updateCards.mutate({ shift_id: shift.id, closing_card_count: closingCards })}
-              className="no-spin h-7 w-full border-0 bg-transparent px-0 font-mono text-base font-bold tabular-nums focus-visible:ring-0"
+              className="no-spin h-8 w-full font-mono text-base font-bold tabular-nums"
               disabled={shift.status !== "open"}
             />
           </div>
-          <div>
-            <p className="uppercase text-muted-foreground tracking-wider text-[10px] font-medium">Slots Result (TZS)</p>
-            <p className={`font-mono text-base font-bold tabular-nums ${slotsResultDerived < 0 ? "cms-amount-negative" : slotsResultDerived > 0 ? "cms-amount-positive" : ""}`}>
-              {slotsResultDerived > 0 ? "+" : ""}{formatNumberSpaces(slotsResultDerived)}
-            </p>
-          </div>
         </div>
       </div>
+
+
 
 
       <Tabs defaultValue="closing" className="space-y-2">
