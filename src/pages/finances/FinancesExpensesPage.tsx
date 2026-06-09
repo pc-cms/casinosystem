@@ -40,7 +40,13 @@ function computeRange(period: Period, anchor: string): { from?: string; to?: str
 
 type SortKey = "date" | "category" | "wallet" | "amount";
 
-export default function FinancesExpensesPage() {
+interface FinancesExpensesPageProps {
+  embedded?: boolean;
+  embeddedFrom?: string;
+  embeddedTo?: string;
+}
+
+export default function FinancesExpensesPage({ embedded = false, embeddedFrom, embeddedTo }: FinancesExpensesPageProps = {}) {
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
 
@@ -48,7 +54,9 @@ export default function FinancesExpensesPage() {
   const [anchor, setAnchor] = useState<string>(todayBD());
   const [customFrom, setCustomFrom] = useState<string>(todayBD());
   const [customTo, setCustomTo] = useState<string>(todayBD());
-  const range = period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
+  const range = embedded && embeddedFrom && embeddedTo
+    ? { from: embeddedFrom, to: embeddedTo }
+    : period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
 
   const shiftMonth = (delta: number) => {
     const d = new Date(anchor + "T00:00:00");
@@ -139,20 +147,26 @@ export default function FinancesExpensesPage() {
     return { overshoot, limit, mtd, planned: Number(b.planned_amount) };
   }, [form, budget, rows]);
 
+  const Shell = embedded
+    ? ({ children }: { children: any }) => <>{children}</>
+    : ({ children }: { children: any }) => <PageShell>{children}</PageShell>;
+
   return (
-    <PageShell>
-      <PageHeader
-        icon={Receipt}
-        title="Monthly Expenses"
-        subtitle={`Per-casino expense ledger · ${visible.length} of ${rows.length} records`}
-        date
-      >
-        <FinanceCasinoSwitcher />
-        <label className="text-xs flex items-center gap-1.5">
-          <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
-        </label>
-        {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
-      </PageHeader>
+    <Shell>
+      {!embedded && (
+        <PageHeader
+          icon={Receipt}
+          title="Monthly Expenses"
+          subtitle={`Per-casino expense ledger · ${visible.length} of ${rows.length} records`}
+          date
+        >
+          <FinanceCasinoSwitcher />
+          <label className="text-xs flex items-center gap-1.5">
+            <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
+          </label>
+          {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
+        </PageHeader>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -183,25 +197,27 @@ export default function FinancesExpensesPage() {
         <div className="flex items-center gap-2 mb-2">
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
-          <div className="ml-auto flex items-center gap-1 flex-wrap">
-            {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
-              <Button
-                key={p}
-                size="sm"
-                variant={period === p ? "default" : "outline"}
-                className="h-7 px-2 text-xs capitalize"
-                onClick={() => setPeriod(p)}
-              >
-                {p === "ytd" ? "YTD" : p}
+          {!embedded && (
+            <div className="ml-auto flex items-center gap-1 flex-wrap">
+              {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={period === p ? "default" : "outline"}
+                  className="h-7 px-2 text-xs capitalize"
+                  onClick={() => setPeriod(p)}
+                >
+                  {p === "ytd" ? "YTD" : p}
+                </Button>
+              ))}
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
+                Reset
               </Button>
-            ))}
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
-              Reset
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          {period === "day" && (
+          {!embedded && period === "day" && (
             <div className="md:col-span-2 flex items-end gap-1">
               <div className="flex-1">
                 <label className="text-[10px] uppercase text-muted-foreground">Date</label>
@@ -209,7 +225,7 @@ export default function FinancesExpensesPage() {
               </div>
             </div>
           )}
-          {period === "month" && (
+          {!embedded && period === "month" && (
             <div className="md:col-span-2 flex items-end gap-1">
               <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)} title="Previous month">‹</Button>
               <div className="flex-1">
@@ -224,7 +240,7 @@ export default function FinancesExpensesPage() {
               <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)} title="Next month">›</Button>
             </div>
           )}
-          {period === "custom" && (
+          {!embedded && period === "custom" && (
             <>
               <div>
                 <label className="text-[10px] uppercase text-muted-foreground">From</label>
@@ -236,7 +252,7 @@ export default function FinancesExpensesPage() {
               </div>
             </>
           )}
-          {(period === "ytd" || period === "all") && <div className="md:col-span-2" />}
+          {!embedded && (period === "ytd" || period === "all") && <div className="md:col-span-2" />}
           <div>
             <label className="text-[10px] uppercase text-muted-foreground">Category</label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -379,6 +395,6 @@ export default function FinancesExpensesPage() {
           </Button>
         </div>
       </ResponsiveDialog>
-    </PageShell>
+    </Shell>
   );
 }

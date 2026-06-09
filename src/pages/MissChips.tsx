@@ -12,7 +12,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
 import { MoneyCell } from "@/components/ui/money-cell";
-import { useMoneyMode } from "@/components/ui/data-table-toolbar";
+import { useMoneyMode, useMoneyDisplayMode } from "@/components/ui/data-table-toolbar";
 import { fmtDateOnly } from "@/lib/format-date";
 
 // Denominations sorted descending (largest → smallest), per project rule.
@@ -31,16 +31,28 @@ const eatBusinessDate = (iso: string): string => {
   return new Date(t).toISOString().slice(0, 10);
 };
 
-const MissChips = () => {
+interface MissChipsProps {
+  embedded?: boolean;
+  embeddedFrom?: string;
+  embeddedTo?: string;
+}
+
+const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProps = {}) => {
   const { casinoId } = useAuth();
   const today = new Date();
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
-  const [mode, MoneyToggle] = useMoneyMode("miss-chips");
+  const [localMode, MoneyToggle] = useMoneyMode("miss-chips");
+  const parentMode = useMoneyDisplayMode();
+  const mode = embedded ? parentMode : localMode;
 
   const monthLabel = format(monthAnchor, "MMMM yyyy");
-  const fromIso = `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
+  const fromIso = embedded && embeddedFrom
+    ? `${embeddedFrom}T02:00:00Z`
+    : `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
   const nextStart = startOfMonth(addMonths(monthAnchor, 1));
-  const toIso = `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
+  const toIso = embedded && embeddedTo
+    ? `${format(new Date(new Date(embeddedTo + "T00:00:00").getTime() + 86400000), "yyyy-MM-dd")}T02:00:00Z`
+    : `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["miss-chips-daily", casinoId, fromIso, toIso],
@@ -112,47 +124,12 @@ const MissChips = () => {
 
   const totalCols = DENOMS_DESC.length + 2;
 
-  return (
-    <PageShell>
-      <PageHeader
-        icon={Coins}
-        title="Miss Chips"
-        subtitle={`Daily cage chip count delta · ${monthLabel}`}
-        date
-        centerSlot={
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 font-mono min-w-[140px]"
-              onClick={goCurrent}
-            >
-              {monthLabel}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={goNext}
-              disabled={nextDisabled}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        }
-      >
-        <MoneyCell value={monthSum.total} mode={mode} signed className="text-base font-semibold" />
-        <span className="text-[10px] text-muted-foreground ml-1">TZS</span>
-      </PageHeader>
-
-      <PageSection
-        title={`Daily breakdown (${dailyRows.length})`}
-        titleRight={<MoneyToggle />}
-        card={false}
-      >
+  const Body = (
+    <PageSection
+      title={embedded ? undefined : `Daily breakdown (${dailyRows.length})`}
+      titleRight={embedded ? undefined : <MoneyToggle />}
+      card={false}
+    >
         <DataTable>
           <DTHead>
             <DTRow>
@@ -212,9 +189,49 @@ const MissChips = () => {
                 </DTCell>
               </DTRow>
             )}
-          </DTBody>
-        </DataTable>
-      </PageSection>
+        </DTBody>
+      </DataTable>
+    </PageSection>
+  );
+
+  if (embedded) return Body;
+
+  return (
+    <PageShell>
+      <PageHeader
+        icon={Coins}
+        title="Miss Chips"
+        subtitle={`Daily cage chip count delta · ${monthLabel}`}
+        date
+        centerSlot={
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 font-mono min-w-[140px]"
+              onClick={goCurrent}
+            >
+              {monthLabel}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={goNext}
+              disabled={nextDisabled}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        }
+      >
+        <MoneyCell value={monthSum.total} mode={mode} signed className="text-base font-semibold" />
+        <span className="text-[10px] text-muted-foreground ml-1">TZS</span>
+      </PageHeader>
+      {Body}
     </PageShell>
   );
 };

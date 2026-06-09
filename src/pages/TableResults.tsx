@@ -144,7 +144,13 @@ const dayNum = (iso: string) => Number(iso.slice(8, 10));
 
 /* ------------------------------------------------------------------ */
 
-const TableResults = () => {
+interface TableResultsProps {
+  embedded?: boolean;
+  embeddedFrom?: string;
+  embeddedTo?: string;
+}
+
+const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
   const { roles } = useAuth();
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
@@ -170,10 +176,12 @@ const TableResults = () => {
     if (yearAnchor.getFullYear() !== currentYear) setYearAnchor(new Date(currentYear, 0, 1));
   }, [isSurveillanceOnly, preset, weekAnchor, monthAnchor, yearAnchor, currentYear]);
 
-  const { from, to } =
+  const computed =
     preset === "custom"
       ? { from: customFrom, to: customTo }
       : presetRange(preset, weekAnchor, monthAnchor, yearAnchor);
+  const from = embedded && embeddedFrom ? embeddedFrom : computed.from;
+  const to = embedded && embeddedTo ? embeddedTo : computed.to;
 
   const { data = [], isLoading } = useDailyResults(from, to);
 
@@ -322,31 +330,35 @@ const TableResults = () => {
 
   return (
     <div className="space-y-3 h-full flex flex-col">
-      <PageHeader
-        icon={FileText}
-        title="Table Results"
-        subtitle="Daily Drop / Result / Hold% per table — combined from imports and live shifts"
-        date
-      />
+      {!embedded && (
+        <PageHeader
+          icon={FileText}
+          title="Table Results"
+          subtitle="Daily Drop / Result / Hold% per table — combined from imports and live shifts"
+          date
+        />
+      )}
 
       {/* Filters */}
       <Card className="p-3 md:p-4">
         <div className="flex items-end gap-2 flex-wrap">
-          <div className="flex gap-1 flex-wrap">
-            {visiblePresets.map((p) => (
-              <Button
-                key={p.key}
-                size="sm"
-                variant={preset === p.key ? "default" : "outline"}
-                onClick={() => setPreset(p.key)}
-                className="h-8"
-              >
-                {p.label}
-              </Button>
-            ))}
-          </div>
+          {!embedded && (
+            <div className="flex gap-1 flex-wrap">
+              {visiblePresets.map((p) => (
+                <Button
+                  key={p.key}
+                  size="sm"
+                  variant={preset === p.key ? "default" : "outline"}
+                  onClick={() => setPreset(p.key)}
+                  className="h-8"
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+          )}
 
-          {preset === "week" && (
+          {!embedded && preset === "week" && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5">
@@ -368,7 +380,7 @@ const TableResults = () => {
             </Popover>
           )}
 
-          {preset === "month" && (
+          {!embedded && preset === "month" && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5">
@@ -423,7 +435,7 @@ const TableResults = () => {
             </Popover>
           )}
 
-          {preset === "year" && (
+          {!embedded && preset === "year" && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5">
@@ -455,7 +467,7 @@ const TableResults = () => {
             </Popover>
           )}
 
-          {preset === "custom" && (
+          {!embedded && preset === "custom" && (
             <>
               <div>
                 <Label className="text-xs">From</Label>

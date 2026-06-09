@@ -35,7 +35,7 @@ type SortKey =
   | "miss" | "clIn" | "clOut" | "clNet" | "balance";
 type SortDir = "asc" | "desc";
 
-const SlotsHistoryReport = ({ from, to }: { from: string; to: string }) => {
+const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: string; embedded?: boolean }) => {
   const { data: allShifts = [], isLoading } = useCageSlotsHistory(500);
   const [mode, MoneyToggle] = useMoneyMode("slots-history-report");
 
@@ -152,9 +152,11 @@ const SlotsHistoryReport = ({ from, to }: { from: string; to: string }) => {
         ))}
       </div>
 
-      <div className="flex items-center justify-end">
-        <MoneyToggle />
-      </div>
+      {!embedded && (
+        <div className="flex items-center justify-end">
+          <MoneyToggle />
+        </div>
+      )}
 
       <DataTable stickyFirstColumn>
         <DTHead>
