@@ -342,19 +342,21 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
       {/* Filters */}
       <Card className="p-3 md:p-4">
         <div className="flex items-end gap-2 flex-wrap">
-          <div className="flex gap-1 flex-wrap">
-            {visiblePresets.map((p) => (
-              <Button
-                key={p.key}
-                size="sm"
-                variant={preset === p.key ? "default" : "outline"}
-                onClick={() => setPreset(p.key)}
-                className="h-8"
-              >
-                {p.label}
-              </Button>
-            ))}
-          </div>
+          {!embedded && (
+            <div className="flex gap-1 flex-wrap">
+              {visiblePresets.map((p) => (
+                <Button
+                  key={p.key}
+                  size="sm"
+                  variant={preset === p.key ? "default" : "outline"}
+                  onClick={() => setPreset(p.key)}
+                  className="h-8"
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+          )}
 
           {preset === "week" && (
             <Popover>
