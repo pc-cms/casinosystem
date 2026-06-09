@@ -19,9 +19,7 @@ import { fmtDate, fmtDateTime } from "@/lib/format-date";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { businessDayHourUTC } from "@/lib/business-day";
-import { useCageSlotsHistory } from "@/hooks/use-cage-slots";
 import ReprintShiftDialog from "@/components/cage/ReprintShiftDialog";
-import PrintSlotsShiftDialog from "@/components/cage-slots/PrintSlotsShiftDialog";
 import { toast } from "sonner";
 import {
   DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
