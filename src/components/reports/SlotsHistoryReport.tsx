@@ -152,9 +152,11 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         ))}
       </div>
 
-      <div className="flex items-center justify-end">
-        <MoneyToggle />
-      </div>
+      {!embedded && (
+        <div className="flex items-center justify-end">
+          <MoneyToggle />
+        </div>
+      )}
 
       <DataTable stickyFirstColumn>
         <DTHead>
