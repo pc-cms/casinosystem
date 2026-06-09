@@ -358,7 +358,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
             </div>
           )}
 
-          {preset === "week" && (
+          {!embedded && preset === "week" && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5">
