@@ -1,45 +1,27 @@
-## Reports → Daily diff: fixes
+## Scope
 
-Strictly limited to the Daily diff table. No other formulas, closings, or aggregations are touched.
+Файл `src/pages/Reports.tsx` — только UI шапки. Логика отчётов, RPC, формулы — не трогаются.
 
-### 1. Remove columns
-From both the KPI strip and the table:
-- `Drop (R)`
-- `Cash In`
-- `Hold % (R/D)`
+## Изменения
 
-### 2. New column order
-```
-Date | Result | Player Result | Miss Chips | Total Tips | Diff
-```
+1. **Удалить** текущий `PageHeader` со старыми двумя date-инпутами (lines ~101–110).
+2. **Один общий пикер** над `Tabs`:
+   - Компонент: `DateRangePresets` (`src/components/ui/date-range-presets.tsx`) — кнопки Day / Week / Month / Year / All / Custom + поля From/To для Custom.
+   - Состояние остаётся в Reports: `from`, `to`, `preset`. Прокидывается без изменений во все существующие табы (`DailyReport`, `ShiftReport`, `SlotsHistoryReport`, `PlayerReport`, `GroupReport`, `CashlessReport` и т.д.).
+3. **Дефолт по умолчанию** — «с 1-го числа текущего месяца по сегодня (business date)»:
+   - `from = YYYY-MM-01` текущего business-месяца
+   - `to = useEffectiveBusinessDate()` (фоллбек `getBusinessDate()`)
+   - `preset = "custom"` (т.к. это не совпадает ни с одним из стандартных пресетов Day/Week/Month/Year/All — `month` у пресета = последние 30 дней, а не календарный месяц).
+4. **Tabs** — список вкладок, порядок, иконки, контент не меняются.
+5. **URL-параметр** `?tab=` сохраняется как есть. Диапазон в URL не пишем (как сейчас).
 
-### 3. Miss Chips sign — read from the same source as the Miss Chips page
-The Miss Chips report reads `shifts.closing_count->>'chip_miss_total'` and displays it correctly. The Daily diff currently reads `shifts.miss_total`, which is stored with the opposite sign.
+## Out of scope
 
-Fix: in the `compute_daily_diff` RPC, replace
-`SUM(sh.miss_total)`  →  `SUM((sh.closing_count->>'chip_miss_total')::bigint)`
+- Внутренности каждого таба (`DailyReport` и т.д.) — без изменений.
+- Никаких изменений RPC / БД / расчётов / package.json.
+- Вкладка `Expenses` и `MissChips` рендерят свои страницы целиком (со своими шапками) — оставляем как сейчас.
 
-Nothing else about miss handling, storage, or other reports changes.
+## Технические заметки
 
-### 4. Total Tips (new column)
-Source: `transactions` rows with `type IN ('tips_live','tips_poker','tips_floor')`, `cancelled_at IS NULL`, summed per `business_date`. Amounts are stored positive; used with `+` sign.
-
-Added as `tips bigint` in the RPC return.
-
-### 5. Diff formula
-```
-Diff = Result + Player Result − Miss Chips + Tips
-```
-(Miss in the Miss Chips page sign convention — surplus positive, shortage negative.)
-
-### Files touched
-1. **Migration** — replace `public.compute_daily_diff`:
-   - Returns: `business_date, result, miss, player_result, tips, diff`.
-   - `miss` from `closing_count->>'chip_miss_total'`.
-   - `tips` from tips_* transactions per `business_date`.
-   - `diff = result + player_result − miss + tips`.
-2. **`src/pages/Reports.tsx`** — `DailyReport` block only: drop removed fields, add `tips`, update KPI strip, headers, cells, totals and the comment block. Bump `package.json` patch.
-
-### Out of scope
-- The `ShiftsDailyReport` table at the top of the Daily tab.
-- Any other report, formula, closing logic, or stored field.
+- Импорт: `import { DateRangePresets, presetRange, type DatePreset } from "@/components/ui/date-range-presets"`.
+- Лейаут: `<PageShell>` → `<div className="cms-panel p-3 mb-3">{DateRangePresets}</div>` → `<Tabs>`. Без `PageHeader` сверху (по требованию убрать шапку).
