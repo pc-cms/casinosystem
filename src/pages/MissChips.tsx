@@ -31,16 +31,28 @@ const eatBusinessDate = (iso: string): string => {
   return new Date(t).toISOString().slice(0, 10);
 };
 
-const MissChips = () => {
+interface MissChipsProps {
+  embedded?: boolean;
+  embeddedFrom?: string;
+  embeddedTo?: string;
+}
+
+const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProps = {}) => {
   const { casinoId } = useAuth();
   const today = new Date();
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(today));
-  const [mode, MoneyToggle] = useMoneyMode("miss-chips");
+  const [localMode, MoneyToggle] = useMoneyMode("miss-chips");
+  const parentMode = useMoneyDisplayMode();
+  const mode = embedded ? parentMode : localMode;
 
   const monthLabel = format(monthAnchor, "MMMM yyyy");
-  const fromIso = `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
+  const fromIso = embedded && embeddedFrom
+    ? `${embeddedFrom}T02:00:00Z`
+    : `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
   const nextStart = startOfMonth(addMonths(monthAnchor, 1));
-  const toIso = `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
+  const toIso = embedded && embeddedTo
+    ? `${format(addMonths(new Date(embeddedTo + "T00:00:00"), 0).getTime() ? new Date(new Date(embeddedTo + "T00:00:00").getTime() + 86400000) : new Date(), "yyyy-MM-dd")}T02:00:00Z`
+    : `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["miss-chips-daily", casinoId, fromIso, toIso],
