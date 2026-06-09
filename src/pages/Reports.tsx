@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import {
   DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell,
 } from "@/components/ui/data-table";
-import { MoneyCell } from "@/components/ui/money-cell";
+
 
 const TableResultsPage = lazy(() => import("@/pages/TableResults"));
 
