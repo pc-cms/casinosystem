@@ -12,7 +12,7 @@ import { PageShell, PageSection } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, DTHead, DTBody, DTRow, DTHeader, DTCell } from "@/components/ui/data-table";
 import { MoneyCell } from "@/components/ui/money-cell";
-import { useMoneyMode } from "@/components/ui/data-table-toolbar";
+import { useMoneyMode, useMoneyDisplayMode } from "@/components/ui/data-table-toolbar";
 import { fmtDateOnly } from "@/lib/format-date";
 
 // Denominations sorted descending (largest → smallest), per project rule.
