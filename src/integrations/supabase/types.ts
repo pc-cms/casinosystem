@@ -8896,13 +8896,11 @@ export type Database = {
         Args: { _casino_id: string; _from: string; _to: string }
         Returns: {
           business_date: string
-          cash_in: number
           diff: number
-          drop_r: number
-          hold: number
           miss: number
           player_result: number
           result: number
+          tips: number
         }[]
       }
       compute_paye_for_amount: {

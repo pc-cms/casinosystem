@@ -440,18 +440,11 @@ const GroupReport = ({ from, to }: { from: string; to: string }) => {
 // =================== DAILY DIFF REPORT ===================
 // Per business-day reconciliation via DB RPC `compute_daily_diff`.
 //
-// Window for Player Result and Drop split: 13:00 EAT → next-day 05:00 EAT
-// (active live-game session window — excludes early-morning cage paperwork).
-// Result comes from canonical `shifts.tables_result` (closed live shifts) bucketed
-// by `business_date_of(opened_at)` (07:00 rollover).
-//
-// - Drop (R)      = External new money at tables (NEP-split drop_r)
-// - Cash In       = Drop (R) + Drop (V recycled)
 // - Result        = Σ shifts.tables_result (chip-based, canonical)
-// - Miss Chips    = Σ shifts.miss_total (informational column only)
-// - Hold %        = Result / Drop (R) × 100
 // - Player Result = Cashout − Cash-in (player tx; positive = player wins)
-// - Diff          = Result + Player Result − Miss Chips (should converge to ~0)
+// - Miss Chips    = Σ closing_count->>'chip_miss_total' (same source as Miss Chips page)
+// - Total Tips    = Σ tips_live + tips_poker + tips_floor per business_date
+// - Diff          = Result + Player Result − Miss Chips + Tips
 const DailyReport = ({ from, to }: { from: string; to: string }) => {
   const fmt = useFormatMoney();
   const { casinoId } = useAuth();
@@ -468,12 +461,10 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
       if (error) throw error;
       return (data || []).map((r: any) => ({
         date: r.business_date,
-        dropR: Number(r.drop_r || 0),
-        cashIn: Number(r.cash_in || 0),
-        miss: Number(r.miss || 0),
         result: Number(r.result || 0),
-        hold: r.hold == null ? null : Number(r.hold),
         playerResult: Number(r.player_result || 0),
+        miss: Number(r.miss || 0),
+        tips: Number(r.tips || 0),
         diff: Number(r.diff || 0),
       }));
     },
@@ -481,45 +472,37 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
     staleTime: 30_000,
   });
 
-
   const { sorted, sort, toggle } = useSorted(rows, { key: "date", dir: "desc" });
 
   const totals = useMemo(() => {
-    const t = rows.reduce(
+    return rows.reduce(
       (a, r) => {
-        a.dropR += r.dropR;
-        a.cashIn += r.cashIn;
-        a.miss += r.miss;
         a.result += r.result;
         a.playerResult += r.playerResult;
+        a.miss += r.miss;
+        a.tips += r.tips;
         a.diff += r.diff;
         return a;
       },
-      { dropR: 0, cashIn: 0, miss: 0, result: 0, playerResult: 0, diff: 0 },
+      { result: 0, playerResult: 0, miss: 0, tips: 0, diff: 0 },
     );
-    return { ...t, hold: t.dropR !== 0 ? (t.result / t.dropR) * 100 : null };
   }, [rows]);
 
   const cls = (n: number) =>
     n > 0 ? "cms-amount-positive" : n < 0 ? "cms-amount-negative" : "text-card-foreground";
-  const holdCls = (h: number | null) =>
-    h == null ? "text-card-foreground" : h < 0 ? "cms-amount-negative" : "text-card-foreground";
-  const holdFmt = (h: number | null) => (h == null ? "·" : `${h.toFixed(1)}%`);
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
         <div className="cms-panel p-2">
           <p className="uppercase text-muted-foreground tracking-wider text-[10px]">Days</p>
           <p className="font-mono text-sm font-bold text-card-foreground">{rows.length}</p>
         </div>
         {[
-          { label: "Drop (R)", value: fmt(totals.dropR), cls: "text-card-foreground" },
-          { label: "Cash In", value: fmt(totals.cashIn), cls: "text-card-foreground" },
-          { label: "Miss", value: fmt(totals.miss), cls: cls(totals.miss) },
           { label: "Result", value: fmt(totals.result), cls: cls(totals.result) },
-          { label: "Hold %", value: holdFmt(totals.hold), cls: holdCls(totals.hold) },
           { label: "Player Result", value: fmt(totals.playerResult), cls: cls(totals.playerResult) },
+          { label: "Miss Chips", value: fmt(totals.miss), cls: cls(totals.miss) },
+          { label: "Total Tips", value: fmt(totals.tips), cls: cls(totals.tips) },
           { label: "Diff", value: fmt(totals.diff), cls: cls(totals.diff) },
         ].map((c) => (
           <div key={c.label} className="cms-panel p-2">
@@ -534,45 +517,35 @@ const DailyReport = ({ from, to }: { from: string; to: string }) => {
           <thead>
             <tr className="border-b border-border">
               <SortTh label="Date" k="date" sort={sort} toggle={toggle} />
-              <SortTh label="Drop (R)" k="dropR" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Cash In" k="cashIn" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Miss Chips" k="miss" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Result" k="result" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Hold % (R/D)" k="hold" sort={sort} toggle={toggle} align="right" />
               <SortTh label="Player Result" k="playerResult" sort={sort} toggle={toggle} align="right" />
-              <SortTh label="Diff (R + P − M)" k="diff" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Miss Chips" k="miss" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Total Tips" k="tips" sort={sort} toggle={toggle} align="right" />
+              <SortTh label="Diff (R + P − M + T)" k="diff" sort={sort} toggle={toggle} align="right" />
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-6">Loading…</td></tr>
+              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-6">Loading…</td></tr>
             ) : sorted.length === 0 ? (
-              <tr><td colSpan={8} className="text-center text-muted-foreground text-sm py-6">No data in range</td></tr>
+              <tr><td colSpan={6} className="text-center text-muted-foreground text-sm py-6">No data in range</td></tr>
             ) : sorted.map((r) => (
               <tr key={r.date} className="border-b border-border last:border-0 hover:bg-muted/30">
                 <td className="px-3 py-2 text-xs font-mono text-card-foreground">{fmtDate(r.date)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(r.dropR)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs text-card-foreground">{fmt(r.cashIn)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.miss)}`}>{fmt(r.miss)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.result)}`}>{fmt(r.result)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs ${holdCls(r.hold)}`}>
-                  {holdFmt(r.hold)}
-                </td>
                 <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.playerResult)}`}>{fmt(r.playerResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.miss)}`}>{fmt(r.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs ${cls(r.tips)}`}>{fmt(r.tips)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(r.diff)}`}>{fmt(r.diff)}</td>
               </tr>
             ))}
             {sorted.length > 0 && (
               <tr className="border-t-2 border-primary/30 bg-muted/30">
                 <td className="px-3 py-2 text-xs font-bold text-card-foreground uppercase">Totals</td>
-                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{fmt(totals.dropR)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs font-bold text-card-foreground">{fmt(totals.cashIn)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.miss)}`}>{fmt(totals.miss)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.result)}`}>{fmt(totals.result)}</td>
-                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${holdCls(totals.hold)}`}>
-                  {holdFmt(totals.hold)}
-                </td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.playerResult)}`}>{fmt(totals.playerResult)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.miss)}`}>{fmt(totals.miss)}</td>
+                <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.tips)}`}>{fmt(totals.tips)}</td>
                 <td className={`px-3 py-2 text-right font-mono text-xs font-bold ${cls(totals.diff)}`}>{fmt(totals.diff)}</td>
               </tr>
             )}
