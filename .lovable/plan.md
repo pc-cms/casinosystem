@@ -1,36 +1,45 @@
-## Goal
+## Reports → Daily diff: fixes
 
-On the **Player Tracker** page (`/player-statistics`), the `Bet` column dot should open a popover where Pit/Manager can **manually enter** AR / BJ / Poker average bets per player. The popover auto-flips above/below the row based on available space. Remove the duplicate `PlayerDailyAvgBetTable` block at the bottom of the **Tables Tracking** page (`/tables`) since it does the same job.
+Strictly limited to the Daily diff table. No other formulas, closings, or aggregations are touched.
 
-## Scope
+### 1. Remove columns
+From both the KPI strip and the table:
+- `Drop (R)`
+- `Cash In`
+- `Hold % (R/D)`
 
-### 1. `src/pages/PlayerStatistics.tsx` — `AvgBetPopover`
-- Replace the current read-only popover with an editable one.
-- Always render the popover trigger (also when current display is `·`/0) so the row stays clickable.
-- Inside the popover: three labeled rows (AR / BJ / Poker), each with a compact numeric `Input` (space-formatted, integer, empty = clear value).
-- "Save" button (and Enter key) commits via existing `useSetPlayerDailyAvgBet` mutation; "Cancel" / outside-click discards. Only fields that changed are written; an empty field clears that group (`value: null`).
-- Auto-flip: use Radix `PopoverContent` with `side="bottom"` + `sideOffset` + `avoidCollisions` (default behavior already flips), and `collisionPadding={8}`. Keep width ~`w-56`, `align="end"`.
-- Gate edit by role: only when `canEdit` (Pit / Manager / Floor Manager — same rule as today's `PlayerDailyAvgBetTable`). Read-only viewers still see the breakdown but no inputs.
-- Multi-day period (`!isSingleDay`): keep current read-only behavior, no editor.
-- Trigger styling: dot stays `·` when no data; show summary number otherwise. Hover hint "Click to edit AR / BJ / Poker".
+### 2. New column order
+```
+Date | Result | Player Result | Miss Chips | Total Tips | Diff
+```
 
-### 2. `src/pages/PlayerStatistics.tsx` — wire `canEdit`
-- Compute `canEdit = isSingleDay && (isPit || isManager || isFloorManager) && !isReadOnly`, mirroring `Tables.tsx`'s rule. Pass into `AvgBetPopover`.
-- After mutation success, react-query invalidation on `player_daily_avg_bets` is already in `useSetPlayerDailyAvgBet`; no extra wiring.
+### 3. Miss Chips sign — read from the same source as the Miss Chips page
+The Miss Chips report reads `shifts.closing_count->>'chip_miss_total'` and displays it correctly. The Daily diff currently reads `shifts.miss_total`, which is stored with the opposite sign.
 
-### 3. `src/pages/Tables.tsx` — remove duplicate block
-- Delete the `<PlayerDailyAvgBetTable ... />` render and its import. Visits + players data fetched only for that table can stay (still used elsewhere) — no other changes.
-- Keep the seated-player chips at the top of each table card (unchanged).
+Fix: in the `compute_daily_diff` RPC, replace
+`SUM(sh.miss_total)`  →  `SUM((sh.closing_count->>'chip_miss_total')::bigint)`
 
-### 4. Cleanup
-- `src/components/pit/PlayerDailyAvgBetTable.tsx` becomes unused. Delete the file to avoid drift.
+Nothing else about miss handling, storage, or other reports changes.
 
-## Out of scope
-- No DB migrations. `player_daily_avg_bets` schema, RLS, and the existing `useSetPlayerDailyAvgBet` RPC stay as-is.
-- No changes to Tables Tracking card layout, KPIs, or `TableSeatingDialog`.
-- No changes to the `Table Check` page (`/table-tracker`).
+### 4. Total Tips (new column)
+Source: `transactions` rows with `type IN ('tips_live','tips_poker','tips_floor')`, `cancelled_at IS NULL`, summed per `business_date`. Amounts are stored positive; used with `+` sign.
 
-## Technical notes
-- Use existing `Popover`, `PopoverContent`, `PopoverTrigger` from `@/components/ui/popover` (Radix). `avoidCollisions` defaults to `true` → flips automatically when bottom space is tight. Add `collisionPadding={8}` for safety on small viewports.
-- Parse via `parseInt(value.replace(/\s/g,""), 10)`; format via `formatNumberSpaces`. Empty/zero → save `null` to clear.
-- Mobile (< 640 px): popover keeps `w-56`, inputs `h-9`, tap-friendly.
+Added as `tips bigint` in the RPC return.
+
+### 5. Diff formula
+```
+Diff = Result + Player Result − Miss Chips + Tips
+```
+(Miss in the Miss Chips page sign convention — surplus positive, shortage negative.)
+
+### Files touched
+1. **Migration** — replace `public.compute_daily_diff`:
+   - Returns: `business_date, result, miss, player_result, tips, diff`.
+   - `miss` from `closing_count->>'chip_miss_total'`.
+   - `tips` from tips_* transactions per `business_date`.
+   - `diff = result + player_result − miss + tips`.
+2. **`src/pages/Reports.tsx`** — `DailyReport` block only: drop removed fields, add `tips`, update KPI strip, headers, cells, totals and the comment block. Bump `package.json` patch.
+
+### Out of scope
+- The `ShiftsDailyReport` table at the top of the Daily tab.
+- Any other report, formula, closing logic, or stored field.
