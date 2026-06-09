@@ -40,7 +40,13 @@ function computeRange(period: Period, anchor: string): { from?: string; to?: str
 
 type SortKey = "date" | "category" | "wallet" | "amount";
 
-export default function FinancesExpensesPage() {
+interface FinancesExpensesPageProps {
+  embedded?: boolean;
+  embeddedFrom?: string;
+  embeddedTo?: string;
+}
+
+export default function FinancesExpensesPage({ embedded = false, embeddedFrom, embeddedTo }: FinancesExpensesPageProps = {}) {
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin") || roles.includes("manager") || roles.includes("finance_manager");
 
@@ -48,7 +54,9 @@ export default function FinancesExpensesPage() {
   const [anchor, setAnchor] = useState<string>(todayBD());
   const [customFrom, setCustomFrom] = useState<string>(todayBD());
   const [customTo, setCustomTo] = useState<string>(todayBD());
-  const range = period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
+  const range = embedded && embeddedFrom && embeddedTo
+    ? { from: embeddedFrom, to: embeddedTo }
+    : period === "custom" ? { from: customFrom, to: customTo } : computeRange(period, anchor);
 
   const shiftMonth = (delta: number) => {
     const d = new Date(anchor + "T00:00:00");
