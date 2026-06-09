@@ -147,20 +147,26 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
     return { overshoot, limit, mtd, planned: Number(b.planned_amount) };
   }, [form, budget, rows]);
 
+  const Shell = embedded
+    ? ({ children }: { children: any }) => <>{children}</>
+    : ({ children }: { children: any }) => <PageShell>{children}</PageShell>;
+
   return (
-    <PageShell>
-      <PageHeader
-        icon={Receipt}
-        title="Monthly Expenses"
-        subtitle={`Per-casino expense ledger · ${visible.length} of ${rows.length} records`}
-        date
-      >
-        <FinanceCasinoSwitcher />
-        <label className="text-xs flex items-center gap-1.5">
-          <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
-        </label>
-        {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
-      </PageHeader>
+    <Shell>
+      {!embedded && (
+        <PageHeader
+          icon={Receipt}
+          title="Monthly Expenses"
+          subtitle={`Per-casino expense ledger · ${visible.length} of ${rows.length} records`}
+          date
+        >
+          <FinanceCasinoSwitcher />
+          <label className="text-xs flex items-center gap-1.5">
+            <input type="checkbox" checked={showVoided} onChange={(e) => setShowVoided(e.target.checked)} /> Show voided
+          </label>
+          {canManage && <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4" /> New Expense</Button>}
+        </PageHeader>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
