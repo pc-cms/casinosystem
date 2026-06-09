@@ -144,7 +144,13 @@ const dayNum = (iso: string) => Number(iso.slice(8, 10));
 
 /* ------------------------------------------------------------------ */
 
-const TableResults = () => {
+interface TableResultsProps {
+  embedded?: boolean;
+  embeddedFrom?: string;
+  embeddedTo?: string;
+}
+
+const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResultsProps = {}) => {
   const { roles } = useAuth();
   const isSurveillanceOnly = roles.includes("surveillance" as any) &&
     !roles.some((r) => ["manager", "super_admin", "finance_manager"].includes(r as string));
