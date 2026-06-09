@@ -42,7 +42,7 @@ const resolveSource = (r: any): "live_game" | "slots" => {
 type SortKey = "date" | "source" | "provider" | "direction" | "player" | "amount" | "status";
 type SortDir = "asc" | "desc";
 
-const CashlessReport = ({ from, to }: { from: string; to: string }) => {
+const CashlessReport = ({ from, to, embedded = false }: { from: string; to: string; embedded?: boolean }) => {
   const { casinoId } = useAuth();
   const [mode, MoneyToggle] = useMoneyMode("cashless-report");
 
