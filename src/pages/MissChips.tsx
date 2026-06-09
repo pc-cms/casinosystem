@@ -124,47 +124,12 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
 
   const totalCols = DENOMS_DESC.length + 2;
 
-  return (
-    <PageShell>
-      <PageHeader
-        icon={Coins}
-        title="Miss Chips"
-        subtitle={`Daily cage chip count delta · ${monthLabel}`}
-        date
-        centerSlot={
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 font-mono min-w-[140px]"
-              onClick={goCurrent}
-            >
-              {monthLabel}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={goNext}
-              disabled={nextDisabled}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        }
-      >
-        <MoneyCell value={monthSum.total} mode={mode} signed className="text-base font-semibold" />
-        <span className="text-[10px] text-muted-foreground ml-1">TZS</span>
-      </PageHeader>
-
-      <PageSection
-        title={`Daily breakdown (${dailyRows.length})`}
-        titleRight={<MoneyToggle />}
-        card={false}
-      >
+  const Body = (
+    <PageSection
+      title={embedded ? undefined : `Daily breakdown (${dailyRows.length})`}
+      titleRight={embedded ? undefined : <MoneyToggle />}
+      card={false}
+    >
         <DataTable>
           <DTHead>
             <DTRow>
