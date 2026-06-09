@@ -197,25 +197,27 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
         <div className="flex items-center gap-2 mb-2">
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Filters</h3>
-          <div className="ml-auto flex items-center gap-1 flex-wrap">
-            {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
-              <Button
-                key={p}
-                size="sm"
-                variant={period === p ? "default" : "outline"}
-                className="h-7 px-2 text-xs capitalize"
-                onClick={() => setPeriod(p)}
-              >
-                {p === "ytd" ? "YTD" : p}
+          {!embedded && (
+            <div className="ml-auto flex items-center gap-1 flex-wrap">
+              {(["day", "month", "ytd", "all", "custom"] as Period[]).map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={period === p ? "default" : "outline"}
+                  className="h-7 px-2 text-xs capitalize"
+                  onClick={() => setPeriod(p)}
+                >
+                  {p === "ytd" ? "YTD" : p}
+                </Button>
+              ))}
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
+                Reset
               </Button>
-            ))}
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetFilters}>
-              Reset
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          {period === "day" && (
+          {!embedded && period === "day" && (
             <div className="md:col-span-2 flex items-end gap-1">
               <div className="flex-1">
                 <label className="text-[10px] uppercase text-muted-foreground">Date</label>
@@ -223,7 +225,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
               </div>
             </div>
           )}
-          {period === "month" && (
+          {!embedded && period === "month" && (
             <div className="md:col-span-2 flex items-end gap-1">
               <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(-1)} title="Previous month">‹</Button>
               <div className="flex-1">
@@ -238,7 +240,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
               <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => shiftMonth(1)} title="Next month">›</Button>
             </div>
           )}
-          {period === "custom" && (
+          {!embedded && period === "custom" && (
             <>
               <div>
                 <label className="text-[10px] uppercase text-muted-foreground">From</label>
@@ -250,7 +252,7 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
               </div>
             </>
           )}
-          {(period === "ytd" || period === "all") && <div className="md:col-span-2" />}
+          {!embedded && (period === "ytd" || period === "all") && <div className="md:col-span-2" />}
           <div>
             <label className="text-[10px] uppercase text-muted-foreground">Category</label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
