@@ -330,12 +330,14 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
 
   return (
     <div className="space-y-3 h-full flex flex-col">
-      <PageHeader
-        icon={FileText}
-        title="Table Results"
-        subtitle="Daily Drop / Result / Hold% per table — combined from imports and live shifts"
-        date
-      />
+      {!embedded && (
+        <PageHeader
+          icon={FileText}
+          title="Table Results"
+          subtitle="Daily Drop / Result / Hold% per table — combined from imports and live shifts"
+          date
+        />
+      )}
 
       {/* Filters */}
       <Card className="p-3 md:p-4">
