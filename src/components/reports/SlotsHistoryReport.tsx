@@ -167,8 +167,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTHeader type="status" className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
               Status{sortArrow("status")}
             </DTHeader>
-            <DTHeader type="date">Opened</DTHeader>
-            <DTHeader type="date">Closed</DTHeader>
+            <DTHeader type="time">Closed</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("system")}>System{sortArrow("system")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("slots")}>Slots Result{sortArrow("slots")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")}>Cash Desk Result{sortArrow("cdr")}</DTHeader>
