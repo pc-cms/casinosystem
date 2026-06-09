@@ -91,6 +91,7 @@ const Reports = () => {
   const today = toIsoDate(now);
   const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(today);
+  const [preset, setPreset] = useState<DatePreset>("custom");
   const initialTab = (typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("tab")
     : null) || "daily";
@@ -98,18 +99,18 @@ const Reports = () => {
 
   return (
     <PageShell>
-      <PageHeader
-        icon={FileBarChart}
-        title="Reports"
-        subtitle="Analytics & operational insights"
-      >
-        <Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="w-40 font-mono text-xs h-9" />
-        <span className="text-muted-foreground text-xs">→</span>
-        <Input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-40 font-mono text-xs h-9" />
+      <div className="cms-panel p-3 mb-3 flex items-center justify-between gap-3 flex-wrap">
+        <DateRangePresets
+          preset={preset}
+          from={from}
+          to={to}
+          onChange={(next) => { setPreset(next.preset); setFrom(next.from); setTo(next.to); }}
+        />
         <MoneyToggle />
-      </PageHeader>
+      </div>
 
       <MoneyModeProvider value={mode}>
+
       <Tabs defaultValue={initialTab} className="space-y-3">
         <TabsList className="flex-wrap">
           <TabsTrigger value="daily" className="gap-1 text-xs"><CalendarDays className="w-3.5 h-3.5" /> Daily diff</TabsTrigger>
