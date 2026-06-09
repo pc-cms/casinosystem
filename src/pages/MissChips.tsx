@@ -59,19 +59,22 @@ const MissChips = () => {
         const cc = s.closing_count || {};
         const by = (cc.chip_miss_by_denom || {}) as Record<string, number>;
         const byDenom: Record<number, number> = {};
+        // Stored as counted-opening. Miss convention: positive = chips lost.
+        // Flip sign so the report matches the wallet/P&L meaning.
         Object.entries(by).forEach(([d, q]) => {
           const dn = Number(d);
           const qn = Number(q);
-          if (dn) byDenom[dn] = (byDenom[dn] || 0) + qn;
+          if (dn) byDenom[dn] = (byDenom[dn] || 0) + -qn;
         });
         return {
           business_date: eatBusinessDate(s.opened_at),
           opened_at: s.opened_at,
           closed_at: s.closed_at,
           by_denom: byDenom,
-          total_tzs: Number(cc.chip_miss_total ?? 0),
+          total_tzs: -Number(cc.chip_miss_total ?? 0),
         };
       });
+
     },
     enabled: !!casinoId,
   });
