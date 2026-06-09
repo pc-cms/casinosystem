@@ -126,17 +126,17 @@ const Reports = () => {
 
         <TabsContent value="daily"><DailyReport from={from} to={to} /></TabsContent>
         <TabsContent value="shifts"><ShiftReport from={from} to={to} /></TabsContent>
-        <TabsContent value="slots"><SlotsHistoryReport from={from} to={to} /></TabsContent>
+        <TabsContent value="slots"><SlotsHistoryReport from={from} to={to} embedded /></TabsContent>
         <TabsContent value="tables">
           <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
-            <TableResultsPage />
+            <TableResultsPage embedded embeddedFrom={from} embeddedTo={to} />
           </Suspense>
         </TabsContent>
         <TabsContent value="players"><PlayerReport from={from} to={to} /></TabsContent>
         <TabsContent value="groups"><GroupReport from={from} to={to} /></TabsContent>
-        <TabsContent value="expenses"><Expenses /></TabsContent>
-        <TabsContent value="cashless"><CashlessReport from={from} to={to} /></TabsContent>
-        <TabsContent value="miss-chips"><MissChips /></TabsContent>
+        <TabsContent value="expenses"><Expenses embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
+        <TabsContent value="cashless"><CashlessReport from={from} to={to} embedded /></TabsContent>
+        <TabsContent value="miss-chips"><MissChips embedded embeddedFrom={from} embeddedTo={to} /></TabsContent>
       </Tabs>
       </MoneyModeProvider>
     </PageShell>
