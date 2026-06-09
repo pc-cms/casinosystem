@@ -96,7 +96,7 @@ const RegisterPlayerPage = lazy(() => import("@/pages/cage/RegisterPlayerPage"))
 const EditOpeningChipsPage = lazy(() => import("@/pages/cage/EditOpeningChipsPage"));
 const CageClosingsPage = lazy(() => import("@/pages/cage/CageClosingsPage"));
 const CageViewPage = lazy(() => import("@/pages/cage/CageViewPage"));
-const ClosingsPage = lazy(() => import("@/pages/ClosingsPage"));
+// ClosingsPage retired — merged into /reports (tabs: total, live, slots, expenses).
 // DailyExpensesPage and SlotsExpenses removed — unified into /expenses.
 const CageSlots = lazy(() => import("@/pages/CageSlots"));
 const SlotsTipsCdPage = lazy(() => import("@/pages/cage/SlotsTipsCdPage"));
@@ -335,15 +335,15 @@ const ProtectedRoutes = () => {
           <Route path="/cage" element={<RoleGuard path="/cage"><ErrorBoundary><Cage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/view" element={<RoleGuard path="/cage/view"><ErrorBoundary><CageViewPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage/close-shift" element={<RoleGuard path="/cage"><ErrorBoundary><CloseShiftPage /></ErrorBoundary></RoleGuard>} />
-          <Route path="/cage/closings" element={<Navigate to="/closings?tab=live" replace />} />
-          <Route path="/closings" element={<RoleGuard path="/closings"><ErrorBoundary><ClosingsPage /></ErrorBoundary></RoleGuard>} />
+          <Route path="/cage/closings" element={<Navigate to="/reports?tab=live" replace />} />
+          <Route path="/closings" element={<Navigate to="/reports?tab=total" replace />} />
           <Route path="/cage/shift/:id/edit-opening" element={<RoleGuard path="/cage"><ErrorBoundary><EditOpeningChipsPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots" element={<RoleGuard path="/cage-slots"><ErrorBoundary><CageSlots /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/cashless" element={<Navigate to="/cashless" replace />} />
           <Route path="/cage-slots/transfers" element={<Navigate to="/transfers" replace />} />
           <Route path="/cage-slots/tips" element={<RoleGuard path="/cage-slots"><ErrorBoundary><SlotsTipsCdPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/cage-slots/expenses" element={<Navigate to="/expenses" replace />} />
-          <Route path="/cage-slots/report/:id" element={<Navigate to="/closings?tab=slots" replace />} />
+          <Route path="/cage-slots/report/:id" element={<Navigate to="/reports?tab=slots" replace />} />
           <Route path="/players/register" element={<RoleGuard path="/reception"><ErrorBoundary><RegisterPlayerPage /></ErrorBoundary></RoleGuard>} />
           <Route path="/expenses/approvals" element={<RoleGuard path="/expenses/approvals"><ErrorBoundary><ExpensesApprovals /></ErrorBoundary></RoleGuard>} />
           <Route path="/reception" element={<RoleGuard path="/reception"><Reception /></RoleGuard>} />

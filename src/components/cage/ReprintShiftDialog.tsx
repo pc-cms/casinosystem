@@ -1,7 +1,7 @@
 /**
  * ReprintShiftDialog — reopens the printable Consolidating Cash Desk Report
  * and Chips Movement Report for an already-closed shift so the manager can
- * re-print them later from /cage/closings.
+ * re-print them later from /reports?tab=live.
  *
  * All numbers come from the immutable shift snapshot (closing_count,
  * opening_float, exchange_rates, miss_total) plus per-shift expenses.
