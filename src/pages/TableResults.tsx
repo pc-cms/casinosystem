@@ -176,10 +176,12 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
     if (yearAnchor.getFullYear() !== currentYear) setYearAnchor(new Date(currentYear, 0, 1));
   }, [isSurveillanceOnly, preset, weekAnchor, monthAnchor, yearAnchor, currentYear]);
 
-  const { from, to } =
+  const computed =
     preset === "custom"
       ? { from: customFrom, to: customTo }
       : presetRange(preset, weekAnchor, monthAnchor, yearAnchor);
+  const from = embedded && embeddedFrom ? embeddedFrom : computed.from;
+  const to = embedded && embeddedTo ? embeddedTo : computed.to;
 
   const { data = [], isLoading } = useDailyResults(from, to);
 
