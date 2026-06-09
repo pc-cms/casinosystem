@@ -263,9 +263,11 @@ const CashlessReport = ({ from, to, embedded = false }: { from: string; to: stri
             className="h-8 text-xs"
           />
         </div>
-        <div className="ml-auto self-end">
-          <MoneyToggle />
-        </div>
+        {!embedded && (
+          <div className="ml-auto self-end">
+            <MoneyToggle />
+          </div>
+        )}
       </div>
 
       {/* History table */}
