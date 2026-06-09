@@ -167,8 +167,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
             <DTHeader type="status" className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
               Status{sortArrow("status")}
             </DTHeader>
-            <DTHeader type="date">Opened</DTHeader>
-            <DTHeader type="date">Closed</DTHeader>
+            <DTHeader type="time">Closed</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("system")}>System{sortArrow("system")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("slots")}>Slots Result{sortArrow("slots")}</DTHeader>
             <DTHeader type="money" className="cursor-pointer select-none" onClick={() => toggleSort("cdr")}>Cash Desk Result{sortArrow("cdr")}</DTHeader>
@@ -182,10 +181,10 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         </DTHead>
         <DTBody>
           {isLoading && (
-            <DTRow><DTCell colSpan={13} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
+            <DTRow><DTCell colSpan={12} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
           )}
           {!isLoading && sorted.length === 0 && (
-            <DTRow><DTCell colSpan={13} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={12} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
           {sorted.map(({ s, balance, cdr, cMiss, sysRes, slotsRes, clIn, clOut, clNet }) => {
             const isExpanded = expandedId === s.id;
@@ -215,8 +214,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                     </span>
                   </DTCell>
                   <DTCell type="status"><Badge variant="outline" className="text-[10px] uppercase">{String(s.status).replace("_", " ")}</Badge></DTCell>
-                  <DTCell type="date" className="text-muted-foreground">{fmtDateTime(s.opened_at)}</DTCell>
-                  <DTCell type="date" className="text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</DTCell>
+                  <DTCell type="time" className="text-muted-foreground">{s.closed_at ? new Date(s.closed_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit", hour12: false }) : "·"}</DTCell>
                   <DTCell type="money"><MoneyCell value={sysRes} mode={mode} /></DTCell>
                   <DTCell type="money"><MoneyCell value={slotsRes} mode={mode} signed /></DTCell>
                   <DTCell type="money"><MoneyCell value={cdr} mode={mode} signed /></DTCell>
@@ -233,7 +231,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                 </DTRow>
                 {isExpanded && (
                   <DTRow className="bg-muted/10">
-                    <DTCell colSpan={13} className="p-3">
+                    <DTCell colSpan={12} className="p-3">
                       <SlotsShiftReportBody id={s.id} showHeader={false} compact />
                     </DTCell>
                   </DTRow>

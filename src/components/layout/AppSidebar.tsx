@@ -65,8 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/cage", icon: Landmark, label: "Cage Live Game", roles: ["super_admin", "cashier"], section: "CASHIER" },
   // Cage Slots: cashier-only surface. Managers/Finance/Surveillance/Pit use Cage View (which shows slots checks too).
   { to: "/cage-slots", icon: Coins, label: "Cage Slots", roles: ["cashier_slots"], section: "CASHIER" },
-  // Closings hub — managerial surface only.
-  { to: "/closings", icon: Landmark, label: "Closings", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
+  // Closings hub retired — merged into /reports (Total, Live Game, Slots, Expenses tabs).
   { to: "/bank-checks", icon: CreditCard, label: "Bank", roles: ["super_admin", "manager", "floor_manager", "finance_manager"], section: "CASHIER" },
   // Unified Cashless & Transfers — single page each; source filter (Live/Slots) for managers, locked to role for cashiers.
   { to: "/cashless", icon: CreditCard, label: "Cashless", roles: ["super_admin", "manager", "floor_manager", "cashier", "cashier_slots", "finance_manager"], section: "CASHIER" },
@@ -193,7 +192,7 @@ const parseItemTo = (to: string) => {
   return { base, tab };
 };
 
-const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/closings", "/expenses", "/expenses/approvals"]);
+const EXACT_NAV_PATHS = new Set(["/cage", "/cage/view", "/expenses", "/expenses/approvals"]);
 
 const routeMatchesNavItem = (pathname: string, to: string) => {
   const { base, tab } = parseItemTo(to);
