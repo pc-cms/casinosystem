@@ -181,10 +181,10 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
         </DTHead>
         <DTBody>
           {isLoading && (
-            <DTRow><DTCell colSpan={13} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
+            <DTRow><DTCell colSpan={12} className="text-center text-muted-foreground py-4">Loading…</DTCell></DTRow>
           )}
           {!isLoading && sorted.length === 0 && (
-            <DTRow><DTCell colSpan={13} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
+            <DTRow><DTCell colSpan={12} className="text-center text-muted-foreground py-4">No closed slots shifts in range</DTCell></DTRow>
           )}
           {sorted.map(({ s, balance, cdr, cMiss, sysRes, slotsRes, clIn, clOut, clNet }) => {
             const isExpanded = expandedId === s.id;
@@ -231,7 +231,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                 </DTRow>
                 {isExpanded && (
                   <DTRow className="bg-muted/10">
-                    <DTCell colSpan={13} className="p-3">
+                    <DTCell colSpan={12} className="p-3">
                       <SlotsShiftReportBody id={s.id} showHeader={false} compact />
                     </DTCell>
                   </DTRow>
