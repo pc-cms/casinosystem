@@ -467,7 +467,7 @@ const TableResults = ({ embedded = false, embeddedFrom, embeddedTo }: TableResul
             </Popover>
           )}
 
-          {preset === "custom" && (
+          {!embedded && preset === "custom" && (
             <>
               <div>
                 <Label className="text-xs">From</Label>
