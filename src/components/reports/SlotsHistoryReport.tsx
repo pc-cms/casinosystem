@@ -214,8 +214,7 @@ const SlotsHistoryReport = ({ from, to, embedded = false }: { from: string; to: 
                     </span>
                   </DTCell>
                   <DTCell type="status"><Badge variant="outline" className="text-[10px] uppercase">{String(s.status).replace("_", " ")}</Badge></DTCell>
-                  <DTCell type="date" className="text-muted-foreground">{fmtDateTime(s.opened_at)}</DTCell>
-                  <DTCell type="date" className="text-muted-foreground">{s.closed_at ? fmtDateTime(s.closed_at) : "·"}</DTCell>
+                  <DTCell type="time" className="text-muted-foreground">{s.closed_at ? new Date(s.closed_at).toLocaleTimeString("en-GB", { timeZone: "Africa/Dar_es_Salaam", hour: "2-digit", minute: "2-digit", hour12: false }) : "·"}</DTCell>
                   <DTCell type="money"><MoneyCell value={sysRes} mode={mode} /></DTCell>
                   <DTCell type="money"><MoneyCell value={slotsRes} mode={mode} signed /></DTCell>
                   <DTCell type="money"><MoneyCell value={cdr} mode={mode} signed /></DTCell>
