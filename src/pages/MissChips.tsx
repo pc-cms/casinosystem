@@ -51,7 +51,7 @@ const MissChips = ({ embedded = false, embeddedFrom, embeddedTo }: MissChipsProp
     : `${format(startOfMonth(monthAnchor), "yyyy-MM-dd")}T02:00:00Z`;
   const nextStart = startOfMonth(addMonths(monthAnchor, 1));
   const toIso = embedded && embeddedTo
-    ? `${format(addMonths(new Date(embeddedTo + "T00:00:00"), 0).getTime() ? new Date(new Date(embeddedTo + "T00:00:00").getTime() + 86400000) : new Date(), "yyyy-MM-dd")}T02:00:00Z`
+    ? `${format(new Date(new Date(embeddedTo + "T00:00:00").getTime() + 86400000), "yyyy-MM-dd")}T02:00:00Z`
     : `${format(nextStart, "yyyy-MM-dd")}T02:00:00Z`;
 
   const { data: rows = [], isLoading } = useQuery({
