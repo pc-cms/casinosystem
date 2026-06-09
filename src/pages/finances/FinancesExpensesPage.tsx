@@ -393,6 +393,6 @@ export default function FinancesExpensesPage({ embedded = false, embeddedFrom, e
           </Button>
         </div>
       </ResponsiveDialog>
-    </PageShell>
+    </Shell>
   );
 }
